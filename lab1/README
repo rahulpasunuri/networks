@@ -1,0 +1,68 @@
+Project 1: netcat_part
+-----------------------
+
+Name: RAHUL PASUNURI
+email: rahupasu@indiana.edu
+
+Name: MANISH KUMAR
+uname:manivutt@indiana.edu
+
+------------------------
+This project implements a simple client-server model, in which a client can send messages or files to a server, and in server both these received messages and files are stored locally as files.    
+
+Functionalities:
+1) Integrity of the packets against packet alteration is checked using HMAC. The digest of the message is computed in-order to maintain the integrity of the packet. The server calculates the digest of the message it receives and compares it the value of the digest it received from the client. If they don't match, then the server application is terminated.
+2) If we send a simple message to server, then it is stored in the server in a standard file "output.txt".
+3) If we send a file to server, then we also send the file name to the server. And in server, we save the file contents with the same file name. So, the name of the file in both server and client is same.
+4) The packet is formatted in a predefined XML structure which contains the file name, file contents, and the digest of the file contents. The server then parses this XML structure to obtain these values, and then computes the digest of the file contents it receives.
+5) The project also supports sending binary files, and we treat any file which doesn't end with a ".txt" extension as a binary file and treat it separately.
+
+
+Rules for Compiling the code:
+There is a 'makefile' written in the project's main folder. Open a comman prompt, 'cd' to the project's main folder, and then execute 'make' command. This command creates the object files and the executables. The executable is created in the bin folder. 
+
+Usage:
+	Sytax:
+         "<executable> [OPTIONS]  dest_ip [file] \n"
+	Options:         
+         "-h           Print this help screen"
+         "-v           Verbose output"
+	 	 "-m \"MSG\"   Send the message specified on the command line."	 	 "                
+         "-p port      Set the port to connect on (dflt: 6767)"
+         "-n bytes     Number of bytes to send, defaults whole file"
+         "-o offset    Offset into file to start sending"
+         "-l           Listen on port instead of connecting and write output to file"
+
+Examples:
+(For the below commands to work, the command prompt must 'cd' to the project's main folder)
+1) ./bin/executable.out -p 10000 -v 127.0.0.1 segments.eng
+This send the file 'segments.eng' to the server at ip 127.0.0.1, which is waiting for incoming connections at port number (10000).
+
+2) ./bin/executable.out -h
+This prints the help screen.
+
+3) ./bin/executable.out -p 10000 -v -m "Hello World!!!" 127.0.0.1
+This sends the message "Hello World!!!" to the server, which has ip address "127.0.0.1" and port number 10000.
+
+4) ./bin/executable.out -p 10000 -v -l 127.0.0.1
+This command starts a server in the localhost which listens at port number "10000".
+
+Warnings:
+1) If '-l' is given in the options list, we ignore all the client options, and run only the server. This is the distinguishing parameter we used to differentiate between client and server.
+2) If '-m' is specified, then the filename is ignored, even if it is passed in the command line parameters.
+3) If the value provided in bytes is less than 0, then we will read till end of the file.
+4) If the dest_ip is not provided for a server, then we default it to '127.0.0.1'(which is localhost).
+5) If the default port number is not provided, then we default it 6767.
+
+Description of Project Folders:
+1) All the header files are placed in the 'include/' folder. 
+2) All the cpp files are placed in the 'source/' folder.
+3) The generated object files will be placed in the 'object/' folder.
+4) The generated executable files will be placed in the 'bin/' folder.
+5) The files received by the server are saved in the 'serverFolder/'.
+
+Limitations of the Project:
+1) Works only for IPv4 addresses.
+2) The project doesn't support transfer of files with large sizes(files < 1MB are only recommended, this upper limit may vary with the hardware configurations of the machine in which the server/client is running).  
+3) The server is just a silent listener. It doesn't notify the client whether the packet reached it, successfully or not.
+
