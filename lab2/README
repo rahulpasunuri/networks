@@ -16,4 +16,6 @@ bt_io.c[.h]   :   File for handing input output
 bt_sock.c[.h] :   File for handling socket and network issues
 
 
-
+References:
+1) A Simple BitTorrent "bencode" Decoder (in python), http://effbot.org/zone/bencode.htm
+2) Bencode, http://en.wikipedia.org/wiki/Bencode#section_1for
