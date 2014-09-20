@@ -19,3 +19,4 @@ bt_sock.c[.h] :   File for handling socket and network issues
 References:
 1) A Simple BitTorrent "bencode" Decoder (in python), http://effbot.org/zone/bencode.htm
 2) Bencode, http://en.wikipedia.org/wiki/Bencode#section_1for
+3) Regular expressions using Regex.h, http://www.codeproject.com/Questions/275223/Regular-expressions-using-regex-h
