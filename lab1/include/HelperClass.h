@@ -11,11 +11,6 @@
 #include <openssl/hmac.h> // need to add -lssl to compile
 #include<string>
 using namespace std;
-/** Warning: This is a very weak supplied shared key...as a result it is not
- * really something you'd ever want to use again :)
- */
-static const char key[16] = { 0xfa, 0xe2, 0x01, 0xd3, 0xba, 0xa9,
-0x9b, 0x28, 0x72, 0x61, 0x5c, 0xcc, 0x3f, 0x28, 0x17, 0x0e };
 
 #define BUFSIZE 1024
 

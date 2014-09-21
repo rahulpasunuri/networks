@@ -17,7 +17,7 @@ using namespace std;
 //define helper class methods..
 bool HelperClass::IsValidPortNumber(short portNum)
 {
-	if(portNum<1024 || portNum>65,535)
+	if(portNum<1024 || portNum>65535)
 	{
 		//dont allow this range of port numbers..
 		HelperClass::TerminateApplication("Port Number Out of Bounds!!. Terminating Application");		
@@ -82,7 +82,7 @@ const char* HelperClass::GetDigest(string message)
         HMAC(EVP_sha1(), key, keyLength,data, message.length(), hash, hashlen);                         
         char* rethash=new char[(*hashlen)+1];        
         rethash[*hashlen]='\0';
-        for(int i=0;i<*hashlen;i++)
+        for(unsigned int i=0;i<*hashlen;i++)
         {
            rethash[i]=(char)hash[i];
         }

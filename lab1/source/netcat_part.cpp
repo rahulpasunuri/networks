@@ -43,7 +43,6 @@ void usage(FILE * file)
 void parse_args(nc_args_t * nc_args, int argc, char * argv[])
 {
   int ch;
-  struct hostent * hostinfo;
   //set defaults
   nc_args->n_bytes = 0;
   nc_args->offset = 0;
@@ -154,7 +153,6 @@ int main(int argc, char * argv[])
 	try
 	{
 		nc_args_t nc_args;
-		int sockfd;
 		//initializes the arguments struct for your use
 		parse_args(&nc_args, argc, argv);
 		if(nc_args.verbose)
@@ -191,7 +189,7 @@ int main(int argc, char * argv[])
 			}
 			//address is local address here...
 			//this is a server..
-			Server* s=new Server(nc_args);
+			Server* s = new Server(nc_args);
 		}
 		
 		/**

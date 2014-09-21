@@ -23,8 +23,8 @@ class FileObject
 		~FileObject();	
 		FileObject(const char*fileName, short offSet=0, short numBytes=0,bool readOnlyMode=true);
 		const char * GetFileName();
-		long int GetoffSet();
-		long int GetNumBytes();
+		int GetoffSet();
+		int GetNumBytes();
 			
-		bool Append(string text); //returns whether the append was succesfull or not..			
+		void Append(string text); //returns whether the append was succesfull or not..			
 };

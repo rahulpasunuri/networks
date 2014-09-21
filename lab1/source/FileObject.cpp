@@ -77,18 +77,18 @@ const char * FileObject::GetFileName()
 	return fileName;
 }
 
-long int FileObject::GetoffSet()
+ int FileObject::GetoffSet()
 {
 	return offSet;
 }
 
-long int FileObject::GetNumBytes()
+int FileObject::GetNumBytes()
 {
 	return numBytes;
 }
 
 
-bool FileObject::Append(string text)
+void FileObject::Append(string text)
 {
     try
     {
@@ -97,8 +97,8 @@ bool FileObject::Append(string text)
         cout<<"Appending !!\n";
     }
     catch(...)
-    {
-        HelperClass::TerminateApplication("Error in Appending text!!!");
+    {    
+        HelperClass::TerminateApplication("Error in Appending text!!!");        
     }
 }
 
