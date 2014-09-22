@@ -21,10 +21,10 @@ class Client
 		short serverPortNumber;
 		sockaddr_in destinationAddress;
 		int sock;
-		long int offSet, lsize;
+		int offSet, lsize;
 		char * file,* buffer;
-		size_t numBytes;		
-		size_t result, msgDesc;		
+		int numBytes;		
+		int result, msgDesc;		
 		FileObject *fp;
 		void sendString(string, const char *, string);
 		

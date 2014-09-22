@@ -21,7 +21,6 @@ Client::Client(nc_args_t clnt_arg)
     memset(&destinationAddress, 0, sizeof(destinationAddress)); // Zero out structure
 	destinationAddress = clnt_arg.destaddr;		
 	offSet = 0;  numBytes = 0;      
-	int count = 0;       //  initialising memory variables.....
 	// SOCKET creation.....
  	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -61,12 +60,7 @@ Client::Client(nc_args_t clnt_arg)
 	
 		FILE* fp = fopen(clnt_File.GetFileName(), "rb");	
 		if (fp==NULL) {fputs ("File error",stderr); exit (1);}		
-		//if((fseek(fp, offSet, SEEK_END))!=0)
-		//{
-		//		HelperClass::TerminateApplication("File Seek Failed. Possible reason: offset might be greater than file size.");
-    	//	}                
-	       
-        // finding file size		
+	
         if(offSet == 0)
 		{
 	    	fseek(fp, 0, SEEK_END);
@@ -93,11 +87,6 @@ Client::Client(nc_args_t clnt_arg)
 	         }
         }		    		  								     								
 		
-		//buffer = (char *)malloc(sizeof(char)*(lsize+1));
-		//if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
-     	//result = fread(buffer,sizeof(char),lsize,fp);   // file contents are stored into the buffer...
-     	//buffer[lsize]='\0';
-
       ifstream file (clnt_arg.filename,ios::in|ios::ate);
       string s="";
       if (file.is_open())
@@ -152,7 +141,7 @@ void Client::sendString(string message,const char * digest, string fileName="")
         {
             //cout<<"Packet to be sent is:\n"<<MSG<<endl;
         }    
-        size_t messageLen = MSG.length(); // determining the length of the string....
+        int messageLen = MSG.length(); // determining the length of the string....
         cout<<"Length of the packet is "<<MSG.length();
         ssize_t msgDesc = send(sock, MSG.data(), messageLen, 0);
 
