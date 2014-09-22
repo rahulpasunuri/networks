@@ -114,31 +114,31 @@ char* nextToken(regex_t *pexp, char* &sz, int *size)
 
  
 int main(int argc, char* argv[]) 
-{    
-    
-    
-    int sm=0;  //    VARIABLE TO STORE THE SIZE VALUES OF LENGTH OF STRINGS...  
-    if(argc<2)
-    {
-        cout<<"Invalid no. of arguments\n";
-        exit(0);    
-    }     
+{            
+		int sm=0;  //    VARIABLE TO STORE THE SIZE VALUES OF LENGTH OF STRINGS...  
+		if(argc<2)
+		{
+		    cout<<"Invalid no. of arguments\n";
+		    exit(0);    
+		}     
+		
 	    int rv;
 	    regex_t exp; //Our compiled expression	
 	    rv = regcomp(&exp, "([idel])|([0-9]+):|(-?[0-9]+)", REG_EXTENDED);
 	    if (rv != 0) 
 	    {
 		    printf("regcomp failed with %d\n", rv);
+			exit(0);
 	    }
 
         fstream fp(argv[1],ios::in|ios::ate|ios::binary);
-            fp.seekg(0,ios::end);
+        fp.seekg(0,ios::end);
         int size = fp.tellg(); 
                 
-           fp.seekg(0,ios::beg);
+       	fp.seekg(0,ios::beg);
         char * buffer = new char[size+1];
-            fp.read(buffer,size);
-             buffer[size] = '\0';
+        fp.read(buffer,size);
+        buffer[size] = '\0';
          
 	    
 	    cout<<"\n\n\n..PRINTING OUT THE KEY VALUE PAIRS..\n\n";    
@@ -154,62 +154,49 @@ int main(int argc, char* argv[])
             else 
             {   
                   if(!(strcmp(text,string("d").c_str())))
-                  {   
-                         
-                           cout<<nextToken(&exp, buffer, &sm)<<"\t";
-                           char* t =nextToken(&exp, buffer,&sm);
-                           if(!strcmp(t,string("i").c_str()))
-                           {
-                                int s = atoi(nextToken(&exp, buffer, &sm));
-                                
-                                    cout<<"\t"<<s<<endl;                            
-                           }
-                           else
-                           {
-                                    cout<<t<<"\n";                   
-                           }
+	              {                            
+                       cout<<nextToken(&exp, buffer, &sm)<<"\t";
+                       char* t =nextToken(&exp, buffer,&sm);
+                       if(!strcmp(t,string("i").c_str()))
+                       {
+                            int s = atoi(nextToken(&exp, buffer, &sm));                            
+                            cout<<"\t"<<s<<endl;                            
+                       }
+                       else
+                       {
+                            cout<<t<<"\n";                   
+                       }
                            
                   }
                   else if(!(strcmp(text,string("info").c_str())))
                             
-                            cout<<text<<"\n";
+                        cout<<text<<"\n";
                     
                   else  if(!(strcmp(text,string("name").c_str())))
                   {
-                            cout<<text<<"\t\t";
-                            cout<<nextToken(&exp, buffer, &sm)<<"\n";
-                            cout<<nextToken(&exp, buffer, &sm)<<"\t";
-                            char* t =nextToken(&exp, buffer, &sm);
-                            if(!strcmp(t,string("i").c_str()))
-                            {
-                                int s = atoi(nextToken(&exp, buffer, &sm));
-                                
-                                cout<<s<<endl;                            
-                            }
+                        cout<<text<<"\t\t";
+                        cout<<nextToken(&exp, buffer, &sm)<<"\n";
+                        cout<<nextToken(&exp, buffer, &sm)<<"\t";
+                        char* t =nextToken(&exp, buffer, &sm);
+                        if(!strcmp(t,string("i").c_str()))
+                        {
+                            int s = atoi(nextToken(&exp, buffer, &sm));
+                            
+                            cout<<s<<endl;                            
+                        }
                             
                   }      
                   else  if(!(strcmp(text,string("pieces").c_str())))
                   {
-                            cout<<text<<"\t\t\n";
-                            char * p =nextToken(&exp, buffer, &sm);
-                            //while(strcmp(p,string("e").c_str()))   
-                            //{
-                              //  P.append(p);
-                              //  p =nextToken(&exp, buffer, &sm);
-                            //}
+                        cout<<text<<"\n";
+                        char * p =nextToken(&exp, buffer, &sm);
                          // FOR LOOP TO PRINT OUT THE HASH..         
-                            for(int i=0;i<sm;i++)
-                                cout<<p[i];
-                              
-                              //cout<<sm;
-                                  
-                            
+                        for(int i=0;i<sm;i++)
+                            cout<<p[i];                                                                                            
                   }
                   else
-                            continue;
-             }               
-               
-                    
+                        continue;
+             }                                                 
         }                                                     
       
         //3. Free it
