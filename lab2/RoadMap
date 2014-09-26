@@ -1,0 +1,32 @@
+
+
+ROAD MAP FOR BIT TORRENT CLIENT
+
+BY:
+RAHUL PASUNURI
+MANISH KUMAR
+
+For Milestone1,we are able to parse the torrent files successfully. The code for parsing is submitted with the name "bencode.cpp". Following are the files that will be submitted in the .tar once the project is completed.
+
+1.	bencode.cpp|bencode.h
+
+2. 	bt_client.cpp|bt_client.h   	//  contains the code for handling socket connections 
+
+3.	bt_lib.cpp|bt_lib.h	   	//  contains data structures to hold the torrent file information and function definitions that will be used in the program.
+
+4.	bt_setup.cpp|bt_setup.h  	//  contains code to parse a peer string
+
+5.	makefile 
+6.	readme
+
+As parsing of the torrent file is completed, our next goals are to implement: 
+
+1. the handshake protocol between peers
+
+2. methods to handle the multiple socket connections and implement the peer message system stating  choked, unchoked, interested etc.
+
+3. structuring the client.cpp and lib.cpp
+
+4.  1 seeder and 1 leecher
+
+5.  n seeders and n leechers
