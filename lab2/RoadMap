@@ -16,10 +16,10 @@ For Milestone - 1, we are able to parse the torrent files successfully. The code
 	This is the server class, we wrote for the project 1. This class will be inherited by the peer class, which needs to act like a server.
 
 4. bt_client.cpp|bt_client.h:
-	These files will contain the code required by a peer. As the peers in bit-torrent require both client and server side functionalities, they inherit 	those features from client.cpp and server.cpp, which we implemented for project -1
+	These files will contain the code required by a peer. As the peers in bit-torrent require both client and server side functionalities, they inherit those features from client.cpp and server.cpp, which we implemented for project -1
 
 5. bt_lib.cpp|bt_lib.h:
-	These contain data structures to hold the torrent file information and some bit torrent functionilites. These files would be used by all the the 		other classes.
+	These contain data structures to hold the torrent file information and some bit torrent functionilites. These files would be used by all the the other classes.
 
 6. bt_setup.cpp|bt_setup.h
 	These files contain the parsing code to parse the peer string that is given as input from command line to obtain peer_id, and programs to save the log, torrent files.
@@ -36,34 +36,34 @@ Future Plan:
 As parsing of the torrent file is completed, our next goals are to implement the following tasks in the order mentioned. 
 
 1. The handshake protocol between peers. 
-	We are considering to implement this code in the bt_client.cpp where both the peers transmit the same messages to each other and is done at 4 stages as per 		the specifications of the bit torrent client. Once the hand shaking is completed successfully process control goes to the peer messaging system and that's how 		the peers communicate further.
+	We are considering to implement this code in the bt_client.cpp where both the peers transmit the same messages to each other and is done at 4 stages as per the specifications of the bit torrent client. Once the hand shaking is completed successfully process control goes to the peer messaging system and that's how the peers communicate further.
 
-2. Breaking the file into pieces, and blocks, and implement the functionality to send only the requested piece, and save the pieces in the correct order at the 	leecher.
+2. Breaking the file into pieces, and blocks, and implement the functionality to send only the requested piece, and save the pieces in the correct order at the leecher.
  
 3. Methods to handle the multiple socket connections and implement the peer message system stating choked, unchoked, interested etc.
 
 4. Structuring the client.cpp and lib.cpp
 
 5. 1 seeder and 1 leecher:
-	Once the basic functionalities are completed, we will first implement the 1seeder 1 leecher approach where one peer (seeder) will be the owner of the file and 		the other one will be downloading the file(leecher).
+	Once the basic functionalities are completed, we will first implement the 1seeder 1 leecher approach where one peer (seeder) will be the owner of the file and the other one will be downloading the file(leecher).
 
 6. Matching the SHA1 hash for each piece on both seeds and leechers.
 
 7. Implement the logging services, for the entire process of file uploading and downloading, which has to be done regular intervals of time.
 
 8. 1 seeder and n leechers:
-	This functionality is easier to extend from the previous stage, as the server maintains a different connection for each client, and in each of those 		connections, leechers can request the pieces they need.
+	This functionality is easier to extend from the previous stage, as the server maintains a different connection for each client, and in each of those connections, leechers can request the pieces they need.
 
 9. n seeders and n leechers:
-	Here, each leecher can request pieces from multiple seeds. The client must be able to make TCP connections with more than one seed, and should be making 		non-blocking calls for read, for each server(The non-blocking calls can be implemented using select() and poll(), which can be used to check the status of a 		socket).
+	Here, each leecher can request pieces from multiple seeds. The client must be able to make TCP connections with more than one seed, and should be making non-blocking calls for read, for each server(The non-blocking calls can be implemented using select() and poll(), which can be used to check the status of a socket).
 	
 Work distribution:
-        The work distribution is done as follows:
+The work distribution is done as follows:
 	I will be working on,
 	1> 4 stages of Handshake protocol
 	2> Breaking the file into pieces and functionality to send the requested piece & structuring setup.cpp.
 
-	Rahul will work on,
+Rahul will work on,
 	1> Implementing peer messaging system and methods to handle multiple socket connections.
 	2> structuring client.cpp and lib.cpp
 
