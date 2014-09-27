@@ -1,32 +1,43 @@
-
-
 ROAD MAP FOR BIT TORRENT CLIENT
 
 BY:
-RAHUL PASUNURI
-MANISH KUMAR
+RAHUL PASUNURI (rahupasu@indiana.edu)
+MANISH KUMAR (manivutt@indiana.edu)
 
-For Milestone1,we are able to parse the torrent files successfully. The code for parsing is submitted with the name "bencode.cpp". Following are the files that will be submitted in the .tar once the project is completed.
+For Milestone - 1, we are able to parse the torrent files successfully. The code for parsing is can be seen in the file with name "bencode.cpp". Following are the files that will be submitted in the .tar once the project is completed.
 
 1.	bencode.cpp|bencode.h
+	These files will contain the code related to the bencoding of the torrent files. This will be imported by peers for parsing the torrent files. 
 
-2. 	bt_client.cpp|bt_client.h   	//  contains the code for handling socket connections 
+2.  client.cpp | client.h:
+	This is the client class, we wrote for the project 1. This class will be inherited by the peer class, which needs to act like a client.
 
-3.	bt_lib.cpp|bt_lib.h	   	//  contains data structures to hold the torrent file information and function definitions that will be used in the program.
+3.  server.cpp | server.h:
+	This is the server class, we wrote for the project 1. This class will be inherited by the peer class, which needs to act like a server.
 
-4.	bt_setup.cpp|bt_setup.h  	//  contains code to parse a peer string
+3. 	bt_client.cpp|bt_client.h:
+	These files will contain the code required by a peer. As the peers in bit-torrent require both client and server side functionalities, they inherit 	those features from client.cpp and server.cpp, which we implemented for project -1
 
-5.	makefile 
-6.	readme
+4.	bt_lib.cpp|bt_lib.h:
+	These contain data structures to hold the torrent file information and some bit torrent functionilites. These files would be used by all the the 		other classes.
 
-As parsing of the torrent file is completed, our next goals are to implement: 
+5.	bt_setup.cpp|bt_setup.h  	//  contains code to parse a peer string
+	
 
-1. the handshake protocol between peers
+6.	makefile 
+	This file will contain the makefile commands, which can be used to build the project easily.	
+	
+7.	readme
+	This will contain a detailed description on how to use the project, and the functionalities of the project.
 
-2. methods to handle the multiple socket connections and implement the peer message system stating  choked, unchoked, interested etc.
+As parsing of the torrent file is completed, our next goals are to implement the following tasks in the order mentioned. 
 
-3. structuring the client.cpp and lib.cpp
+1. The handshake protocol between peers.
 
-4.  1 seeder and 1 leecher
+2. Methods to handle the multiple socket connections and implement the peer message system stating choked, unchoked, interested etc.
 
-5.  n seeders and n leechers
+3. Structuring the client.cpp and lib.cpp
+
+4. 1 seeder and 1 leecher
+
+5. n seeders and n leechers
