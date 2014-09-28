@@ -15,7 +15,7 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 
-#include "bt_lib.h"
+
 
 
 /*Maximum file name size, to make things easy*/
