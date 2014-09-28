@@ -4,8 +4,8 @@
 #include <string.h>
 
 
-#include "bt_setup.h"
-#include "bt_lib.h"
+#include "../include/bt_setup.h"
+#include "../include/bt_lib.h"
 
 
 /**
@@ -52,7 +52,7 @@ void __parse_peer(peer_t * peer, char * peer_st){
   int i;
 
   //need to copy becaus strtok mangels things
-  parse_str = malloc(strlen(peer_st)+1);
+  parse_str = (char *) malloc(strlen(peer_st)+1);
   strncpy(parse_str, peer_st, strlen(peer_st)+1);
 
   //only can have 2 tokens max, but may have less
@@ -159,7 +159,7 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[]){
         exit(1);
       }
 
-      bt_args->peers[n_peers] = malloc(sizeof(peer_t));
+      bt_args->peers[n_peers] = (peer_t *) malloc(sizeof(peer_t));
 
       //parse peers
       __parse_peer(bt_args->peers[n_peers], optarg);

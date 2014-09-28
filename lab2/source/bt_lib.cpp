@@ -12,8 +12,8 @@
 
 #include <openssl/sha.h> //hashing pieces
 
-#include "bt_lib.h"
-#include "bt_setup.h"
+#include "../include/bt_lib.h"
+#include "../include/bt_setup.h"
 
 
 

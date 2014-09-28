@@ -11,8 +11,8 @@
 #include <sys/types.h>
 #include <signal.h>
 
-#include "bt_lib.h"
-#include "bt_setup.h"
+#include "../include/bt_lib.h"
+#include "../include/bt_setup.h"
 
 int main (int argc, char * argv[]){
 
