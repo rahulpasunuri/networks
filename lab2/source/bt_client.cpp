@@ -21,14 +21,16 @@ int main (int argc, char * argv[]){
 
   parse_args(&bt_args, argc, argv);
 
-  if(bt_args.verbose){
+  if(bt_args.verbose)
+  {
     printf("Args:\n");
     printf("verbose: %d\n",bt_args.verbose);
     printf("save_file: %s\n",bt_args.save_file);
     printf("log_file: %s\n",bt_args.log_file);
     printf("torrent_file: %s\n", bt_args.torrent_file);
 
-    for(i=0;i<MAX_CONNECTIONS;i++){
+    for(i=0;i<MAX_CONNECTIONS;i++)
+    {
       if(bt_args.peers[i] != NULL)
         print_peer(bt_args.peers[i]);
     }
@@ -38,13 +40,15 @@ int main (int argc, char * argv[]){
 
   //read and parse the torrent file here
 
-  if(bt_args.verbose){
+  if(bt_args.verbose)
+  {
     // print out the torrent file arguments here
   }
 
   //main client loop
   printf("Starting Main Loop\n");
-  while(1){
+  while(1)
+  {
 
     //try to accept incoming connection from new peer
        

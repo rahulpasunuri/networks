@@ -17,7 +17,8 @@
 
 
 
-void calc_id(char * ip, unsigned short port, char *id){
+void calc_id(char * ip, unsigned short port, char *id)
+{
   char data[256];
   int len;
   
@@ -43,7 +44,8 @@ void calc_id(char * ip, unsigned short port, char *id){
  * ip address.
  *   
  **/
-int init_peer(peer_t *peer, char * id, char * ip, unsigned short port){
+int init_peer(peer_t *peer, char * id, char * ip, unsigned short port)
+{
     
   struct hostent * hostinfo;
   //set the host id and port for referece
@@ -51,10 +53,11 @@ int init_peer(peer_t *peer, char * id, char * ip, unsigned short port){
   peer->port = port;
     
   //get the host by name
-  if((hostinfo = gethostbyname(ip)) ==  NULL){
-    perror("gethostbyname failure, no such host?");
-    herror("gethostbyname");
-    exit(1);
+  if((hostinfo = gethostbyname(ip)) ==  NULL)
+  {
+		perror("gethostbyname failure, no such host?");
+		herror("gethostbyname");
+		exit(1);
   }
   
   //zero out the sock address
@@ -81,16 +84,17 @@ int init_peer(peer_t *peer, char * id, char * ip, unsigned short port){
  * print out debug info of a peer
  *
  **/
-void print_peer(peer_t *peer){
+void print_peer(peer_t *peer)
+{
   int i;
 
-  if(peer){
-    printf("peer: %s:%u ",
-           inet_ntoa(peer->sockaddr.sin_addr),
-           peer->port);
+  if(peer)
+  {
+    printf("peer: %s:%u ", inet_ntoa(peer->sockaddr.sin_addr), peer->port);
     printf("id: ");
-    for(i=0;i<ID_SIZE;i++){
-      printf("%02x",peer->id[i]);
+    for(i=0;i<ID_SIZE;i++)
+    {
+    	printf("%02x",peer->id[i]);
     }
     printf("\n");
   }
