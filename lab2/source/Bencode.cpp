@@ -42,7 +42,6 @@ class Bencode
 				
 	static char* nextToken(regex_t *pexp, char* &sz, int *size) 
 	{
-	    initVariables();
 		isString=false;
 		regmatch_t matches[MAX_MATCHES]; //A list of the matches in the string (a list of 1)
 		 
@@ -93,7 +92,6 @@ class Bencode
 	
 	static void token(char * text,regex_t *exp)
 	{
-  	    initVariables();
 		if(strcmp(text,string("i").c_str())==0)
 		{   
 			cout<<"\n"<<atoi(nextToken(exp, buffer,&sm))<<"\t"<<"\n";
@@ -143,6 +141,7 @@ class Bencode
 
 	static void ParseTorrentFile(const char* fileName)
 	{
+	    initVariables();
 	    if(fileName==NULL)
 	    {
 	        HelperClass::TerminateApplication("Please pass the name of the torrent file");
