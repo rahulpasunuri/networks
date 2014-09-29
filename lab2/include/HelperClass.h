@@ -55,4 +55,5 @@ class HelperClass
 		static void TerminateApplication(string);
 		static bool CheckIfFileExists(const char*);
 		static const char * GetDigest(string H);
+		static void Usage(FILE*);
 };

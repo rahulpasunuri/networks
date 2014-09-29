@@ -5,9 +5,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-
-#include "bt_setup.h"
 #include "bt_lib.h"
+#include "Peer.h"
 
 
 /**

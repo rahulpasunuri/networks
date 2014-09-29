@@ -99,4 +99,24 @@ const char* HelperClass::GetDigest(string message)
 }
    
 
+void HelperClass::Usage(FILE * file)
+{
+  if(file == NULL)
+  {
+    file = stdout;
+  }
+
+  fprintf(file,
+          "bt-client [OPTIONS] file.torrent\n"
+          "  -h            \t Print this help screen\n"
+          "  -b ip         \t Bind to this ip for incoming connections, ports\n"
+          "                \t are selected automatically\n"
+          "  -s save_file  \t Save the torrent in directory save_dir (dflt: .)\n"
+          "  -l log_file   \t Save logs to log_filw (dflt: bt-client.log)\n"
+          "  -p ip:port    \t Instead of contacing the tracker for a peer list,\n"
+          "                \t use this peer instead, ip:port (ip or hostname)\n"
+          "                \t (include multiple -p for more than 1 peer)\n"
+          "  -I id         \t Set the node identifier to id (dflt: random)\n"
+          "  -v            \t verbose, print additional verbose info\n");
+}
 

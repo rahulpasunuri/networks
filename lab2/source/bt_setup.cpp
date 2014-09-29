@@ -2,49 +2,19 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-
-
 #include "../include/bt_setup.h"
 #include "../include/bt_lib.h"
 
 
 /**
- * usage(FILE * file) -> void
- *
- * print the usage of this program to the file stream file
- *
- **/
-
-void usage(FILE * file)
-{
-  if(file == NULL)
-  {
-    file = stdout;
-  }
-
-  fprintf(file,
-          "bt-client [OPTIONS] file.torrent\n"
-          "  -h            \t Print this help screen\n"
-          "  -b ip         \t Bind to this ip for incoming connections, ports\n"
-          "                \t are selected automatically\n"
-          "  -s save_file  \t Save the torrent in directory save_dir (dflt: .)\n"
-          "  -l log_file   \t Save logs to log_filw (dflt: bt-client.log)\n"
-          "  -p ip:port    \t Instead of contacing the tracker for a peer list,\n"
-          "                \t use this peer instead, ip:port (ip or hostname)\n"
-          "                \t (include multiple -p for more than 1 peer)\n"
-          "  -I id         \t Set the node identifier to id (dflt: random)\n"
-          "  -v            \t verbose, print additional verbose info\n");
-}
-
-/**
- * __parse_peer(peer_t * peer, char peer_st) -> void
+ * __parse_peer(Peer * peer, char peer_st) -> void
  *
  * parse a peer string, peer_st and store the parsed result in peer
  *
  * ERRORS: Will exit on various errors
  **/
 
-void __parse_peer(peer_t * peer, char * peer_st)
+void __parse_peer(Peer * peer, char * peer_st)
 {
   char * parse_str;
   char * word;
@@ -59,14 +29,11 @@ void __parse_peer(peer_t * peer, char * peer_st)
   strncpy(parse_str, peer_st, strlen(peer_st)+1);
 
   //only can have 2 tokens max, but may have less
-  for(word = strtok(parse_str, sep), i=0; 
-      (word && i < 3); 
-      word = strtok(NULL,sep), i++)
+  for(word = strtok(parse_str, sep), i=0; (word && i < 3); word = strtok(NULL,sep), i++)
   {
-
-    printf("%d:%s\n",i,word);
-    switch(i)
-    {
+	printf("%d:%s\n",i,word);
+	switch(i)
+	{
 		case 0://id
 		  ip = word;
 		  break;
@@ -74,21 +41,20 @@ void __parse_peer(peer_t * peer, char * peer_st)
 		  port = atoi(word);
 		default:
 		  break;
-    }
-
+	}
   }
 
   if(i < 2)
   {
     fprintf(stderr,"ERROR: Parsing Peer: Not enough values in '%s'\n",peer_st);
-    usage(stderr);
+    HelperClass::Usage(stderr);
     exit(1);
   }
 
   if(word)
   {
     fprintf(stderr, "ERROR: Parsing Peer: Too many values in '%s'\n",peer_st);
-    usage(stderr);
+    HelperClass::Usage(stderr);
     exit(1);
   }
 
@@ -171,7 +137,7 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
 		    exit(1);
 		  }
 
-		  bt_args->peers[n_peers] = (peer_t *) malloc(sizeof(peer_t));
+		  bt_args->peers[n_peers] = (Peer *) malloc(sizeof(Peer));
 
 		  //parse peers
 		  __parse_peer(bt_args->peers[n_peers], optarg);
