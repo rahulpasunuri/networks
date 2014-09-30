@@ -15,6 +15,91 @@
 #include <netdb.h> 
 
 
+/**
+ * __parse_peer(Peer * peer, char peer_st) -> void
+ *
+ * parse a peer string, peer_st and store the parsed result in peer
+ *
+ * ERRORS: Will exit on various errors
+ **/
+void __parse_peer(Peer * peer, char * peer_st)
+{
+  char * parse_str;
+  char * word;
+  unsigned short port;
+  char * ip;
+  char id[20];
+  char sep[] = ":";
+  int i;
+
+  //need to copy becaus strtok mangels things
+  parse_str = (char *) malloc(strlen(peer_st)+1);
+  strncpy(parse_str, peer_st, strlen(peer_st)+1);
+
+  //only can have 2 tokens max, but may have less
+  for(word = strtok(parse_str, sep), i=0; (word && i < 3); word = strtok(NULL,sep), i++)
+  {
+	printf("%d:%s\n",i,word);
+	switch(i)
+	{
+		case 0://id
+		  ip = word;
+		  break;
+		case 1://ip
+		  port = atoi(word);
+		default:
+		  break;
+	}
+  }
+
+  if(i < 2)
+  {
+    fprintf(stderr,"ERROR: Parsing Peer: Not enough values in '%s'\n",peer_st);
+    HelperClass::Usage(stderr);
+    exit(1);
+  }
+
+  if(word)
+  {
+    fprintf(stderr, "ERROR: Parsing Peer: Too many values in '%s'\n",peer_st);
+    HelperClass::Usage(stderr);
+    exit(1);
+  }
+
+
+//TODO
+
+  //calculate the id, value placed in id
+//  calc_id(ip,port,id);
+
+//TODO
+  //build the object we need
+ // init_peer(peer, id, ip, port);
+  
+  //free extra memory
+  free(parse_str);
+
+  return;
+}
+
+//constructor for the peer class...
+//pass the arguments to client and server accordingly here...
+Peer:: Peer(bt_args_t args) : Server(args) //, Client(args) TODO
+{
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
 void Peer::calc_id(char * ip, unsigned short port, char *id)
 {
   char data[256];
@@ -25,7 +110,7 @@ void Peer::calc_id(char * ip, unsigned short port, char *id)
 
   //id is just the SHA1 of the ip and port string
   SHA1((unsigned char *) data, len, (unsigned char *) id); 
-
+  
   return;
 }
 

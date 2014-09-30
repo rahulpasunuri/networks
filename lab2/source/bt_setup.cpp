@@ -3,91 +3,21 @@
 #include <unistd.h>
 #include <string.h>
 #include "../include/bt_setup.h"
-#include "../include/bt_lib.h"
+#include<string>
 
 
-/**
- * __parse_peer(Peer * peer, char peer_st) -> void
- *
- * parse a peer string, peer_st and store the parsed result in peer
- *
- * ERRORS: Will exit on various errors
- **/
-
-void __parse_peer(Peer * peer, char * peer_st)
-{
-  char * parse_str;
-  char * word;
-  unsigned short port;
-  char * ip;
-  char id[20];
-  char sep[] = ":";
-  int i;
-
-  //need to copy becaus strtok mangels things
-  parse_str = (char *) malloc(strlen(peer_st)+1);
-  strncpy(parse_str, peer_st, strlen(peer_st)+1);
-
-  //only can have 2 tokens max, but may have less
-  for(word = strtok(parse_str, sep), i=0; (word && i < 3); word = strtok(NULL,sep), i++)
-  {
-	printf("%d:%s\n",i,word);
-	switch(i)
-	{
-		case 0://id
-		  ip = word;
-		  break;
-		case 1://ip
-		  port = atoi(word);
-		default:
-		  break;
-	}
-  }
-
-  if(i < 2)
-  {
-    fprintf(stderr,"ERROR: Parsing Peer: Not enough values in '%s'\n",peer_st);
-    HelperClass::Usage(stderr);
-    exit(1);
-  }
-
-  if(word)
-  {
-    fprintf(stderr, "ERROR: Parsing Peer: Too many values in '%s'\n",peer_st);
-    HelperClass::Usage(stderr);
-    exit(1);
-  }
-
-
-  //calculate the id, value placed in id
-  calc_id(ip,port,id);
-
-  //build the object we need
-  init_peer(peer, id, ip, port);
-  
-  //free extra memory
-  free(parse_str);
-
-  return;
-}
 
 /**
- * pars_args(bt_args_t * bt_args, int argc, char * argv[]) -> void
- *
  * parse the command line arguments to bt_client using getopt and
  * store the result in bt_args.
- *
- * ERRORS: Will exit on various errors
- *
  **/
 void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
 {
   int ch; //ch for each flag
   int n_peers = 0;
-  int i;
 
   /* set the default args */
-  bt_args->verbose=0; //no verbosity
+  bt_args->verboseMode=false; //no verbosity
   
   //null save_file, log_file and torrent_file
   memset(bt_args->save_file,0x00,FILE_NAME_MAX);
@@ -100,14 +30,18 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   //null bt_info pointer, should be set once torrent file is read
   bt_args->bt_info = NULL;
 
-  //default lag file
-  strncpy(bt_args->log_file,"bt-client.log",FILE_NAME_MAX);
+  //default log file
+  strncpy(bt_args->log_file,DEFAULTLOGFILE,FILE_NAME_MAX);
   
+  
+  //TODO
+  /*
   for(i=0;i<MAX_CONNECTIONS;i++)
   {
     bt_args->peers[i] = NULL; //initially NULL
   }
-
+  */
+  
   bt_args->id = 0;
   
   while ((ch = getopt(argc, argv, "hp:s:l:vI:")) != -1) 
@@ -115,11 +49,11 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
     switch (ch) 
     {
 		case 'h': //help
-		  usage(stdout);
+		  HelperClass::Usage(stdout);
 		  exit(0);
 		  break;
 		case 'v': //verbose
-		  bt_args->verbose = 1;
+		  bt_args->verboseMode = true;
 		  break;
 		case 's': //save file
 		  strncpy(bt_args->save_file,optarg,FILE_NAME_MAX);
@@ -132,35 +66,45 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
 		  //check if we are going to overflow
 		  if(n_peers > MAX_CONNECTIONS)
 		  {
-		    fprintf(stderr,"ERROR: Can only support %d initial peers",MAX_CONNECTIONS);
-		    usage(stderr);
-		    exit(1);
+  		    HelperClass::Usage(stderr);
+		  	HelperClass::TerminateApplication(" ERROR: Cannot support this many number of peers");
 		  }
 
-		  bt_args->peers[n_peers] = (Peer *) malloc(sizeof(Peer));
+		  //have to worry about this.
+		  //bt_args->peers[n_peers] = (Peer *) malloc(sizeof(Peer));
 
 		  //parse peers
-		  __parse_peer(bt_args->peers[n_peers], optarg);
+		  //__parse_peer(bt_args->peers[n_peers], optarg);
 		  break;
 		case 'I':
 		  bt_args->id = atoi(optarg);
 		  break;
+		case 'b':
+		  bt_args->ipAddress=string(optarg);
+		  //if ip address is not specified in server.. we will default it to local host.
+		
+		  if(inet_pton(AF_INET, bt_args->ipAddress.c_str(), &((bt_args->destaddr).sin_addr.s_addr))<0)
+		  {
+			HelperClass::Usage(stderr);
+			HelperClass::TerminateApplication("Invalid IP address");
+		  }	  		
+		  memset(&(bt_args->destaddr), 0, sizeof(bt_args->destaddr)); 		  
+		  bt_args->destaddr.sin_family = AF_INET;
+		  bt_args->destaddr.sin_port=htons(bt_args->port);		  
+		  break;
 		default:
-		  fprintf(stderr,"ERROR: Unknown option '-%c'\n",ch);
-		  usage(stdout);
-		  exit(1);
+		  HelperClass::Usage(stdout);
+		  HelperClass::TerminateApplication("ERROR: Unknown option");
     }
   }
-
 
   argc -= optind;
   argv += optind;
 
   if(argc == 0)
   {
-    fprintf(stderr,"ERROR: Require torrent file\n");
-    usage(stderr);
-    exit(1);
+    HelperClass::Usage(stderr);
+  	HelperClass::TerminateApplication("ERROR: Require torrent file");
   }
 
   //copy torrent file over
@@ -169,3 +113,22 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   return ;
 }
 
+
+int main(int argc, char * argv[])
+{
+	try
+	{
+		//this is the main entry point to the code....
+		bt_args_t args;
+		parse_args(&args, argc, argv);
+		
+		//command line arguments are saved in bt_args now..
+		//lets create a peer and send this arguments to the peer.
+		Peer p(args);		
+	}
+	catch(...)
+	{
+		HelperClass::TerminateApplication("Some error occurred in the application");
+	}
+	return 0;
+}

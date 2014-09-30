@@ -1,18 +1,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
+#include <netinet/in.h>
+#include <netdb.h> 
 #include <arpa/inet.h>
 #include <openssl/hmac.h> // need to add -lssl to compile
+
 #include "HelperClass.h"
 #include "FileObject.h"
 #include "Server.h"
 #include "Client.h"
 #include "bt_lib.h"
 
-class Peer : public Server, public Client
+class Peer : public Server
 {
 	private:
 	unsigned char id[ID_SIZE]; //the peer id
@@ -20,18 +23,9 @@ class Peer : public Server, public Client
 	unsigned short port; //the port to connect n
 	struct sockaddr_in sockaddr; //sockaddr for peer
 	int choked; //peer choked?
-	int interested; //peer interested?
+	int interested; //peer interested?	
 	
-	
-	bool verboseMode; //verbose level
-	char save_file[FILE_NAME_MAX];//the filename to save to
-	FILE * f_save;
-	char log_file[FILE_NAME_MAX];//the log file
-	char torrent_file[FILE_NAME_MAX];// *.torrent file
-	Peer *peers[MAX_CONNECTIONS]; // array of peer pointers
-
-	int sockets[MAX_CONNECTIONS]; //Array of possible sockets
-	pollfd poll_sockets[MAX_CONNECTIONS]; //Array of pollfd for polling for input
+	bt_args_t bt_args; //holds the bt arguments.
 
 	/* set once torrent is parsed */
 	bt_info_t * bt_info; //the parsed info for this torrent	
@@ -66,5 +60,8 @@ class Peer : public Server, public Client
 
 	/*read a msg from a peer and store it in msg*/
 	int read_from_peer(Peer * peer, bt_msg_t *msg);	
+	
+	public:
+	Peer(bt_args_t args);
 };
 

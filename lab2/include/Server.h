@@ -8,8 +8,8 @@
 #include <openssl/hmac.h> // need to add -lssl to compile
 #include "HelperClass.h"
 #include "FileObject.h"
-
-static const int MAXPENDING = 5; // Maximum outstanding connection requests
+#include "bt_lib.h"
+#define MAXPENDING 5
 
 class Server
 {	
@@ -22,5 +22,5 @@ class Server
 		void parsePacket(string, string&, string&,string&);
 		void handlePacket(string);
 	public:
-		Server(nc_args_t input);
+		Server(bt_args_t input);
 };

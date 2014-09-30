@@ -8,17 +8,6 @@
 #include "bt_lib.h"
 #include "Peer.h"
 
-
-/**
- * __parse_peer(peer_t * peer, char peer_st) -> void
- *
- * parse a peer string, peer_st and store the parsed result in peer
- *
- * ERRORS: Will exit on various errors
- **/
-void usage(FILE * file);
-
-
 /**
  * pars_args(bt_args_t * bt_args, int argc, char * argv[]) -> void
  *

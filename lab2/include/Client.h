@@ -11,6 +11,7 @@
 //custom headers..
 #include "HelperClass.h"
 #include "FileObject.h"
+#include "bt_lib.h"
 
 
 class Client
@@ -30,5 +31,5 @@ class Client
 		
 	public:
 		//constructor of Client()
-		Client(nc_args_t clnt_arg);								
+		Client(nc_args_t args);					
 };

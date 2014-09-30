@@ -12,11 +12,11 @@ using namespace std;
 
 using namespace std;
 
-Server::Server(nc_args_t input)
+Server::Server(bt_args_t input)
 {	
 	//intitialize the local address..		
 	//zero - out all entries of client...
-	verboseMode=input.verbose;
+	verboseMode=input.verboseMode;
 
     localAddress=input.destaddr;
 	//Any incoming interface
