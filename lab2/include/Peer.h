@@ -8,10 +8,9 @@
 #include <netdb.h> 
 #include <arpa/inet.h>
 #include <openssl/hmac.h> // need to add -lssl to compile
-
+#include<fstream>
 #include "HelperClass.h"
 #include "FileObject.h"
-#include "Client.h"
 #include "bt_lib.h"
 
 #define MAXPENDING 5
@@ -71,6 +70,10 @@ class Peer
 	/*read a msg from a peer and store it in msg*/
 	int read_from_peer(Peer * peer, bt_msg_t *msg);	
 	
+
+	void sendString(co_peer_t*, int ,string, const char *, string);
+	void sendPacket(co_peer_t* leecher);
+
 	public:
 	Peer(bt_args_t args);
 	int getPortNumber();
