@@ -4,7 +4,7 @@ IDIR=include
 BDIR=bin
 
 all: $(ODIR)/HelperClass.o $(ODIR)/Server.o $(ODIR)/Client.o $(ODIR)/FileObject.o $(ODIR)/Peer.o $(ODIR)/bt_setup.o
-	g++ -Wall $(ODIR)/*.o -pthread -std=c++11 	-o $(BDIR)/executable.out -lcrypto
+	g++ -Wall $(ODIR)/*.o -pthread -std=c++0x 	-o $(BDIR)/executable.out -lcrypto
 
 $(ODIR)/HelperClass.o: $(IDIR)/HelperClass.h $(SDIR)/HelperClass.cpp
 	g++ -Wall -c -o $(ODIR)/HelperClass.o $(SDIR)/HelperClass.cpp
@@ -19,10 +19,10 @@ $(ODIR)/Server.o: $(IDIR)/Server.h $(IDIR)/HelperClass.h $(IDIR)/FileObject.h $(
 	g++ -Wall -c -o $(ODIR)/Server.o $(SDIR)/Server.cpp
 				
 $(ODIR)/Peer.o: $(IDIR)/HelperClass.h $(IDIR)/Client.h $(IDIR)/Server.h $(IDIR)/bt_lib.h $(IDIR)/FileObject.h $(IDIR)/Peer.h $(SDIR)/Peer.cpp
-	g++ -Wall -c -pthread -std=c++11 -o $(ODIR)/Peer.o $(SDIR)/Peer.cpp				
+	g++ -Wall -c -pthread -std=c++0x -o $(ODIR)/Peer.o $(SDIR)/Peer.cpp				
 												
 $(ODIR)/bt_setup.o: $(IDIR)/HelperClass.h $(IDIR)/Client.h $(IDIR)/Server.h $(IDIR)/bt_lib.h $(IDIR)/FileObject.h $(IDIR)/Peer.h $(SDIR)/Peer.cpp $(IDIR)/bt_setup.h
-	g++ -Wall -c -pthread -std=c++11  -o $(ODIR)/bt_setup.o $(SDIR)/bt_setup.cpp				
+	g++ -Wall -c -pthread -std=c++0x  -o $(ODIR)/bt_setup.o $(SDIR)/bt_setup.cpp				
 
 clear: 
 	rm $(ODIR)/*.o -f
