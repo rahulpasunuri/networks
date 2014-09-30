@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 
+#include <thread>
 
 /**
  * __parse_peer(Peer * peer, char peer_st) -> void

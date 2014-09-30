@@ -19,7 +19,7 @@ $(ODIR)/Server.o: $(IDIR)/Server.h $(IDIR)/HelperClass.h $(IDIR)/FileObject.h $(
 	g++ -Wall -c -o $(ODIR)/Server.o $(SDIR)/Server.cpp
 				
 $(ODIR)/Peer.o: $(IDIR)/HelperClass.h $(IDIR)/Client.h $(IDIR)/Server.h $(IDIR)/bt_lib.h $(IDIR)/FileObject.h $(IDIR)/Peer.h $(SDIR)/Peer.cpp
-	g++ -Wall -c -o $(ODIR)/Peer.o $(SDIR)/Peer.cpp				
+	g++ -Wall -c -std=c++11 -o $(ODIR)/Peer.o $(SDIR)/Peer.cpp				
 												
 $(ODIR)/bt_setup.o: $(IDIR)/HelperClass.h $(IDIR)/Client.h $(IDIR)/Server.h $(IDIR)/bt_lib.h $(IDIR)/FileObject.h $(IDIR)/Peer.h $(SDIR)/Peer.cpp $(IDIR)/bt_setup.h
 	g++ -Wall -c -o $(ODIR)/bt_setup.o $(SDIR)/bt_setup.cpp				
