@@ -169,7 +169,8 @@ void  Peer::bindToAPort()
 		{
 			cout<<"Trying Port: "<<port<<endl;
 		}
-		if (bind(sock, (struct sockaddr*) &localAddress, sizeof(localAddress)) >= 0)
+		int val=bind(sock, (struct sockaddr*) &localAddress, sizeof(localAddress));
+		if ( val>= 0)
 		{
 			isBindingDone=true;
 			break;
