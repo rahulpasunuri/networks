@@ -54,48 +54,8 @@ const char* key_signed="This is key";
 
 const char* HelperClass::GetDigest(string message)
 {
-    try
-    {        
-
-        const char* key_signed="this is key";
-        int keyLength=strlen(key_signed);
-        unsigned char *key=(unsigned char *)malloc(sizeof(unsigned char )*keyLength);    
-        for(int k=0;k<keyLength;k++)
-        {
-            key[k]=(unsigned char)key_signed[k];
-        }
-
-
-
-        //const unsigned char *data=(const unsigned char *)data_signed;
-        int messageLen=message.length();
-        unsigned char *data=(unsigned char *)malloc(sizeof(unsigned char)*messageLen);
-        
-        for(int j=0;j<messageLen;j++)
-        {
-            data[j]=(unsigned char)message[j];
-        }
-        
-        unsigned char *hash = (unsigned char *) malloc(sizeof(unsigned char)*EVP_MAX_MD_SIZE);
-        //return "test";
-        unsigned int *hashlen= (unsigned int *)malloc(sizeof(unsigned int));
-        HMAC(EVP_sha1(), key, keyLength,data, message.length(), hash, hashlen);                         
-        char* rethash=new char[(*hashlen)+1];        
-        rethash[*hashlen]='\0';
-        for(unsigned int i=0;i<*hashlen;i++)
-        {
-           rethash[i]=(char)hash[i];
-        }
-        delete[] hash;
-        delete hashlen;
-        return (const char *) rethash;    
-   
-     }
-     catch(...)
-     {  
-        HelperClass::TerminateApplication("Digest computation failed");
-     }
-     return NULL;
+	//TODO
+	return NULL;
 }
    
 
