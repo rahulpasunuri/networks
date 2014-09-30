@@ -26,7 +26,7 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   
   //null out file pointers
   bt_args->f_save = NULL;
-
+  bt_args->port=INIT_PORT;
   //null bt_info pointer, should be set once torrent file is read
   bt_args->bt_info = NULL;
 

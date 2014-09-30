@@ -20,7 +20,6 @@ class Peer : public Server
 	private:
 	unsigned char id[ID_SIZE]; //the peer id
 	unsigned int idInt; //this bt_clients id
-	unsigned short port; //the port to connect n
 	struct sockaddr_in sockaddr; //sockaddr for peer
 	int choked; //peer choked?
 	int interested; //peer interested?	

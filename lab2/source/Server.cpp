@@ -13,11 +13,10 @@ using namespace std;
 using namespace std;
 
 Server::Server(bt_args_t input)
-{	
+{		
 	//intitialize the local address..		
 	//zero - out all entries of client...
 	verboseMode=input.verboseMode;
-
     localAddress=input.destaddr;
 	//Any incoming interface
 	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -29,15 +28,41 @@ Server::Server(bt_args_t input)
 	{
 		cout<<"\nSocket Creation Successfull!!"<<endl;
 	}
-	if (bind(sock, (struct sockaddr*) &localAddress, sizeof(localAddress)) < 0)
-	{
-		HelperClass::TerminateApplication("Binding Failed!!");
-	}
+	bindToAPort();
 	if(verboseMode)
 	{
 		cout<<"\nBinding to Port Successfull!!"<<endl;
+	}			
+}
+
+int Server::getPortNumber()
+{
+	return portNumber;
+}
+
+void  Server::bindToAPort()
+{
+	int port = (int)INIT_PORT;
+	bool isBindingDone=false;
+	while(port<=(int)MAX_PORT)
+	{
+    	localAddress.sin_port=htons(port);		  
+		if (!bind(sock, (struct sockaddr*) &localAddress, sizeof(localAddress)) < 0)
+		{
+			isBindingDone=true;
+			break;
+		}	
+		port++;
 	}
-	
+	if(isBindingDone==false)
+	{
+		HelperClass::TerminateApplication("Binding Failed!!");
+	}
+	this->portNumber=port;
+}
+
+void Server::startServer()
+{
 	// Mark the socket so it will listen for incoming connections
 	if (listen(sock, MAXPENDING) < 0)
 	{
@@ -74,7 +99,6 @@ Server::Server(bt_args_t input)
 			cout<<"\nUnable to determine Client Address\n";
 		}
 	 }
-			
 }
 
 void Server::handlePacket(string packetContents)

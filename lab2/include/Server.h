@@ -18,9 +18,13 @@ class Server
 		double computeDigest();		
 		sockaddr_in localAddress;		 
 		int sock;
+		int portNumber;
 		void handleTCPClient(int);
 		void parsePacket(string, string&, string&,string&);
 		void handlePacket(string);
+		void bindToAPort();
 	public:
+		int getPortNumber();
 		Server(bt_args_t input);
+		void startServer();
 };

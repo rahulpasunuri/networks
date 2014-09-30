@@ -22,13 +22,12 @@
  *
  * ERRORS: Will exit on various errors
  **/
+/* TODO
 void __parse_peer(Peer * peer, char * peer_st)
 {
   char * parse_str;
   char * word;
   unsigned short port;
-  char * ip;
-  char id[20];
   char sep[] = ":";
   int i;
 
@@ -81,12 +80,15 @@ void __parse_peer(Peer * peer, char * peer_st)
 
   return;
 }
+*/
+
 
 //constructor for the peer class...
 //pass the arguments to client and server accordingly here...
 Peer:: Peer(bt_args_t args) : Server(args) //, Client(args) TODO
 {
-
+	this->sockaddr=args.destaddr;
+	
 
 }
 
@@ -134,7 +136,9 @@ int Peer::init_peer(Peer *peer, char * id, char * ip, unsigned short port)
   struct hostent * hostinfo;
   //set the host id and port for referece
   memcpy(peer->id, id, ID_SIZE);
-  peer->port = port;
+  
+  //TODO
+  //peer->port = port;
     
   //get the host by name
   if((hostinfo = gethostbyname(ip)) ==  NULL)
@@ -172,7 +176,7 @@ void Peer::print_peer()
 {
 	int i;
 
-	printf("peer: %s:%u ", inet_ntoa(this->sockaddr.sin_addr), this->port);
+	printf("peer: %s:%u ", inet_ntoa(this->sockaddr.sin_addr), this->getPortNumber());
 	printf("id: ");
 	for(i=0;i<ID_SIZE;i++)
 	{
