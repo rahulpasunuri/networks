@@ -42,6 +42,17 @@
 /*size (in bytes) of id field for peers*/
 #define ID_SIZE 20
 
+
+//holds information about a peer
+typedef struct peer
+{
+  unsigned char id[ID_SIZE]; //the peer id
+  unsigned short port; //the port to connect n
+  struct sockaddr_in sockaddr; //sockaddr for peer
+  int choked; //peer choked?
+  int interested; //peer interested?
+}co_peer_t;
+
 //holds information about a torrent file
 typedef struct 
 {
@@ -61,7 +72,7 @@ typedef struct
   FILE * f_save;
   char log_file[FILE_NAME_MAX];//the log file
   char torrent_file[FILE_NAME_MAX];// *.torrent file
-  //peer_t * peers[MAX_CONNECTIONS]; // array of peer_t pointers
+  co_peer_t * connectedPeers[MAX_CONNECTIONS]; // array of peer_t pointers
   unsigned int id; //this bt_clients id
   int sockets[MAX_CONNECTIONS]; //Array of possible sockets
   struct pollfd poll_sockets[MAX_CONNECTIONS]; //Array of pollfd for polling for input

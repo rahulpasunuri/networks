@@ -19,17 +19,10 @@ class Client
 	private:
 		bool verboseMode;
 		//data properties of Client....
-		short serverPortNumber;
-		sockaddr_in destinationAddress;
-		int sock;
-		int offSet, lsize;
-		char * file,* buffer;
-		int numBytes;		
-		int result, msgDesc;		
-		FileObject *fp;
-		void sendString(string, const char *, string);
+		void sendString(co_peer_t*, int ,string, const char *, string);
+		void sendPacket(co_peer_t* leecher);
 		
 	public:
 		//constructor of Client()
-		Client(nc_args_t args);					
+		Client(bt_args_t args);					
 };

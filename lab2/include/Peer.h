@@ -11,16 +11,27 @@
 
 #include "HelperClass.h"
 #include "FileObject.h"
-#include "Server.h"
 #include "Client.h"
 #include "bt_lib.h"
 
-class Peer : public Server
+#define MAXPENDING 5
+
+class Peer
 {
 	private:
+	bool verboseMode;
+	double computeDigest();		
+	sockaddr_in localAddress;		 
+	int sock;
+	int portNumber;
+	void handleTCPClient(int);
+	void parsePacket(string, string&, string&,string&);
+	void handlePacket(string);
+	void bindToAPort();
+	
+	
 	unsigned char id[ID_SIZE]; //the peer id
 	unsigned int idInt; //this bt_clients id
-	struct sockaddr_in sockaddr; //sockaddr for peer
 	int choked; //peer choked?
 	int interested; //peer interested?	
 	
@@ -62,7 +73,7 @@ class Peer : public Server
 	
 	public:
 	Peer(bt_args_t args);
-	void Print();
-	
+	int getPortNumber();
+	void startServer();	
 };
 
