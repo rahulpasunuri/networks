@@ -14,7 +14,9 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 
+#include<iostream>
 #include <thread>
+using namespace std;
 
 /**
  * __parse_peer(Peer * peer, char peer_st) -> void
@@ -83,25 +85,20 @@ void __parse_peer(Peer * peer, char * peer_st)
 }
 */
 
+void Peer::Print()
+{
+	printf("macha");
+}
+
 
 //constructor for the peer class...
 //pass the arguments to client and server accordingly here...
 Peer:: Peer(bt_args_t args) : Server(args) //, Client(args) TODO
 {
 	this->sockaddr=args.destaddr;
-	
-
+	thread serverThread(&Peer::startServer,this);
+	serverThread.join();
 }
-
-
-
-
-
-
-
-
-
-
 
 void Peer::calc_id(char * ip, unsigned short port, char *id)
 {

@@ -4,8 +4,9 @@
 #include <string.h>
 #include "../include/bt_setup.h"
 #include<string>
-
-
+#include<thread>
+#include<iostream>
+using namespace std;
 
 /**
  * parse the command line arguments to bt_client using getopt and
@@ -113,7 +114,6 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   return ;
 }
 
-
 int main(int argc, char * argv[])
 {
 	try
@@ -124,10 +124,11 @@ int main(int argc, char * argv[])
 		
 		//command line arguments are saved in bt_args now..
 		//lets create a peer and send this arguments to the peer.
-		Peer p(args);		
+		Peer p(args);				
 	}
 	catch(...)
 	{
+		//cout<<"Exception is "<<i<<endl;
 		HelperClass::TerminateApplication("Some error occurred in the application");
 	}
 	return 0;

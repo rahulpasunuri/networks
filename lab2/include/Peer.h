@@ -62,5 +62,7 @@ class Peer : public Server
 	
 	public:
 	Peer(bt_args_t args);
+	void Print();
+	
 };
 

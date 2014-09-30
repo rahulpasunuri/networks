@@ -18,6 +18,7 @@ Server::Server(bt_args_t input)
 	//zero - out all entries of client...
 	verboseMode=input.verboseMode;
     localAddress=input.destaddr;
+    //cout<<localAddress<<endl;
 	//Any incoming interface
 	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (sock < 0)
@@ -47,7 +48,11 @@ void  Server::bindToAPort()
 	while(port<=(int)MAX_PORT)
 	{
     	localAddress.sin_port=htons(port);		  
-		if (!bind(sock, (struct sockaddr*) &localAddress, sizeof(localAddress)) < 0)
+		if(this->verboseMode)
+		{
+			cout<<"Trying Port: "<<port<<endl;
+		}
+		if (bind(sock, (struct sockaddr*) &localAddress, sizeof(localAddress)) >= 0)
 		{
 			isBindingDone=true;
 			break;
