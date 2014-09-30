@@ -19,29 +19,26 @@ class Peer
 {
 	private:
 	bool verboseMode;
-	double computeDigest();		
+
 	sockaddr_in localAddress;		 
 	int sock;
-	int portNumber;
-	void handleTCPClient(int);
-	void parsePacket(string, string&, string&,string&);
-	void handlePacket(string);
-	void bindToAPort();
-	
-	
+	int portNumber;		
 	unsigned char id[ID_SIZE]; //the peer id
 	unsigned int idInt; //this bt_clients id
 	int choked; //peer choked?
 	int interested; //peer interested?	
 	
 	bt_args_t bt_args; //holds the bt arguments.
-
-	/* set once torrent is parsed */
 	bt_info_t * bt_info; //the parsed info for this torrent	
 	
+	
+	void handleTCPClient(int);
+	void parsePacket(string, string&, string&,string&);
+	void handlePacket(string);
+	void bindToAPort();
 	/*choose a random id for this node*/
 	unsigned int select_id();
-
+	double computeDigest();		
 	/*calc the peer id based on the string representation of the ip and
 	  port*/
 	void calc_id(char * ip, unsigned short port, char * id);

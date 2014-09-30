@@ -6,7 +6,8 @@
 #include <string>
 #include <fstream>
 #include <string.h>
-#include "../include/HelperClass.h"
+#include "HelperClass.h"
+#include "bt_lib.h"
 
 using namespace std;
 #define MAX_MATCHES 100 //The maximum number of matches allowed in a single string
@@ -22,12 +23,12 @@ class Bencode
 	static bool isInit;
 		
 	static void initVariables();
-	static char* nextToken(regex_t *pexp, char* &sz, int *size);
-	static void token(char * text,regex_t *exp);
+	static char* nextToken(regex_t *pexp, char* &sz, int *size,bt_info_t &result);
+	static void token(char * text,regex_t *exp,bt_info_t &result);
 	
 	
 	~Bencode();
-	static void ParseTorrentFile(const char* fileName);
+	static bt_info_t ParseTorrentFile(const char* fileName);
 	
 
 };

@@ -32,7 +32,7 @@ void Bencode::initVariables()
     return;
 }
 			
-char* Bencode::nextToken(regex_t *pexp, char* &sz, int *size) 
+char* Bencode::nextToken(regex_t *pexp, char* &sz, int *size,bt_info_t &result) 
 {
 	isString=false;
 	regmatch_t matches[MAX_MATCHES]; //A list of the matches in the string (a list of 1)
@@ -82,13 +82,13 @@ char* Bencode::nextToken(regex_t *pexp, char* &sz, int *size)
 	return NULL;
 }
 
-void Bencode::token(char * text,regex_t *exp)
+void Bencode::token(char * text,regex_t *exp,bt_info_t &result)
 {
 	if(strcmp(text,string("i").c_str())==0)
 	{   
-		cout<<"\n"<<atoi(nextToken(exp, buffer,&sm))<<"\t"<<"\n";
+		cout<<"\n"<<atoi(nextToken(exp, buffer,&sm,result))<<"\t"<<"\n";
 					
-		if(strcmp(nextToken(exp, buffer,&sm),string("e").c_str())!=0)
+		if(strcmp(nextToken(exp, buffer,&sm,result),string("e").c_str())!=0)
 		{
 			cout<<"parsing error\n";                          
 		}
@@ -103,15 +103,15 @@ void Bencode::token(char * text,regex_t *exp)
 	else  if(!(strcmp(text,string("d").c_str())||strcmp(text,string("l").c_str())))
 	{
 					    
-		char* t =nextToken(exp, buffer, &sm);
+		char* t =nextToken(exp, buffer, &sm,result);
 		while(strcmp(t,string("e").c_str())!=0)
 		{	
 			text = t; 
-			token(t,exp);
+			token(t,exp,result);
 		}
 		if(strcmp(text,string("d").c_str())==0)
 		{
-			char* tm =nextToken(exp, buffer, &sm);
+			char* tm =nextToken(exp, buffer, &sm,result);
 			while(strcmp(tm,string("e").c_str())!=0)
 			{
 				cout<<"\n";
@@ -130,8 +130,9 @@ Bencode::~Bencode()
 }
 
 
-void Bencode::ParseTorrentFile(const char* fileName)
+bt_info_t Bencode::ParseTorrentFile(const char* fileName)
 {
+	bt_info_t result;
     initVariables();
     if(fileName==NULL)
     {
@@ -156,16 +157,17 @@ void Bencode::ParseTorrentFile(const char* fileName)
     while(true)
     {    
         string P = "";
-        char *text=nextToken(&exp,buffer, &sm);
+        char *text=nextToken(&exp,buffer, &sm,result);
         if(text==NULL)
         {
            break;
         }
         else 
         {
-  		   token(text,&exp);
+  		   token(text,&exp,result);
 	    }   		                                           
-   }               
+   }
+   return result;               
 }			
 
 

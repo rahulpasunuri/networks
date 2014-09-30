@@ -325,25 +325,3 @@ void Peer:: handleTCPClient(int clntSocket)
 	//here.. the file objects destuctor gets called..
 }
 
-/**
- * print_peer(peer_t *peer) -> void
- *
- * print out debug info of a peer
- *
- **/
-void Peer::print_peer()
-{
-	int i;
-
-	//TODO
-	//printf("peer: %s:%u ", inet_ntoa(this->sockaddr.sin_addr), this->getPortNumber());
-	printf("id: ");
-	for(i=0;i<ID_SIZE;i++)
-	{
-		printf("%02x",this->id[i]);
-	}
-	printf("\n");	  
-}
-
-
-
