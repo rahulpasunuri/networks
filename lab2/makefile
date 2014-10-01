@@ -15,10 +15,10 @@ $(ODIR)/FileObject.o: $(IDIR)/FileObject.h $(IDIR)/HelperClass.h $(SDIR)/FileObj
 $(ODIR)/Peer.o: $(IDIR)/HelperClass.h $(IDIR)/bt_lib.h $(IDIR)/FileObject.h $(IDIR)/Peer.h $(SDIR)/Peer.cpp
 	g++ -Wall -c -pthread -std=c++0x -o $(ODIR)/Peer.o $(SDIR)/Peer.cpp				
 
-$(ODIR)/Bencode.o: $(IDIR)/Bencode.h
+$(ODIR)/Bencode.o: $(IDIR)/Bencode.h $(SDIR)/Bencode.cpp
 	g++ -Wall -c -o $(ODIR)/Bencode.o $(SDIR)/Bencode.cpp				
 												
-$(ODIR)/bt_setup.o: $(IDIR)/HelperClass.h $(IDIR)/bt_lib.h $(IDIR)/FileObject.h $(IDIR)/Peer.h $(IDIR)/bt_setup.h
+$(ODIR)/bt_setup.o: $(IDIR)/HelperClass.h $(IDIR)/bt_lib.h $(IDIR)/FileObject.h $(IDIR)/Peer.h $(IDIR)/bt_setup.h $(IDIR)/Bencode.h $(SDIR)/bt_setup.cpp
 	g++ -Wall -c -pthread -std=c++0x -o $(ODIR)/bt_setup.o $(SDIR)/bt_setup.cpp	-lcrypto
 
 clear: 

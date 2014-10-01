@@ -1,2 +1,2 @@
 make
-./bin/executable.out -v 1.torrent
+./bin/executable.out -v download.mp3.torrent

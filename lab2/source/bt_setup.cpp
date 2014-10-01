@@ -7,6 +7,7 @@
 #include<string>
 #include<thread>
 #include<iostream>
+
 using namespace std;
 
 /**
@@ -238,10 +239,12 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   }
 
   //copy torrent file over
-  strncpy(bt_args->torrent_file,argv[0],FILE_NAME_MAX);
-
+  strncpy(bt_args->torrent_file,argv[0],FILE_NAME_MAX);  
   //decode bencoding...
+  Bencode::ParseTorrentFile(bt_args->torrent_file);
 
+
+  HelperClass::TerminateApplication("debugging");
   return ;
 }
 

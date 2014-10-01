@@ -7,6 +7,7 @@
 #include <string.h>
 #include "bt_lib.h"
 #include "Peer.h"
+#include "Bencode.h"
 
 /**
  * pars_args(bt_args_t * bt_args, int argc, char * argv[]) -> void
