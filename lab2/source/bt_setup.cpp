@@ -241,7 +241,8 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   //copy torrent file over
   strncpy(bt_args->torrent_file,argv[0],FILE_NAME_MAX);  
   //decode bencoding...
-  bt_info_t bti=Bencode::ParseTorrentFile(bt_args->torrent_file);
+  Bencode bnc;
+  bt_info_t bti=bnc.ParseTorrentFile(bt_args->torrent_file);
   bt_args->bt_info = &bti;
   return;
 }

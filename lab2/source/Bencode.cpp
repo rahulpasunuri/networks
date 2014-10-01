@@ -9,28 +9,25 @@
 #include "../include/Bencode.h"
 using namespace std;
 
-
-int Bencode::pieceLength=0; 
-int Bencode::sm=0; 
-char * Bencode::buffer; 
-bool Bencode::isString=false;
-regex_t Bencode::exp;
-bool Bencode::isInit=false;
-bool Bencode::isFileName=false;
-bool Bencode::isLength=false;
-bool Bencode::isPieceLength=false;
-bool Bencode::isPieces=false;
-
-void Bencode::initVariables()
+Bencode::Bencode()
 {
-    if(Bencode::isInit==false)
+	pieceLength=0; 
+	sm=0; 
+	isString=false;
+	isInit=false;
+	isFileName=false;
+	isLength=false;
+	isPieceLength=false;
+	isPieces=false;
+
+    if(isInit==false)
     {  	        	
-        int rv = regcomp(&Bencode::exp, "([idel])|([0-9]+):|(-?[0-9]+)", REG_EXTENDED);
+        int rv = regcomp(&exp, "([idel])|([0-9]+):|(-?[0-9]+)", REG_EXTENDED);
         if (rv != 0) 
         {
 	        HelperClass::TerminateApplication("Compilation of the regular expression failed");
         }	        
-        Bencode::isInit=true;
+        isInit=true;
     }
     return;
 }
@@ -190,7 +187,7 @@ Bencode::~Bencode()
 bt_info_t Bencode::ParseTorrentFile(const char* fileName)
 {
 	bt_info_t result;
-    initVariables();
+    char *backUp;
     if(fileName==NULL)
     {
         HelperClass::TerminateApplication("Please pass the name of the torrent file");
@@ -202,6 +199,7 @@ bt_info_t Bencode::ParseTorrentFile(const char* fileName)
         int size = fp.tellg();                 
         fp.seekg(0,ios::beg);
         buffer = new char[size+1];
+        backUp=buffer;
         fp.read(buffer,size);
         buffer[size] = '\0';
         fp.close();
@@ -227,7 +225,7 @@ bt_info_t Bencode::ParseTorrentFile(const char* fileName)
    }
 
    //free buffer...
-   //delete[] buffer;
+   delete[] backUp;
    return result;               
 }			
 
