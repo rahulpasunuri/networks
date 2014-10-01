@@ -61,6 +61,7 @@ typedef struct
   int length; //length of the file in bytes
   int num_pieces; //number of pieces, computed based on above two values
   char ** piece_hashes; //pointer to 20 byte data buffers containing the sha1sum of each of the pieces
+  char* infoHash; // holds the hash of the info dictionary......
 } bt_info_t;
 
 

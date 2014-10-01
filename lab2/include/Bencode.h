@@ -28,7 +28,6 @@ class Bencode
 	bool isLength;
 	bool isPieceLength;
 	bool isPieces;
-
 	public:
 	Bencode();
 	~Bencode();

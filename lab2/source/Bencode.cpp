@@ -7,6 +7,8 @@
 #include <fstream>
 #include <string.h>
 #include "../include/Bencode.h"
+#include <openssl/sha.h> //hashing pieces
+
 using namespace std;
 
 Bencode::Bencode()
@@ -19,7 +21,6 @@ Bencode::Bencode()
 	isLength=false;
 	isPieceLength=false;
 	isPieces=false;
-
     if(isInit==false)
     {  	        	
         int rv = regcomp(&exp, "([idel])|([0-9]+):|(-?[0-9]+)", REG_EXTENDED);
@@ -123,21 +124,29 @@ void Bencode::token(char * text,regex_t *exp,bt_info_t &result)
 		{
 			isPieces=true;
 		}
+		else if(!strcmp(text,"info"))
+		{
+			//save the info hash which will be matched between two peers...
+			int infoLen=strlen(buffer)-2; //removing the two 'e' letters at the end
+			result.infoHash=new char[ID_SIZE];
+			//id is just the SHA1 of the ip and port string
+			SHA1((unsigned char *) buffer, infoLen, (unsigned char *) result.infoHash); 
+		}
 		else if(isPieces)
 		{
 			isPieces=true;
-			int numPieces=sm/20;
+			int numPieces=sm/(int)ID_SIZE;
 			result.piece_hashes = new char*[numPieces];	
 			result.num_pieces=numPieces;
 			for(int i=0;i<numPieces;i++)
 			{
-				char* h=new char[21];
-				for(int j=0;j<20;j++)
+				char* h=new char[(int)ID_SIZE+1];
+				for(int j=0;j<(int)ID_SIZE;j++)
 				{
 					h[j]=text[j];		
 				}
-				h[21]='\0';
-				text+=20;
+				h[(int)ID_SIZE+1]='\0';
+				text+=(int)ID_SIZE;
 				result.piece_hashes[i]=h;
 			}
 			
