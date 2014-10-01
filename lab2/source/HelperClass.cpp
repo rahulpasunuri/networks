@@ -6,7 +6,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <openssl/hmac.h> // need to add -lssl to compile
+#include <openssl/sha.h>// need to add -lssl to compile
 #include <string>
 #include<iostream>
 #include<fstream>
@@ -50,12 +50,14 @@ bool HelperClass::CheckIfFileExists(const char* fileName)
 	}
 }
 
-const char* key_signed="This is key"; 
 
-const char* HelperClass::GetDigest(string message)
+const char* HelperClass::GetDigest(string message)    //compute hash
 {
-	//TODO
-	return NULL;
+	
+	unsigned char* digest = new unsigned char[SHA_DIGEST_LENGTH];  //20 bytes
+	SHA1((const unsigned char*)message.c_str(), message.length(), digest); 
+	return (const char *)digest;
+	
 }
    
 

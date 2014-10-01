@@ -13,7 +13,7 @@
 using namespace std;
 
 #define BUFSIZE 1024
-
+#define SHA_DIGEST_LENGTH 20
 class HelperClass
 {
 	public:

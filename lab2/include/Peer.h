@@ -18,7 +18,7 @@
 class Peer
 {
 	private:
-	bool verboseMode;
+	bool verboseMode, isHandShakeDone;
 
 	sockaddr_in localAddress;		 
 	int sock;

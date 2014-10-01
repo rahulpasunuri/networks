@@ -41,7 +41,7 @@ void Peer::sendPacket(co_peer_t* leecher)
 	{
 		cout<<"Socket Creation Successfull!!"<<endl;
 	}
-	
+		
 	// connecting socket to the server    
 	if (connect(sock, (struct sockaddr *) &destinationAddress, sizeof(destinationAddress)) < 0)
 	{      
@@ -52,7 +52,7 @@ void Peer::sendPacket(co_peer_t* leecher)
 	{
 		cout<<"Connection established successfully"<<endl;
 	}
-	        
+	        // hand shake protocol must take place here before file data is exchanged....
 	string fileName="input"; //TODO
 
 	ifstream file (fileName.c_str(),ios::in|ios::ate);
@@ -150,6 +150,9 @@ Peer::Peer(bt_args_t input)
 	{
 		cout<<"\nBinding to Port Successfull!!"<<endl;
 	}
+		string info="";                                          // Loading bt_info into a string..
+		memcpy(&info,input.bt_info,sizeof(bt_info_t));
+		string info_hash = HelperClass::GetDigest(info);         // storing info_hash 
 	
 	thread serverThread(&Peer::startServer,this);
 	serverThread.join();		
@@ -227,7 +230,7 @@ void Peer::startServer()
 }
 
 void Peer::handlePacket(string packetContents)
-{
+{  
     //parse the packet...
     string fileName="savedFile"; //TODO -- take file name from torrent file...
   
@@ -308,6 +311,7 @@ void Peer:: handleTCPClient(int clntSocket)
 		numBytesRcvd = recv(clntSocket, buffer, BUFSIZE, 0);		
 
 	} 
+	// before retrieving data hand shake call must be made here....
 	cout<<"length of the packet is "<<packet.length();
 	handlePacket(packet);					
 	cout<<endl;
