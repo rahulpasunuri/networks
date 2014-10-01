@@ -102,14 +102,14 @@ void Bencode::token(char * text,regex_t *exp,bt_info_t &result)
 		}
 		if(strcmp(nextToken(exp, buffer,&sm,result),string("e").c_str())!=0)
 		{
-			cout<<"parsing error\n";                          
+			HelperClass::TerminateApplication("parsing error");  
 		}
 					  
 	}
 	else if(isString==true) 
 	{ 
 		for(int i=0;i<sm;i++)
-		cout<<text[i];
+		//cout<<text[i];
 		if(!strcmp(text,"length"))
 		{
 			isLength=true;
@@ -173,8 +173,7 @@ void Bencode::token(char * text,regex_t *exp,bt_info_t &result)
 			char* tm =nextToken(exp, buffer, &sm,result);
 			while(strcmp(tm,string("e").c_str())!=0)
 			{
-				for(int i=0;i<sm;i++)
-				cout<<tm[i];
+				continue;
 			}	
 			//delete tm;
 		} 
@@ -226,12 +225,6 @@ bt_info_t Bencode::ParseTorrentFile(const char* fileName)
   		   token(text,&exp,result);
 	    }   		                                           
    }
-   cout<<"\n~~~~~~~~~~~~Printing File length: "<<endl;   
-    cout<<result.num_pieces<<endl;
-	for(int i=0;i<result.num_pieces;i++)
-	{
-		cout<<result.piece_hashes[i]<<"\n";
-	}
 
    //free buffer...
    //delete[] buffer;

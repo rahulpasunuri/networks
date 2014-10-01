@@ -130,6 +130,8 @@ Peer::Peer(bt_args_t input)
 	//zero - out all entries of client...
 	verboseMode=input.verboseMode;
     localAddress=input.destaddr;
+    bt_args=input;
+    
     //cout<<localAddress<<endl;
 	//Any incoming interface
 	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
