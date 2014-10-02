@@ -151,6 +151,8 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
 
   /* set the default args */
   bt_args->verboseMode=false; //no verbosity
+  bt_args->isLeecher= true;
+  bt_args->isSeeder= false;
   
   //null save_file, log_file and torrent_file
   memset(bt_args->save_file,0x00,FILE_NAME_MAX);
@@ -171,11 +173,10 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   {
     bt_args->connectedPeers[i] = NULL; //initially NULL
   }
-  
-  
+ 
   bt_args->id = 0;
   
-  while ((ch = getopt(argc, argv, "hp:s:l:vI:")) != -1) 
+  while ((ch = getopt(argc, argv, "hp:s:l:fvI:")) != -1) 
   {
     switch (ch) 
     {
@@ -189,6 +190,10 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
 		case 's': //save file
 		  strncpy(bt_args->save_file,optarg,FILE_NAME_MAX);
 		  break;
+		case 'f':
+		  bt_args->isSeeder = true;
+		  bt_args->isLeecher = false;
+		  break;
 		case 'l': //log file
 		  strncpy(bt_args->log_file,optarg,FILE_NAME_MAX);
 		  break;
@@ -200,11 +205,12 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   		    HelperClass::Usage(stderr);
 		  	HelperClass::TerminateApplication(" ERROR: Cannot support this many number of peers");
 		  }
-	
+	          if(bt_args->isLeecher== true)
+		  {
 		  bt_args->connectedPeers[n_peers] = (co_peer_t *) malloc(sizeof(co_peer_t));
 		  //parse peers
 		  __parse_peer(bt_args->connectedPeers[n_peers], optarg);
-		  
+		  } 
 		  break;
 		case 'I':
 		  bt_args->id = atoi(optarg);

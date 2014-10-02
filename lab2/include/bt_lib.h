@@ -45,7 +45,8 @@
 
 //holds information about a peer
 typedef struct peer
-{
+{ 
+  bool isHandshakeDone;
   unsigned char id[ID_SIZE]; //the peer id
   unsigned short port; //the port to connect n
   struct sockaddr_in sockaddr; //sockaddr for peer
@@ -69,6 +70,7 @@ typedef struct
 typedef struct 
 {
   bool verboseMode; //verbose level
+  bool isSeeder, isLeecher;
   char save_file[FILE_NAME_MAX];//the filename to save to
   FILE * f_save;
   char log_file[FILE_NAME_MAX];//the log file
