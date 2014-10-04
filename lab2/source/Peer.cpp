@@ -52,8 +52,9 @@ void Peer::sendPacket(co_peer_t* leecher)
 	{
 		cout<<"Connection established successfully"<<endl;
 	}
+	     cout<<leecher->isHandShakeDone<<endl;
 	if(leecher->isHandShakeDone==false)                           // hand shake protocol must take place here before file data is exchanged....
-	{
+	{    cout<<"Hand shake started";
 		char handshake[HAND_SHAKE_BUFSIZE];
 		handshake[0] = this->prefix;
 		std::copy(this->BitTorrent_protocol.begin(), this->BitTorrent_protocol.end(), &handshake[this->protocol_name_offset]);
@@ -144,7 +145,7 @@ void Peer::sendString(co_peer_t* leecher, int sock,string message,const char * d
 /**code from server.cpp
 */
 
-using namespace std;
+
 
 Peer::Peer(bt_args_t input)
 {		
@@ -178,7 +179,7 @@ Peer::Peer(bt_args_t input)
 	     serverThread.join();
      }
      else
-     {
+     {   cout<<"Client is starting";
          thread clientThread(&Peer::startClient,this);
 	    clientThread.join();
      }		
@@ -216,7 +217,8 @@ void  Peer::bindToAPort()
 }
 
 void Peer::startServer()
-{
+{     
+     cout<<"Server started"<<endl;
 	// Mark the socket so it will listen for incoming connections
 	if (listen(sock, MAXPENDING) < 0)
 	{
@@ -436,11 +438,9 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 
 void Peer::startClient()
 {
-     for(int i=0; i<bt_args.n_peers;i++)
-     {
-          continue;
-     
-     sendPacket((bt_args).connectedPeers[i]);
-     }
+    for(int i=0; i<bt_args.n_peers;i++)
+    {
+     sendPacket(bt_args.connectedPeers[1]);
+    }
 }
 
