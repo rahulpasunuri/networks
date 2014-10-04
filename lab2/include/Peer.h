@@ -14,12 +14,12 @@
 #include "bt_lib.h"
 
 #define MAXPENDING 5
-
+#define HAND_SHAKE_BUFSIZE 68
 class Peer
 {
 	private:
-	bool verboseMode, isHandShakeDone;
-
+	bool verboseMode;
+	bool isHandShakeDone;
 	sockaddr_in localAddress;		 
 	int sock;
 	int portNumber;		
@@ -32,16 +32,14 @@ class Peer
 	bt_info_t * bt_info; //the parsed info for this torrent	
 	
 	
-	void handleTCPClient(int);
+	void handleTCPClient(int, struct sockaddr_in*);
 	void parsePacket(string, string&, string&,string&);
 	void handlePacket(string);
 	void bindToAPort();
 	/*choose a random id for this node*/
 	unsigned int select_id();
 	double computeDigest();		
-	/*calc the peer id based on the string representation of the ip and
-	  port*/
-	void calc_id(char * ip, unsigned short port, char * id);
+	
 
 	/*propogate a Peer struct and add it */
 	int add_peer(Peer *peer, char * hostname, unsigned short port);
@@ -72,8 +70,16 @@ class Peer
 	void sendPacket(co_peer_t* leecher);
 
 	public:
+	const int protocol_name_offset = 1;
+	const int reserved_offset = protocol_name_offset + 19;
+	const int info_hash_offset = reserved_offset + 8;
+	const int peer_id_offset = info_hash_offset + 20;
+
+	const char prefix = 19;
+	const std::string BitTorrent_protocol = "BitTorrent protocol";
 	Peer(bt_args_t args);
 	int getPortNumber();
 	void startServer();	
+	void startClient();
 };
 

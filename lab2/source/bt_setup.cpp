@@ -7,6 +7,7 @@
 #include<string>
 #include<thread>
 #include<iostream>
+#include "../include/HelperClass.h"
 
 using namespace std;
 
@@ -55,21 +56,6 @@ int init_peer(co_peer_t *peer, char * id, char * ip, unsigned short port)
   peer->sockaddr.sin_port = htons(port);
   
   return 0;
-}
-
-
-//calculates the id based on hash(ip+port)
-void calc_id(char * ip, unsigned short port, char *id)
-{
-  char data[256];
-  int len;
-  
-  //format print
-  len = snprintf(data,256,"%s%u",ip,port);
-
-  //id is just the SHA1 of the ip and port string
-  SHA1((unsigned char *) data, len, (unsigned char *) id); 
-  return;
 }
 
 /**
@@ -124,7 +110,7 @@ void __parse_peer(co_peer_t *peer, char * peer_st)
   }
   char* id = new char[ID_SIZE+1];
   //calculate the id, value placed in id
-  calc_id(ip,port,id);
+ HelperClass::calc_id(ip,port,id);
 
   //build the object we need
   if(init_peer(peer, id, ip, port)<0)
@@ -147,11 +133,10 @@ void __parse_peer(co_peer_t *peer, char * peer_st)
 void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
 {
   int ch; //ch for each flag
-  int n_peers = 0;
+  bt_args->n_peers = 0;
 
   /* set the default args */
   bt_args->verboseMode=false; //no verbosity
-  bt_args->isLeecher= true;
   bt_args->isSeeder= false;
   
   //null save_file, log_file and torrent_file
@@ -190,27 +175,26 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
 		case 's': //save file
 		  strncpy(bt_args->save_file,optarg,FILE_NAME_MAX);
 		  break;
-		case 'f':
+		case 'f':// seeder or leecher
 		  bt_args->isSeeder = true;
-		  bt_args->isLeecher = false;
+		 
 		  break;
 		case 'l': //log file
 		  strncpy(bt_args->log_file,optarg,FILE_NAME_MAX);
 		  break;
 		case 'p': //peer
-		  n_peers++;
+		  bt_args->n_peers++;
 		  //check if we are going to overflow
-		  if(n_peers > MAX_CONNECTIONS)
+		  if(bt_args->n_peers > MAX_CONNECTIONS)
 		  {
   		    HelperClass::Usage(stderr);
-		  	HelperClass::TerminateApplication(" ERROR: Cannot support this many number of peers");
+		    HelperClass::TerminateApplication(" ERROR: Cannot support this many number of peers");
 		  }
-	          if(bt_args->isLeecher== true)
-		  {
-		  bt_args->connectedPeers[n_peers] = (co_peer_t *) malloc(sizeof(co_peer_t));
+	          
+		  bt_args->connectedPeers[bt_args->n_peers] = (co_peer_t *) malloc(sizeof(co_peer_t));
 		  //parse peers
-		  __parse_peer(bt_args->connectedPeers[n_peers], optarg);
-		  } 
+		  __parse_peer(bt_args->connectedPeers[bt_args->n_peers], optarg);
+		   
 		  break;
 		case 'I':
 		  bt_args->id = atoi(optarg);
@@ -228,6 +212,7 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
 		  bt_args->destaddr.sin_family = AF_INET;
 		  bt_args->destaddr.sin_port=htons(bt_args->port);		  
 		  break;
+
 		default:
 		  HelperClass::Usage(stdout);
 		  HelperClass::TerminateApplication("ERROR: Unknown option");

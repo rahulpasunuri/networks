@@ -60,7 +60,18 @@ const char* HelperClass::GetDigest(string message)    //compute hash
 	
 }
    
+void HelperClass::calc_id(char * ip, unsigned short port, char *id)
+{
+  char data[256];
+  int len;
+  
+  //format print
+  len = snprintf(data,256,"%s%u",ip,port);
 
+  //id is just the SHA1 of the ip and port string
+  SHA1((unsigned char *) data, len, (unsigned char *) id); 
+  return;
+}  
 void HelperClass::Usage(FILE * file)
 {
   if(file == NULL)

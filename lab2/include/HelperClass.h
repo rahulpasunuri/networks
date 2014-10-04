@@ -22,4 +22,5 @@ class HelperClass
 		static bool CheckIfFileExists(const char*);
 		static const char * GetDigest(string H);
 		static void Usage(FILE*);
+		static void calc_id(char * ip, unsigned short port, char *id);
 };

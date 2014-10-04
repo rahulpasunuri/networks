@@ -10,7 +10,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <signal.h>
-
 #include "../include/bt_lib.h"
 #include "../include/bt_setup.h"
 
