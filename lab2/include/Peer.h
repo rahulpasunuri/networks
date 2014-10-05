@@ -76,7 +76,7 @@ class Peer
 	const int peer_id_offset = info_hash_offset + 20;
 
 	const char prefix = 19;
-	const std::string BitTorrent_protocol = "BitTorrent protocol";
+	const string BitTorrent_protocol = "BitTorrent protocol";
 	Peer(bt_args_t args);
 	int getPortNumber();
 	void startServer();	

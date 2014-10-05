@@ -51,32 +51,38 @@ void Peer::sendPacket(co_peer_t* leecher)
 	if(verboseMode)
 	{
 		cout<<"Connection established successfully"<<endl;
+		cout<<"HELLO!!! before entering"; 
 	}
-	     cout<<leecher->isHandShakeDone<<endl;
+	   
 	if(leecher->isHandShakeDone==false)                           // hand shake protocol must take place here before file data is exchanged....
-	{    cout<<"Hand shake started";
+	{    	
+		cout<<"Hand shake started";
 		char handshake[HAND_SHAKE_BUFSIZE];
-		handshake[0] = this->prefix;
-		std::copy(this->BitTorrent_protocol.begin(), this->BitTorrent_protocol.end(), &handshake[this->protocol_name_offset]);
+		handshake[0] = this->prefix;cout<<endl;	cout<<this->reserved_offset<<endl;
+		for(int i=0;i<this->reserved_offset-1;i++) 
+		{
+			handshake[i+1]=this->BitTorrent_protocol[i];
+		}    cout<<this->BitTorrent_protocol;
+		
 		for(int i=this->reserved_offset;i<this->info_hash_offset;i++) // Reserved bytes
 		{
 			handshake[i]=0;
-		}
-		for(unsigned int j=0;j<sizeof(bt_args.bt_info);j++)   // storing infoHash in handshake buffer
-		{
-			handshake[j+this->info_hash_offset]=bt_args.bt_info->infoHash[j];
-		}
-		for(unsigned int k=peer_id_offset;k<sizeof(leecher->id);k++)   // storing peerid in handshake buffer
+		}   
+		
+	/**	memcpy(&handshake[this->info_hash_offset],bt_args.bt_info->infoHash ,this->peer_id_offset-this->info_hash_offset);
+		 
+	
+	    for(unsigned int k=peer_id_offset;k<HAND_SHAKE_BUFSIZE;k++)   // storing peerid in handshake buffer
 		{
 			handshake[k]=leecher->id[k];
-		}			
-		// to send handshake buffer over TCP using int sock.....
-		send(sock, handshake,HAND_SHAKE_BUFSIZE, 0); //;
+		}		
+		// to send handshake buffer over TCP using int sock..... **/
+		send(sock,handshake,HAND_SHAKE_BUFSIZE, 0); //;
 
 
 	}	
 
-	string fileName="input"; //TODO
+	/**string fileName="input"; //TODO
 
 	ifstream file (fileName.c_str(),ios::in|ios::ate);
 	string s="";
@@ -102,7 +108,8 @@ void Peer::sendPacket(co_peer_t* leecher)
 	}
 	
 	cout<<"before sending"<<endl;		
-	sendString(leecher, sock, s ,HelperClass::GetDigest(s), fileName);	       // sending loaded buffer with file name into the string...
+	sendString(leecher, sock, s ,HelperClass::GetDigest(s), fileName);
+		       // sending loaded buffer with file name into the string...**/
 	close(sock);	
 }
 
@@ -152,10 +159,11 @@ Peer::Peer(bt_args_t input)
 	//intitialize the local address..		
 	//zero - out all entries of client...
 	verboseMode=input.verboseMode;
-     localAddress=input.destaddr;
-     bt_args=input;
-    	isHandShakeDone= false;
-     //cout<<localAddress<<endl;
+	localAddress=input.destaddr;
+	bt_args=input;
+	
+	this->bt_info=bt_args.bt_info;
+	
 	//Any incoming interface
 	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (sock < 0)
@@ -167,22 +175,23 @@ Peer::Peer(bt_args_t input)
 		cout<<"\nSocket Creation Successfull!!"<<endl;
 	}
 	
-	//bind to a port...
-	bindToAPort();
-	if(verboseMode)
-	{
-		cout<<"\nBinding to Port Successfull!!"<<endl;
-	}
 	if(input.isSeeder==true)
 	{
-	     thread serverThread(&Peer::startServer,this);
-	     serverThread.join();
-     }
-     else
-     {   cout<<"Client is starting";
-         thread clientThread(&Peer::startClient,this);
-	    clientThread.join();
-     }		
+				//bind to a port...
+		bindToAPort();
+			if(verboseMode)
+			{
+				cout<<"\nBinding to Port Successfull!!"<<endl;
+			}
+			thread serverThread(&Peer::startServer,this);
+			serverThread.join();
+    }
+	else
+	{   
+		cout<<"Client is starting";
+		thread clientThread(&Peer::startClient,this);
+		clientThread.join();
+	}		
 }
 
 int Peer::getPortNumber()
@@ -352,7 +361,7 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 	{
 		cout<<"...Handshake in process..."<<endl;
 		if(packet!="")
-		{    int i;
+		{    int i; 
 			for(i=0;i<this->protocol_name_offset;i++)		
 			{    
 			     if(packet[i]!=19)
@@ -362,11 +371,11 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 			     else
 			     cout<<"Handshake  stage cleared"<<endl;
 			}
-               for(i=this->protocol_name_offset;i<this->reserved_offset;i++)
+               for(i=0;i<this->reserved_offset-1;i++)
                {
-                    if(packet[i]!=this->BitTorrent_protocol[i])
+                    if(packet[i+1]!=this->BitTorrent_protocol[i])
                     {
-                         HelperClass::TerminateApplication("Handshake terminated!!!");
+                         HelperClass::TerminateApplication("Handshake terminated because strings did not match!!!");
                     }
                     
                     
@@ -382,18 +391,19 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
                    
                }
                cout<<" 2nd stage Handshake Completed"<<endl;
-               for(i=this->info_hash_offset;i<peer_id_offset;i++)
+               /**for(i=0;i<20;i++)
                {
-                    if(packet[i]!=this->bt_info->infoHash[i])
+                    if(packet[i+this->info_hash_offset]!=bt_args.bt_info->infoHash[i])
                     {
                          HelperClass::TerminateApplication("Handshake 3rd part error");
                     }
                    
                } 
+                 cout<<"Handshake 3rd part completed";
                  char * id = new char[ID_SIZE];
-                 char * id1 = new char[sizeof(connectedLeechers[no]->sockaddr.sin_addr.s_addr)];
-                 memcpy(id1,&connectedLeechers[no]->sockaddr.sin_addr.s_addr,sizeof(connectedLeechers[no]->sockaddr.sin_addr.s_addr));
-                 HelperClass::calc_id(id1,3,id);
+                 char * id1;
+                // inet_ntop(AF_INET,&connectedLeechers[no]->sockaddr.sin_addr.s_addr,id1,strlen(connectedLeechers[no]->sockaddr.sin_addr.s_addr));
+                 HelperClass::calc_id(id1,(int)connectedLeechers[no]->sockaddr.sin_port,id);
                  memcpy(id,connectedLeechers[no]->id,ID_SIZE);
                  cout<<"Handshake successful"<<endl;
                for(i=0;i<ID_SIZE;i++)
@@ -403,7 +413,7 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
                          HelperClass::TerminateApplication("PeerID'S not matched");
                     }
                }
-               cout<<"peerIDs got matched"<<endl;
+               cout<<"peerIDs got matched"<<endl;   **/
                connectedLeechers[no]->isHandShakeDone=true;
                
           }   
@@ -438,9 +448,16 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 
 void Peer::startClient()
 {
-    for(int i=0; i<bt_args.n_peers;i++)
-    {
-     sendPacket(bt_args.connectedPeers[1]);
+	if(bt_args.n_peers==0)
+	{
+		HelperClass::TerminateApplication("NO SEEDERS SPECIFIED");
+	}
+	else
+	{
+		for(int i=0; i<bt_args.n_peers;i++)
+		{
+		 sendPacket(bt_args.connectedPeers[1]);
+		}
     }
 }
 
