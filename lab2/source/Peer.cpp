@@ -69,15 +69,14 @@ void Peer::sendPacket(co_peer_t* leecher)
 			handshake[i]=0;
 		}   
 		
-	/**	memcpy(&handshake[this->info_hash_offset],bt_args.bt_info->infoHash ,this->peer_id_offset-this->info_hash_offset);
-		 
-	
-	    for(unsigned int k=peer_id_offset;k<HAND_SHAKE_BUFSIZE;k++)   // storing peerid in handshake buffer
-		{
-			handshake[k]=leecher->id[k];
-		}		
+		memcpy(&handshake[this->info_hash_offset],bt_args.bt_info->infoHash ,this->peer_id_offset-this->info_hash_offset);
+		 	
+	    //for(unsigned int k=peer_id_offset;k<HAND_SHAKE_BUFSIZE;k++)   // storing peerid in handshake buffer
+		//{
+		//	handshake[k]=leecher->id[k];
+		//}		
 		// to send handshake buffer over TCP using int sock..... **/
-		send(sock,handshake,HAND_SHAKE_BUFSIZE, 0); //;
+		send(sock,handshake,48, 0); //;
 
 
 	}	
@@ -391,7 +390,7 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
                    
                }
                cout<<" 2nd stage Handshake Completed"<<endl;
-               /**for(i=0;i<20;i++)
+               for(i=0;i<20;i++)
                {
                     if(packet[i+this->info_hash_offset]!=bt_args.bt_info->infoHash[i])
                     {
@@ -400,7 +399,7 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
                    
                } 
                  cout<<"Handshake 3rd part completed";
-                 char * id = new char[ID_SIZE];
+               /*  char * id = new char[ID_SIZE];
                  char * id1;
                 // inet_ntop(AF_INET,&connectedLeechers[no]->sockaddr.sin_addr.s_addr,id1,strlen(connectedLeechers[no]->sockaddr.sin_addr.s_addr));
                  HelperClass::calc_id(id1,(int)connectedLeechers[no]->sockaddr.sin_port,id);

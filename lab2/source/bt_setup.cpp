@@ -233,7 +233,8 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   //decode bencoding...
   Bencode bnc;
   bt_info_t bti=bnc.ParseTorrentFile(bt_args->torrent_file);
-  bt_args->bt_info = &bti;
+  bt_args->bt_info = new bt_info_t;
+  mempcpy(bt_args->bt_info, &bti, sizeof(bt_info_t));
   return;
 }
 
@@ -244,7 +245,7 @@ int main(int argc, char * argv[])
 		//this is the main entry point to the code....
 		bt_args_t args;
 		parse_args(&args, argc, argv);
-		
+						
 		//command line arguments are saved in bt_args now..
 		//lets create a peer and send this arguments to the peer.
 		Peer p(args);				
