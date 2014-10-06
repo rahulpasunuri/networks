@@ -69,14 +69,16 @@ void Peer::sendPacket(co_peer_t* leecher)
 			handshake[i]=0;
 		}   
 		
-		memcpy(&handshake[this->info_hash_offset],bt_args.bt_info->infoHash ,this->peer_id_offset-this->info_hash_offset);
-		 	
-	    //for(unsigned int k=peer_id_offset;k<HAND_SHAKE_BUFSIZE;k++)   // storing peerid in handshake buffer
-		//{
-		//	handshake[k]=leecher->id[k];
-		//}		
-		// to send handshake buffer over TCP using int sock..... **/
-		send(sock,handshake,48, 0); //;
+		memcpy(&handshake[this->info_hash_offset],bt_args.bt_info->infoHash ,this->peer_id_offset-this->info_hash_offset); //storing infohash into buffer
+		memcpy(&handshake[this->peer_id_offset],&leecher->id ,HAND_SHAKE_BUFSIZE-this->peer_id_offset); // storing peer_id into buffer
+		
+		cout<<"hello helllo"<<leecher->id<<endl;	
+	   //for(unsigned int k=peer_id_offset;k<HAND_SHAKE_BUFSIZE;k++)   // storing peerid in handshake buffer
+	   //{
+	    //	handshake[k]=leecher->id[k];
+	     //}		
+		 //to send handshake buffer over TCP using int sock.....
+		send(sock,handshake,68, 0); //;
 
 
 	}	
@@ -398,24 +400,24 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
                     }
                    
                } 
-                 cout<<"Handshake 3rd part completed";
-               /*  char * id = new char[ID_SIZE];
-                 char * id1;
-                // inet_ntop(AF_INET,&connectedLeechers[no]->sockaddr.sin_addr.s_addr,id1,strlen(connectedLeechers[no]->sockaddr.sin_addr.s_addr));
-                 HelperClass::calc_id(id1,(int)connectedLeechers[no]->sockaddr.sin_port,id);
-                 memcpy(id,connectedLeechers[no]->id,ID_SIZE);
-                 cout<<"Handshake successful"<<endl;
-               for(i=0;i<ID_SIZE;i++)
-               {
-                    if(id[i]!=packet[this->peer_id_offset+i])
-                    {
-                         HelperClass::TerminateApplication("PeerID'S not matched");
-                    }
-               }
-               cout<<"peerIDs got matched"<<endl;   **/
-               connectedLeechers[no]->isHandShakeDone=true;
-               
-          }   
+			   cout<<"Handshake 3rd part completed"<<'\n';
+			   char * id = new char[ID_SIZE+1];
+			   char * id1 = inet_ntoa(connectedLeechers[no]->sockaddr.sin_addr);
+			   
+			   HelperClass::calc_id(id1,ntohs(connectedLeechers[no]->sockaddr.sin_port),id);
+			  // memcpy(id,connectedLeechers[no]->id,ID_SIZE);
+			    cout<<"CALCULATED ID HERE"<<id; 
+			   for(i=0;i<ID_SIZE;i++)
+			   {
+				   if(id[i]!=packet[this->peer_id_offset+i])
+				   {
+					  HelperClass::TerminateApplication("PeerID'S not matched");
+				   }
+			   }
+			   cout<<"peerIDs got matched"<<endl;   
+			   connectedLeechers[no]->isHandShakeDone=true;
+			   cout<<"Handshake successful"<<endl;
+        }   
                
 		else
 		{
@@ -447,14 +449,15 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 
 void Peer::startClient()
 {
-	if(bt_args.n_peers==0)
+	if(bt_args.n_peers==0 || bt_args.n_peers>MAX_CONNECTIONS )
 	{
-		HelperClass::TerminateApplication("NO SEEDERS SPECIFIED");
+		HelperClass::TerminateApplication("INVALID NO OF SEEDERS SPECIFIED");
 	}
 	else
 	{
 		for(int i=0; i<bt_args.n_peers;i++)
 		{
+		 //bzero(&(bt_args.connectedPeers[i]->sockaddr), sizeof(bt_args.connectedPeers[i]->sockaddr));		
 		 sendPacket(bt_args.connectedPeers[1]);
 		}
     }
