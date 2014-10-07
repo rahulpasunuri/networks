@@ -22,13 +22,18 @@ using namespace std;
 //code from client.cpp
 //establishes connection to a peer and sends the file to it.
 void Peer::sendPacket(co_peer_t* leecher)
-{	cout<<"Client Started"<<endl;	
+{	
+
+	 struct sockaddr_in adr_inet;
+     socklen_t len_inet;  /* length */  
+	cout<<"Client Started"<<endl;	
 	if(leecher==NULL)
 	{
 		HelperClass::TerminateApplication("No leecher specified to send the file.");
 	}	
 
-	sockaddr_in destinationAddress=leecher->sockaddr;		
+	sockaddr_in destinationAddress=leecher->sockaddr;
+			
 	// SOCKET creation.....
  	int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -50,11 +55,19 @@ void Peer::sendPacket(co_peer_t* leecher)
     
 	if(verboseMode)
 	{
-		cout<<"Connection established successfully"<<endl;
-		cout<<"HELLO!!! before entering"; 
+		cout<<"Connection established successfully"<<endl; 
 	}
-	   
-	if(leecher->isHandShakeDone==false)                           // hand shake protocol must take place here before file data is exchanged....
+	if(getsockname(sock, (struct sockaddr *)&adr_inet, &len_inet)<0)  // HERE WE ARE EXTRACTING THE IP AND PORT TO WHICH THE PEER(OUR CLIENT) IS CONNECTED TO!
+	{
+		HelperClass::TerminateApplication("Unable to determine peer's local IP to which it is binded");
+	}
+	else
+	{
+	cout<<"IP address saved successfully"<<endl;
+	}
+	char *cli_id =inet_ntoa(adr_inet.sin_addr);  cout<<cli_id; cout<<(unsigned)ntohs(adr_inet.sin_port);
+	HelperClass::calc_id(inet_ntoa(adr_inet.sin_addr),(unsigned)ntohs(adr_inet.sin_port),cli_id);          
+	if(leecher->isHandShakeDone==false)            // hand shake protocol must take place here before file data is exchanged....
 	{    	
 		cout<<"Hand shake started";
 		char handshake[HAND_SHAKE_BUFSIZE];
@@ -70,13 +83,8 @@ void Peer::sendPacket(co_peer_t* leecher)
 		}   
 		
 		memcpy(&handshake[this->info_hash_offset],bt_args.bt_info->infoHash ,this->peer_id_offset-this->info_hash_offset); //storing infohash into buffer
-		memcpy(&handshake[this->peer_id_offset],&leecher->id ,HAND_SHAKE_BUFSIZE-this->peer_id_offset); // storing peer_id into buffer
+		memcpy(&handshake[this->peer_id_offset],&cli_id, HAND_SHAKE_BUFSIZE-this->peer_id_offset); // storing peer_id into buffer
 		
-		cout<<"hello helllo"<<leecher->id<<endl;	
-	   //for(unsigned int k=peer_id_offset;k<HAND_SHAKE_BUFSIZE;k++)   // storing peerid in handshake buffer
-	   //{
-	    //	handshake[k]=leecher->id[k];
-	     //}		
 		 //to send handshake buffer over TCP using int sock.....
 		send(sock,handshake,68, 0); //;
 
@@ -164,28 +172,29 @@ Peer::Peer(bt_args_t input)
 	bt_args=input;
 	
 	this->bt_info=bt_args.bt_info;
-	
-	//Any incoming interface
-	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (sock < 0)
-	{
-		HelperClass::TerminateApplication("Socket Creation Failed!!");
-	}
-	if(verboseMode)
-	{
-		cout<<"\nSocket Creation Successfull!!"<<endl;
-	}
-	
+		
 	if(input.isSeeder==true)
 	{
+		
+		//Any incoming interface
+		sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		if (sock < 0)
+		{
+			HelperClass::TerminateApplication("Socket Creation Failed!!");
+		}
+		if(verboseMode)
+		{
+			cout<<"\nSocket Creation Successfull!!"<<endl;
+		}
+
 				//bind to a port...
 		bindToAPort();
-			if(verboseMode)
-			{
-				cout<<"\nBinding to Port Successfull!!"<<endl;
-			}
-			thread serverThread(&Peer::startServer,this);
-			serverThread.join();
+		if(verboseMode)
+		{
+			cout<<"\nBinding to Port Successfull!!"<<endl;
+		}
+		thread serverThread(&Peer::startServer,this);
+		serverThread.join();
     }
 	else
 	{   
@@ -201,7 +210,7 @@ int Peer::getPortNumber()
 }
 
 void  Peer::bindToAPort()
-{
+{   
 	int port = (int)INIT_PORT;
 	bool isBindingDone=false;
 	while(port<=(int)MAX_PORT)
@@ -219,6 +228,7 @@ void  Peer::bindToAPort()
 		}	
 		port++;
 	}
+		
 	if(isBindingDone==false)
 	{
 		HelperClass::TerminateApplication("Binding Failed!!");
@@ -351,10 +361,12 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 		numBytesRcvd = recv(clntSocket, buffer, BUFSIZE, 0);		
 
 	}
-	static int no=0;
+	 int no=0;
 	co_peer_t * connectedLeechers[MAX_CONNECTIONS];
 	connectedLeechers[no]=(co_peer_t *) malloc(sizeof(co_peer_t));
+	//bzero((bt_args.connectedPeers[no]->sockaddr), sizeof(bt_args.connectedPeers[no]->sockaddr));
 	memcpy(&connectedLeechers[no]->sockaddr,clntAddr,sizeof(struct sockaddr_in));
+	
 	
 	
 	 
@@ -402,9 +414,10 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
                } 
 			   cout<<"Handshake 3rd part completed"<<'\n';
 			   char * id = new char[ID_SIZE+1];
+			   cout<<connectedLeechers[no]->id;
 			   char * id1 = inet_ntoa(connectedLeechers[no]->sockaddr.sin_addr);
-			   
-			   HelperClass::calc_id(id1,ntohs(connectedLeechers[no]->sockaddr.sin_port),id);
+			   cout<<inet_ntoa(connectedLeechers[no]->sockaddr.sin_addr);
+			   HelperClass::calc_id(id1,(unsigned)ntohs(connectedLeechers[no]->sockaddr.sin_port),id);
 			  // memcpy(id,connectedLeechers[no]->id,ID_SIZE);
 			    cout<<"CALCULATED ID HERE"<<id; 
 			   for(i=0;i<ID_SIZE;i++)
@@ -457,7 +470,7 @@ void Peer::startClient()
 	{
 		for(int i=0; i<bt_args.n_peers;i++)
 		{
-		 //bzero(&(bt_args.connectedPeers[i]->sockaddr), sizeof(bt_args.connectedPeers[i]->sockaddr));		
+		 		
 		 sendPacket(bt_args.connectedPeers[1]);
 		}
     }
