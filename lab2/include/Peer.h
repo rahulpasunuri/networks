@@ -12,12 +12,14 @@
 #include "HelperClass.h"
 #include "FileObject.h"
 #include "bt_lib.h"
+#include <mutex>
 
 #define MAXPENDING 5
 #define HAND_SHAKE_BUFSIZE 68
 class Peer
 {
 	private:
+	mutex mutexConnectedPeers;
 	bool verboseMode;
 	bool isHandShakeDone;
 	sockaddr_in localAddress;		 
@@ -71,9 +73,9 @@ class Peer
 
 	public:
 	const int protocol_name_offset = 1;
-	const int reserved_offset = protocol_name_offset + 19;
-	const int info_hash_offset = reserved_offset + 8;
-	const int peer_id_offset = info_hash_offset + 20;
+	const int reserved_offset = protocol_name_offset + 19; //20
+	const int info_hash_offset = reserved_offset + 8; //28
+	const int peer_id_offset = info_hash_offset + 20; //48
 
 	const char prefix = 19;
 	const string BitTorrent_protocol = "BitTorrent protocol";
@@ -81,5 +83,7 @@ class Peer
 	int getPortNumber();
 	void startServer();	
 	void startClient();
+
+	~Peer();
 };
 

@@ -82,7 +82,6 @@ void __parse_peer(co_peer_t *peer, char * peer_st)
   //only can have 2 tokens max, but may have less
   for(word = strtok(parse_str, sep), i=0; (word && i < 3); word = strtok(NULL,sep), i++)
   {
-	printf("%d:%s\n",i,word);
 	switch(i)
 	{
 		case 0://id
@@ -119,7 +118,7 @@ void __parse_peer(co_peer_t *peer, char * peer_st)
   }
   
   //free extra memory
-  delete id;
+  delete[] id;
   free(parse_str);
 
   return;
@@ -153,7 +152,6 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
 
   //default log file
   strncpy(bt_args->log_file,DEFAULTLOGFILE,FILE_NAME_MAX); 
-  
   //initialize the connected peers array
   for(int i=0;i<MAX_CONNECTIONS;i++)
   {
@@ -184,7 +182,6 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
 		  strncpy(bt_args->log_file,optarg,FILE_NAME_MAX);
 		  break;
 		case 'p': //peer
-		  bt_args->n_peers++;
 		  //check if we are going to overflow
 		  if(bt_args->n_peers > MAX_CONNECTIONS)
 		  {
@@ -193,9 +190,10 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
 		  }
 	          
 		  bt_args->connectedPeers[bt_args->n_peers] = (co_peer_t *) malloc(sizeof(co_peer_t));
+		  bt_args->connectedPeers[bt_args->n_peers]->isHandShakeDone=false;
 		  //parse peers
 		  __parse_peer(bt_args->connectedPeers[bt_args->n_peers], optarg);
-		   
+  		  bt_args->n_peers++; 
 		  break;
 		case 'I':
 		  bt_args->id = atoi(optarg);

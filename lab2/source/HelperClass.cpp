@@ -49,16 +49,6 @@ bool HelperClass::CheckIfFileExists(const char* fileName)
 		return false;
 	}
 }
-
-
-const char* HelperClass::GetDigest(string message)    //compute hash
-{
-	
-	unsigned char* digest = new unsigned char[SHA_DIGEST_LENGTH];  //20 bytes
-	SHA1((const unsigned char*)message.c_str(), message.length(), digest); 
-	return (const char *)digest;
-	
-}
    
 void HelperClass::calc_id(char * ip, unsigned short port, char *id)
 {
@@ -72,6 +62,7 @@ void HelperClass::calc_id(char * ip, unsigned short port, char *id)
   SHA1((unsigned char *) data, len, (unsigned char *) id); 
   return;
 }  
+
 void HelperClass::Usage(FILE * file)
 {
   if(file == NULL)
