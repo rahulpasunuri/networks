@@ -110,7 +110,7 @@ void __parse_peer(co_peer_t *peer, char * peer_st)
   }
   char* id = new char[ID_SIZE+1];
   //calculate the id, value placed in id
- HelperClass::calc_id(ip,port,id);
+  HelperClass::calc_id(ip,port,id);
 
   //build the object we need
   if(init_peer(peer, id, ip, port)<0)
@@ -119,6 +119,7 @@ void __parse_peer(co_peer_t *peer, char * peer_st)
   }
   
   //free extra memory
+  delete id;
   free(parse_str);
 
   return;

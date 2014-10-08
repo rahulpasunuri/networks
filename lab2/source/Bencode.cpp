@@ -45,7 +45,7 @@ char* Bencode::nextToken(regex_t *pexp, char* &sz, int *size,bt_info_t &result)
 		{
 		    isString=true;
     	    endIndex--;	    
-		    char* integer = new char[endIndex];
+		    char* integer = new char[endIndex+1];
     	    for(int i=0;i<endIndex;i++)
     	    {
             	integer[i]=sz[i];
@@ -63,12 +63,13 @@ char* Bencode::nextToken(regex_t *pexp, char* &sz, int *size,bt_info_t &result)
     
             sz+=lengthOfString;
             sz+=(endIndex); 
-		    sz++;                        
+		    sz++; 
+		    delete[] integer;              
             return s;            
 		}
 		else
 		{          		    
-    		char* var = new char[endIndex];
+    		char* var = new char[endIndex+1];
     		for(int i=0;i<endIndex;i++)
     		{
         		var[i]=sz[i];
@@ -86,7 +87,9 @@ void Bencode::token(char * text,regex_t *exp,bt_info_t &result)
 {
 	if(strcmp(text,string("i").c_str())==0)
 	{   
-		int len= atoi(nextToken(exp, buffer,&sm,result));
+		char *nToken=nextToken(exp, buffer,&sm,result);
+		int len= atoi(nToken);
+		delete[] nToken;
 		//free up space...
 		if(isLength)
 		{
@@ -98,16 +101,16 @@ void Bencode::token(char * text,regex_t *exp,bt_info_t &result)
 			result.piece_length=len;
 			isPieceLength=false;
 		}
-		if(strcmp(nextToken(exp, buffer,&sm,result),string("e").c_str())!=0)
+		nToken = nextToken(exp, buffer,&sm,result);
+		if(strcmp(nToken,string("e").c_str())!=0)
 		{
+			delete[] nToken;
 			HelperClass::TerminateApplication("parsing error");  
 		}
-					  
+		delete[] nToken;					  
 	}
 	else if(isString==true) 
 	{ 
-		for(int i=0;i<sm;i++)
-		//cout<<text[i];
 		if(!strcmp(text,"length"))
 		{
 			isLength=true;
@@ -145,7 +148,7 @@ void Bencode::token(char * text,regex_t *exp,bt_info_t &result)
 				{
 					h[j]=text[j];		
 				}
-				h[(int)ID_SIZE+1]='\0';
+				h[(int)ID_SIZE]='\0';
 				text+=(int)ID_SIZE;
 				result.piece_hashes[i]=h;
 			}
@@ -175,13 +178,13 @@ void Bencode::token(char * text,regex_t *exp,bt_info_t &result)
 			token(t,exp,result);
 		}
 		if(strcmp(text,string("d").c_str())==0)
-		{
+		{		
 			char* tm =nextToken(exp, buffer, &sm,result);
 			while(strcmp(tm,string("e").c_str())!=0)
 			{
 				continue;
 			}	
-			//delete tm;
+			delete[] tm;
 		} 
 					   			    
 	}			   
@@ -230,7 +233,8 @@ bt_info_t Bencode::ParseTorrentFile(const char* fileName)
         else 
         {
   		   token(text,&exp,result);
-	    }   		                                           
+	    }   		
+	    delete[] text;                                           
    }
 
    //free buffer...

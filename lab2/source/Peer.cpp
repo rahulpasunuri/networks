@@ -193,7 +193,7 @@ Peer::Peer(bt_args_t input)
 		{
 			cout<<"\nBinding to Port Successfull!!"<<endl;
 		}
-		thread serverThread(&Peer::startServer,this);
+		thread serverThread(&Peer::startServer,this);		
 		serverThread.join();
     }
 	else
@@ -272,7 +272,7 @@ void Peer::startServer()
 		}
 		else
 		{
-			cout<<"\nUnable to determine Client Address\n";
+			HelperClass::TerminateApplication("\nUnable to determine Client Address");
 		}
 	 }
 }
@@ -424,12 +424,16 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 			   {
 				   if(id[i]!=packet[this->peer_id_offset+i])
 				   {
+		   			  //free memory of id.
+     	   			   delete[] id;	
 					  HelperClass::TerminateApplication("PeerID'S not matched");
 				   }
 			   }
 			   cout<<"peerIDs got matched"<<endl;   
 			   connectedLeechers[no]->isHandShakeDone=true;
 			   cout<<"Handshake successful"<<endl;
+			   //free memory of id.
+			   delete[] id;
         }   
                
 		else
