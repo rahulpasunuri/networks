@@ -72,22 +72,6 @@ FileObject::~FileObject()
     }
 }
 
-const char * FileObject::GetFileName()
-{
-	return fileName;
-}
-
- int FileObject::GetoffSet()
-{
-	return offSet;
-}
-
-int FileObject::GetNumBytes()
-{
-	return numBytes;
-}
-
-
 void FileObject::Append(string text)
 {
     try
@@ -101,4 +85,122 @@ void FileObject::Append(string text)
         HelperClass::TerminateApplication("Error in Appending text!!!");        
     }
 }
+
+
+void FileObject::CreateFileWithSize(const int size, const char* outputFileName)
+{
+	if(size<=0)
+	{
+		HelperClass::TerminateApplication("Invalid file Size!!");			
+	}
+	fstream f;
+	try
+	{
+		f.open(outputFileName,ios::out);
+	}
+	catch(...)
+	{
+		HelperClass::TerminateApplication("Error creating empty file.");
+	}
+	int s=0;
+	while(s<size)
+	{
+		f<<'a';
+		s++;
+	}
+	f.close();	
+}
+
+
+void FileObject::WritePartialFile(const int offset,const int numBytes,const char* content,const char* fileName)
+{
+	fstream f;
+	int len=strlen(content);
+	if(len<numBytes)
+	{
+		HelperClass::TerminateApplication("Lenght of the content is less");
+	}
+	if(numBytes<=0)
+	{
+		HelperClass::TerminateApplication("numBytes is <=0");
+	}
+	try
+	{
+		f.open(fileName,ios::in|ios::out);
+	}
+	catch(...)
+	{
+		HelperClass::TerminateApplication("Error opening file for write.");
+	}
+	
+	f.seekg(0,ios::end);
+    int size = f.tellg();
+	if( (offset+numBytes) > size)
+	{
+		cout<<"Offset is "<<offset<<endl;
+		cout<<"numBytes is "<<numBytes<<endl;
+		cout<<"Size is "<<size<<endl;
+		HelperClass::TerminateApplication("Size limits exceeding");
+	}
+	
+	f.seekp(offset,ios::beg);
+	try
+	{
+		for(int i=0;i<numBytes;i++)
+		{
+			f<<content[i];			
+		}		
+	}
+	catch(...)
+	{
+		HelperClass::TerminateApplication("File write failed!!!");
+	}
+	f.close();	
+}
+
+
+char* FileObject::ReadPartialFile(const int offset,const int numBytes,const char* fileName)
+{
+
+	fstream f;
+	if(numBytes<=0)
+	{
+		HelperClass::TerminateApplication("numBytes is <=0");
+	}
+	try
+	{
+		f.open(fileName,ios::in);
+	}
+	catch(...)
+	{
+		HelperClass::TerminateApplication("Error opening file for write.");
+	}
+	
+	f.seekg(0,ios::end);
+    int size = f.tellg();
+	if( (offset+numBytes) > size)
+	{
+		cout<<"Offset is "<<offset<<endl;
+		cout<<"numBytes is "<<numBytes<<endl;
+		cout<<"Size is "<<size<<endl;
+		HelperClass::TerminateApplication("Size limits exceeding");
+	}
+	char* content=new char[numBytes+1];		
+	f.seekp(offset,ios::beg);
+	try
+	{
+		for(int i=0;i<numBytes;i++)
+		{
+			f>>content[i];			
+		}		
+		content[numBytes]='\0';
+	}
+	catch(...)
+	{
+		HelperClass::TerminateApplication("File write failed!!!");
+	}
+	f.close();	
+	return content;		
+}
+
 

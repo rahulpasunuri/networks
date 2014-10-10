@@ -220,7 +220,8 @@ void Peer::init(bt_args_t input)
 	{   
 		thread clientThread(&Peer::startClient,this);
 		clientThread.join();
-	}		
+	}
+	isInit=true;		
 }
 
 int Peer::getPortNumber()
@@ -382,7 +383,6 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 			{					 
 				cout<<"...Handshake in process..."<<endl;
 			}
-
 			   	
 			char * id = new char[ID_SIZE+1];
 			char * id1 = inet_ntoa(leecher->sockaddr.sin_addr);
@@ -555,19 +555,21 @@ void Peer::recvHandShakeResp(string packet,char* id)
 
 Peer::~Peer()
 {
-	//free all memories...
-	for(int i=0; i< MAX_CONNECTIONS;i++)
+	if(isInit)
 	{
-		free(this->bt_args.connectedPeers[i]);
+		//free all memories...
+		for(int i=0; i< MAX_CONNECTIONS;i++)
+		{
+			free(this->bt_args.connectedPeers[i]);
+		}
+		//delete[] this->bt_args.connectedPeers[MAX_CONNECTIONS];			
+		delete[] this->bt_args.bt_info->infoHash;
+		//de-allocate piece hashes...
+		for(int i=0;i<this->bt_args.bt_info->num_pieces;i++)
+		{
+			delete[] this->bt_args.bt_info->piece_hashes[i];	
+		}
+		delete[] this->bt_args.bt_info->piece_hashes;
+		delete this->bt_args.bt_info;
 	}
-	//delete[] this->bt_args.connectedPeers[MAX_CONNECTIONS];			
-	delete[] this->bt_args.bt_info->infoHash;
-	//de-allocate piece hashes...
-	for(int i=0;i<this->bt_args.bt_info->num_pieces;i++)
-	{
-		delete[] this->bt_args.bt_info->piece_hashes[i];	
-	}
-	delete[] this->bt_args.bt_info->piece_hashes;
-	delete this->bt_args.bt_info;
-
 }

@@ -16,9 +16,11 @@
 
 using namespace std;
 
+Peer currentPeer;
 void my_handler(int s)
 {
-   printf("Caught signal %d\n",s);
+   printf("De allocating resources.. %d\n",s);
+   close(currentPeer.sock);   
    exit(1); 
 }
 
@@ -49,9 +51,6 @@ int init_peer(co_peer_t *peer, char * id, char * ip, unsigned short port)
   struct hostent * hostinfo;
   //set the host id and port for referece
   memcpy(peer->id, id, ID_SIZE);
-  
-  //TODO
-  //peer->port = port;
     
   //get the host by name
   if((hostinfo = gethostbyname(ip)) ==  NULL)
@@ -255,18 +254,37 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   mempcpy(bt_args->bt_info, &bti, sizeof(bt_info_t));
   return;
 }
-Peer currentPeer;
+
 int main(int argc, char * argv[])
 {
 	try
-	{
+	{	
+		/*
+		//test code...
+		FileObject::CreateFileWithSize(1024, "testOutput.txt");
+		int i=0;int num=8;int size=0;
+		while(size<1024)
+		{
+			FileObject::WritePartialFile(i,num,"bbbbbbbb","testOutput.txt");
+			i+=num;
+			size+=num;
+		}
+		
+		char* data=FileObject::ReadPartialFile(3,10,"testOutput.txt");
+		cout<<data<<endl;
+		delete[] data;
+		
+		HelperClass::TerminateApplication("debugging");
+		*/
+
 		//this is the main entry point to the code....
 		bt_args_t args;
 		parse_args(&args, argc, argv);
 			
+		 initSigHandler();
 		//command line arguments are saved in bt_args now..
-		//lets create a peer and send this arguments to the peer.
-		currentPeer.init(args);				
+		//lets create a peer and send this arguments to the peer.		
+		currentPeer.init(args);		
 	}
 	catch(...)
 	{
