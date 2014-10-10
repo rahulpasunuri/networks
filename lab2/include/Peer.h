@@ -20,6 +20,7 @@
 class Peer
 {
 	private:	
+	bool isInit;
 	mutex mutexConnectedPeers;
 	bool verboseMode;
 	bool isHandShakeDone;

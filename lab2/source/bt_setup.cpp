@@ -262,6 +262,7 @@ int main(int argc, char * argv[])
 {
 	try
 	{
+		
 		//this is the main entry point to the code....
 		bt_args_t args;
 		parse_args(&args, argc, argv);

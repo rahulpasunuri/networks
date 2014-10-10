@@ -102,3 +102,28 @@ void FileObject::Append(string text)
     }
 }
 
+
+void FileObject::CreateFileWithSize(const int size, const char* outputFileName)
+{
+	if(size<=0)
+	{
+		HelperClass::TerminateApplication("Invalid file Size!!");			
+	}
+	fstream f;
+	try
+	{
+		f.open(outputFileName,ios::out);
+	}
+	catch(...)
+	{
+		HelperClass::TerminateApplication("Error creating empty file.");
+	}
+	int s=0;
+	while(s<size)
+	{
+		f<<'a';
+		s++;
+	}
+	f.close();	
+}
+

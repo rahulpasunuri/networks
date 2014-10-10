@@ -25,6 +25,6 @@ class FileObject
 		const char * GetFileName();
 		int GetoffSet();
 		int GetNumBytes();
-			
+		static void CreateFileWithSize(const int size, const char* outputFileName);
 		void Append(string text); //returns whether the append was succesfull or not..			
 };
