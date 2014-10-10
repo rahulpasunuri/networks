@@ -62,7 +62,7 @@ void HelperClass::calc_id(const char * ip,const unsigned short port, char *id)
   SHA1((unsigned char *) data, len, (unsigned char *) id); 
   return;
 }  
-
+ 
 void HelperClass::Usage(FILE * file)
 {
   if(file == NULL)
