@@ -22,10 +22,8 @@ class FileObject
 	public:
 		~FileObject();	
 		FileObject(const char*fileName, short offSet=0, short numBytes=0,bool readOnlyMode=true);
-		const char * GetFileName();
-		int GetoffSet();
-		int GetNumBytes();
 		static void CreateFileWithSize(const int , const char* );
 		static void WritePartialFile(const int ,const int , const char*, const char* );
+		static char* ReadPartialFile(const int ,const int , const char* );
 		void Append(string text); //returns whether the append was succesfull or not..			
 };

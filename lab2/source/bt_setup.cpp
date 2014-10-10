@@ -269,10 +269,14 @@ int main(int argc, char * argv[])
 			i+=num;
 			size+=num;
 		}
+		
+		char* data=FileObject::ReadPartialFile(3,10,"testOutput.txt");
+		cout<<data<<endl;
+		delete[] data;
+		
 		HelperClass::TerminateApplication("debugging");
 		*/
-			
-		
+
 		//this is the main entry point to the code....
 		bt_args_t args;
 		parse_args(&args, argc, argv);
