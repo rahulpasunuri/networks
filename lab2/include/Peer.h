@@ -12,13 +12,14 @@
 #include "HelperClass.h"
 #include "FileObject.h"
 #include "bt_lib.h"
+#include<thread>
 #include <mutex>
 
 #define MAXPENDING 5
 #define HAND_SHAKE_BUFSIZE 68
 class Peer
 {
-	private:
+	private:	
 	mutex mutexConnectedPeers;
 	bool verboseMode;
 	bool isHandShakeDone;

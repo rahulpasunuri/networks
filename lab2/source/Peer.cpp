@@ -319,7 +319,8 @@ void Peer::startServer()
 			{
 				cout<<"\nStarted handling the TCP client."<<endl;	
 			}
-			handleTCPClient(clntSock,&clntAddr);
+			//thread d ([&] { a.foo(100); });
+			new thread(&Peer::handleTCPClient,this,clntSock,&clntAddr);		
 		}
 		else
 		{
