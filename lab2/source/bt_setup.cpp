@@ -9,7 +9,27 @@
 #include<iostream>
 #include "../include/HelperClass.h"
 
+#include <signal.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+
 using namespace std;
+
+void my_handler(int s)
+{
+   printf("Caught signal %d\n",s);
+   exit(1); 
+}
+
+void initSigHandler()
+{
+   struct sigaction sigIntHandler;
+   sigIntHandler.sa_handler = my_handler;
+   sigemptyset(&sigIntHandler.sa_mask);
+   sigIntHandler.sa_flags = 0;
+   sigaction(SIGINT, &sigIntHandler, NULL);
+}
 
 /**
  * init_peer(peer_t * peer, int id, char * ip, unsigned short port) -> int
@@ -201,13 +221,12 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
 		case 'b':
 		  bt_args->ipAddress=string(optarg);
 		  //if ip address is not specified in server.. we will default it to local host.
-		
+		  memset(&(bt_args->destaddr), 0, sizeof(bt_args->destaddr)); 	
 		  if(inet_pton(AF_INET, bt_args->ipAddress.c_str(), &((bt_args->destaddr).sin_addr.s_addr))<0)
 		  {
 			HelperClass::Usage(stderr);
 			HelperClass::TerminateApplication("Invalid IP address");
-		  }	  		
-		  memset(&(bt_args->destaddr), 0, sizeof(bt_args->destaddr)); 		  
+		  }	  
 		  bt_args->destaddr.sin_family = AF_INET;
 		  bt_args->destaddr.sin_port=htons(bt_args->port);		  
 		  break;
@@ -236,7 +255,7 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   mempcpy(bt_args->bt_info, &bti, sizeof(bt_info_t));
   return;
 }
-
+Peer currentPeer;
 int main(int argc, char * argv[])
 {
 	try
@@ -244,10 +263,10 @@ int main(int argc, char * argv[])
 		//this is the main entry point to the code....
 		bt_args_t args;
 		parse_args(&args, argc, argv);
-						
+			
 		//command line arguments are saved in bt_args now..
 		//lets create a peer and send this arguments to the peer.
-		Peer p(args);				
+		currentPeer.init(args);				
 	}
 	catch(...)
 	{

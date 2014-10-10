@@ -50,7 +50,7 @@ bool HelperClass::CheckIfFileExists(const char* fileName)
 	}
 }
    
-void HelperClass::calc_id(char * ip, unsigned short port, char *id)
+void HelperClass::calc_id(const char * ip,const unsigned short port, char *id)
 {
   char data[256];
   int len;

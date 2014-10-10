@@ -20,6 +20,13 @@
 #include <thread>
 using namespace std;
 
+Peer::Peer()
+{
+//empty constructor...
+//does nothing..
+}
+
+
 void Peer::sendHandshakeReq(int sock, char* cli_id)
 {
 	char handshake[HAND_SHAKE_BUFSIZE];
@@ -210,16 +217,13 @@ void Peer::sendString(co_peer_t* leecher, int sock,string message,const char * d
 /**code from server.cpp
 */
 
-
-
-Peer::Peer(bt_args_t input)
+void Peer::init(bt_args_t input)
 {		
 	//intitialize the local address..		
 	//zero - out all entries of client...
 	verboseMode=input.verboseMode;
 	localAddress=input.destaddr;
 	bt_args=input;
-	cout<<inet_ntoa(localAddress.sin_addr);
 	this->bt_info=bt_args.bt_info;
 		
 	if(input.isSeeder==true)
@@ -236,7 +240,7 @@ Peer::Peer(bt_args_t input)
 			cout<<"\nSocket Creation Successfull!!"<<endl;
 		}
 
-				//bind to a port...
+		//bind to a port...
 		bindToAPort();
 		if(verboseMode)
 		{
@@ -396,23 +400,23 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 {
 	char buffer[BUFSIZE]; // Buffer for echo string
 	// Receive message from client
-        string packet="";
+    string packet="";
 	ssize_t numBytesRcvd = recv(clntSocket, buffer, BUFSIZE, 0);  int num=numBytesRcvd;
-		if (numBytesRcvd < 0)
-		{
-			HelperClass::TerminateApplication("recv() failed!!");
-		}
-	
-		while (num<=68)
-		{
-		 	// 0 indicates end of stream
+	if (numBytesRcvd < 0)
+	{
+		HelperClass::TerminateApplication("recv() failed!!");
+	}
+
+	while (num<=68)
+	{
+	 	// 0 indicates end of stream
 		//        buffer[numBytesRcvd]='\0';     
 		packet.append(buffer,numBytesRcvd);           
-			num+=numBytesRcvd;
-			// See if there is more data to receive
-			numBytesRcvd = recv(sock, buffer, BUFSIZE, 0);		
-		}cout<<packet;   	
-		
+		num+=numBytesRcvd;
+		// See if there is more data to receive
+		numBytesRcvd = recv(sock, buffer, BUFSIZE, 0);		
+	}
+	
 	 //create a new coPeer for this leecher..
 	co_peer_t * leecher;
 	leecher=(co_peer_t *) malloc(sizeof(co_peer_t));
@@ -455,9 +459,9 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 			recvHandShakeResp(packet, id);
 
 			char *cli_id1 = new char[(int)ID_SIZE]; // calculating the ip and port of the leecher....
-			HelperClass::calc_id((char*)(string("127.0.0.1")).c_str(),(unsigned)ntohs(localAddress.sin_port),cli_id1);
+			HelperClass::calc_id((string("127.0.0.1")).c_str(),(unsigned)ntohs(localAddress.sin_port),cli_id1);
 			cout<<inet_ntoa(localAddress.sin_addr);
-	// INITIATING HANDSHAKE 2
+			// INITIATING HANDSHAKE 2
 			sendHandshakeReq(clntSocket, cli_id1);
 			           
 			leecher->isHandShakeDone=true;

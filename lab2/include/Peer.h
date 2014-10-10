@@ -81,7 +81,8 @@ class Peer
 
 	const char prefix = 19;
 	const string BitTorrent_protocol = "BitTorrent protocol";
-	Peer(bt_args_t args);
+	void init(bt_args_t args);
+	Peer();
 	int getPortNumber();
 	void startServer();	
 	void startClient();
