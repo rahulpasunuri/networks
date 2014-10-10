@@ -24,7 +24,6 @@ class Peer
 	bool verboseMode;
 	bool isHandShakeDone;
 	sockaddr_in localAddress;		 
-	int sock;
 	int portNumber;		
 	unsigned char id[ID_SIZE]; //the peer id
 	unsigned int idInt; //this bt_clients id
@@ -86,7 +85,7 @@ class Peer
 	int getPortNumber();
 	void startServer();	
 	void startClient();
-
+	int sock;
 	~Peer();
 };
 

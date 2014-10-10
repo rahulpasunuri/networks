@@ -16,9 +16,11 @@
 
 using namespace std;
 
+Peer currentPeer;
 void my_handler(int s)
 {
-   printf("Caught signal %d\n",s);
+   printf("De allocating resources.. %d\n",s);
+   close(currentPeer.sock);   
    exit(1); 
 }
 
@@ -255,7 +257,7 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   mempcpy(bt_args->bt_info, &bti, sizeof(bt_info_t));
   return;
 }
-Peer currentPeer;
+
 int main(int argc, char * argv[])
 {
 	try
@@ -264,9 +266,10 @@ int main(int argc, char * argv[])
 		bt_args_t args;
 		parse_args(&args, argc, argv);
 			
+		 initSigHandler();
 		//command line arguments are saved in bt_args now..
-		//lets create a peer and send this arguments to the peer.
-		currentPeer.init(args);				
+		//lets create a peer and send this arguments to the peer.		
+		currentPeer.init(args);		
 	}
 	catch(...)
 	{

@@ -448,7 +448,6 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 			{					 
 				cout<<"...Handshake in process..."<<endl;
 			}
-	
 			   	
 			char * id = new char[ID_SIZE+1];
 			char * id1 = inet_ntoa(leecher->sockaddr.sin_addr);
