@@ -108,7 +108,7 @@ void Peer::sendPacket(co_peer_t* leecher=NULL)
 	if(leecher->isHandShakeDone==false)            // hand shake protocol must take place here before file data is exchanged....
 	{    	
 		cout<<"Hand shake started";
-		//sendHandshakeReq(sock, cli_id);
+		sendHandshakeReq(sock, cli_id);
 		//free memory
 		delete[] cli_id;
 		 //to send handshake buffer over TCP using int sock.....
@@ -396,7 +396,7 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 	char buffer[BUFSIZE]; // Buffer for echo string
 	// Receive message from client
         string packet="";
-	/*ssize_t numBytesRcvd = recv(sock, buffer, BUFSIZE, 0);  int num=numBytesRcvd;
+	ssize_t numBytesRcvd = recv(clntSocket, buffer, BUFSIZE, 0);  int num=numBytesRcvd;
 		if (numBytesRcvd < 0)
 		{
 			HelperClass::TerminateApplication("recv() failed!!");
@@ -410,7 +410,7 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 			num+=numBytesRcvd;
 			// See if there is more data to receive
 			numBytesRcvd = recv(sock, buffer, BUFSIZE, 0);		
-		}cout<<packet;   */	
+		}cout<<packet;   	
 		
 	 //create a new coPeer for this leecher..
 	co_peer_t * leecher;
@@ -435,8 +435,8 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 		HelperClass::TerminateApplication("Error updating the connected peers list");
 	}
 	mutexConnectedPeers.unlock();
-	//if(packet!="")
-	//{ 
+	if(packet!="")
+	{ 
 		if(leecher->isHandShakeDone==false)
 		{
 			if(this->verboseMode)
@@ -450,7 +450,9 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 			cout<<inet_ntoa(leecher->sockaddr.sin_addr);		   
 			unsigned short portNumber=(unsigned)ntohs(leecher->sockaddr.sin_port);
 			HelperClass::calc_id(id1,portNumber,id);
-			//recvHandShakeResp(packet, id);
+			
+			recvHandShakeResp(packet, id);
+
 			char *cli_id1 = new char[(int)ID_SIZE]; // calculating the ip and port of the leecher....
 			HelperClass::calc_id((char*)(string("127.0.0.1")).c_str(),(unsigned)ntohs(localAddress.sin_port),cli_id1);
 			cout<<inet_ntoa(localAddress.sin_addr);
@@ -467,7 +469,7 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 		leecher->isHandShakeDone= true;
 			   		   		   
 		}   
-        //}   
+        }   
 	else
 	{
 	     HelperClass::TerminateApplication("...NO DATA RECEIVED FROM PEER...");
