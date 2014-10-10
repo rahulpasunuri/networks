@@ -160,7 +160,7 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
  
   bt_args->id = 0;
   
-  while ((ch = getopt(argc, argv, "hp:s:l:fvI:")) != -1) 
+  while ((ch = getopt(argc, argv, "hp:s:l:fvI:b:")) != -1) 
   {
     switch (ch) 
     {

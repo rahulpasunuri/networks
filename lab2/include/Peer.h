@@ -33,7 +33,8 @@ class Peer
 	bt_args_t bt_args; //holds the bt arguments.
 	bt_info_t * bt_info; //the parsed info for this torrent	
 	
-	
+	void sendHandshakeReq(int sock, char* cli_id);
+	void recvHandShakeResp(string packet,char* id);
 	void handleTCPClient(int, struct sockaddr_in*);
 	void parsePacket(string, string&, string&,string&);
 	void handlePacket(string);
