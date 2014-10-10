@@ -25,6 +25,7 @@ class FileObject
 		const char * GetFileName();
 		int GetoffSet();
 		int GetNumBytes();
-		static void CreateFileWithSize(const int size, const char* outputFileName);
+		static void CreateFileWithSize(const int , const char* );
+		static void WritePartialFile(const int ,const int , const char*, const char* );
 		void Append(string text); //returns whether the append was succesfull or not..			
 };

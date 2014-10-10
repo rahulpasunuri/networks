@@ -127,3 +127,50 @@ void FileObject::CreateFileWithSize(const int size, const char* outputFileName)
 	f.close();	
 }
 
+
+void FileObject::WritePartialFile(const int offset,const int numBytes,const char* content,const char* fileName)
+{
+	fstream f;
+	int len=strlen(content);
+	if(len<numBytes)
+	{
+		HelperClass::TerminateApplication("Lenght of the content is less");
+	}
+	if(numBytes<=0)
+	{
+		HelperClass::TerminateApplication("numBytes is <=0");
+	}
+	try
+	{
+		f.open(fileName,ios::in|ios::out);
+	}
+	catch(...)
+	{
+		HelperClass::TerminateApplication("Error opening file for write.");
+	}
+	
+	f.seekg(0,ios::end);
+    int size = f.tellg();
+	if( (offset+numBytes) > size)
+	{
+		cout<<"Offset is "<<offset<<endl;
+		cout<<"numBytes is "<<numBytes<<endl;
+		cout<<"Size is "<<size<<endl;
+		HelperClass::TerminateApplication("Size limits exceeding");
+	}
+	
+	f.seekp(offset,ios::beg);
+	try
+	{
+		for(int i=0;i<numBytes;i++)
+		{
+			f<<content[i];			
+		}		
+	}
+	catch(...)
+	{
+		HelperClass::TerminateApplication("File write failed!!!");
+	}
+	f.close();	
+}
+

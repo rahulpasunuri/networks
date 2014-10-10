@@ -51,9 +51,6 @@ int init_peer(co_peer_t *peer, char * id, char * ip, unsigned short port)
   struct hostent * hostinfo;
   //set the host id and port for referece
   memcpy(peer->id, id, ID_SIZE);
-  
-  //TODO
-  //peer->port = port;
     
   //get the host by name
   if((hostinfo = gethostbyname(ip)) ==  NULL)
@@ -261,7 +258,20 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
 int main(int argc, char * argv[])
 {
 	try
-	{
+	{	
+		/*
+		//test code...
+		FileObject::CreateFileWithSize(1024, "testOutput.txt");
+		int i=0;int num=8;int size=0;
+		while(size<1024)
+		{
+			FileObject::WritePartialFile(i,num,"bbbbbbbb","testOutput.txt");
+			i+=num;
+			size+=num;
+		}
+		HelperClass::TerminateApplication("debugging");
+		*/
+			
 		
 		//this is the main entry point to the code....
 		bt_args_t args;
