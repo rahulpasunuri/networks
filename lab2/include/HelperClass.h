@@ -11,7 +11,8 @@
 #include <openssl/hmac.h> // need to add -lssl to compile
 #include<string>
 #include<mutex>
-#include <chrono>
+#include<time.h>
+
 using namespace std;
 #define BUFSIZE 1024
 #define DEFAULTLOGFILE "bt-client.log"
@@ -38,5 +39,5 @@ class HelperClass
 		static string logFileName;
 		static void Log(const char* message, LOG_TYPES=MISC);	
 		static mutex mutexLog;
-		static chrono::steady_clock::time_point startTime;
+		static clock_t startTime;		
 };

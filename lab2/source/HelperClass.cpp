@@ -86,7 +86,7 @@ void HelperClass::Usage(FILE * file)
 
 
 string HelperClass::logFileName="bt-client.log";
-chrono::steady_clock::time_point HelperClass::startTime = std::chrono::steady_clock::now();
+clock_t HelperClass::startTime = clock();
 mutex HelperClass::mutexLog;
 void HelperClass::Log(const char* message,LOG_TYPES logType)
 {
@@ -94,14 +94,7 @@ void HelperClass::Log(const char* message,LOG_TYPES logType)
 	mutexLog.lock();
 	//mutex is required here... as multiple threads will be accessing this part...
 	try
-	{
-		// the operation to time (for elapsed time)
-
-		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now() ;
-
-		typedef std::chrono::duration<int,std::milli> millisecs_t ;
-		millisecs_t duration( std::chrono::duration_cast<millisecs_t>(end-HelperClass::startTime) ) ;
-		std::cout << duration.count() << " milliseconds.\n" ;
+	{				
 		fstream f;
 		try
 		{
@@ -112,7 +105,7 @@ void HelperClass::Log(const char* message,LOG_TYPES logType)
 		{
 			HelperClass::TerminateApplication("Error opening the log file");
 		}
-		f<<'['<<duration.count()<<']'; //add the time stamp...
+		f<<'['<< ((clock()-HelperClass::startTime)*1000/CLOCKS_PER_SEC) <<']'; //add the time stamp...
 		
 		if(logType==HANDSHAKE_INIT)
 		{

@@ -8,7 +8,6 @@
 #include<thread>
 #include<iostream>
 #include "../include/HelperClass.h"
-#include<time.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -262,7 +261,7 @@ int main(int argc, char * argv[])
 	try
 	{	
 		//start the timer for the log file...
-		HelperClass::startTime = std::chrono::steady_clock::now();
+		HelperClass::startTime = clock();
 
 		/*
 		//test code...
@@ -288,6 +287,7 @@ int main(int argc, char * argv[])
 		HelperClass::TerminateApplication("debugging");
 
 		*/
+
 
 		//use a seed for the random function..
 		srand (time(NULL));
