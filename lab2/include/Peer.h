@@ -86,8 +86,7 @@ class Peer
 	void sendPacket(co_peer_t* leecher);
 	bool* hasPieces;
 
-	public:	
-	const char prefix = 19;	
+	public:		
 	void init(bt_args_t args);
 	Peer();
 	int getPortNumber();
