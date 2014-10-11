@@ -139,6 +139,10 @@ void Bencode::token(char * text,regex_t *exp,bt_info_t &result)
 		{
 			isPieces=true;
 			int numPieces=sm/(int)ID_SIZE;
+			if(ID_SIZE*numPieces != sm)
+			{
+				HelperClass::TerminateApplication("Torrent File Corrupted");
+			}
 			result.piece_hashes = new char*[numPieces];	
 			result.num_pieces=numPieces;
 			for(int i=0;i<numPieces;i++)

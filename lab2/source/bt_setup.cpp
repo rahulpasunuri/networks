@@ -279,8 +279,6 @@ int main(int argc, char * argv[])
 		cout<<data<<endl;
 		delete[] data;
 		
-
-		*/
 		int i=0;
 		while(i<10000)
 		{
@@ -288,6 +286,9 @@ int main(int argc, char * argv[])
 		}
 		HelperClass::Log("Testing!!");
 		HelperClass::TerminateApplication("debugging");
+
+		*/
+
 
 		//this is the main entry point to the code....
 		bt_args_t args;
