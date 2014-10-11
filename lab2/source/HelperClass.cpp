@@ -88,7 +88,7 @@ void HelperClass::Usage(FILE * file)
 string HelperClass::logFileName="bt-client.log";
 chrono::steady_clock::time_point HelperClass::startTime = std::chrono::steady_clock::now();
 mutex HelperClass::mutexLog;
-void HelperClass::Log(const char* message)
+void HelperClass::Log(const char* message,LOG_TYPES logType)
 {
 	//logs the messages into a log file...	
 	mutexLog.lock();
@@ -113,7 +113,28 @@ void HelperClass::Log(const char* message)
 			HelperClass::TerminateApplication("Error opening the log file");
 		}
 		f<<'['<<duration.count()<<']'; //add the time stamp...
-		//TODO .. shld add the message type as well...
+		
+		if(logType==HANDSHAKE_INIT)
+		{
+			f<<" HANDSHAKE INIT";
+		}		
+ 		else if(logType==HANDSHAKE_SUCCESS)
+		{
+			f<<" HANDSHAKE SUCCESS";
+		}		
+		else if(logType==MESSAGE_REQUEST_FROM)
+		{
+			f<<" MESSAGE REQUEST FROM";
+		}		
+		else if(logType==MESSAGE_PIECE_TO)
+		{
+			f<<" MESSAGE_PIECE_TO";
+		}					
+		else
+		{
+			f<<" MISC";
+		}		
+						
 		f<<" "<<message;
 		f<<endl;
 		f.flush();

@@ -19,11 +19,11 @@ using namespace std;
 
 enum LOG_TYPES 
 {
-	HANDSHAKE_INIT=1, 
-	HANDSHAKE_SUCCESS=2, 
-	MESSAGE_REQUEST_FROM=3, 
-	MESSAGE_PIECE_TO=4,
-	MISC=5	
+	HANDSHAKE_INIT, 
+	HANDSHAKE_SUCCESS, 
+	MESSAGE_REQUEST_FROM, 
+	MESSAGE_PIECE_TO,
+	MISC	
 };
 
 
@@ -36,7 +36,7 @@ class HelperClass
 		static void Usage(FILE*);
 		static void calc_id(const char * ip, unsigned short port, char *id);
 		static string logFileName;
-		static void Log(const char* message);	
+		static void Log(const char* message, LOG_TYPES=MISC);	
 		static mutex mutexLog;
 		static chrono::steady_clock::time_point startTime;
 };
