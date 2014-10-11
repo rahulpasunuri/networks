@@ -161,7 +161,6 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   //null save_file, log_file and torrent_file
   memset(bt_args->save_file,0x00,FILE_NAME_MAX);
   memset(bt_args->torrent_file,0x00,FILE_NAME_MAX);
-  memset(bt_args->log_file,0x00,FILE_NAME_MAX);
   
   //null out file pointers
   bt_args->f_save = NULL;
@@ -169,8 +168,7 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   //null bt_info pointer, should be set once torrent file is read
   bt_args->bt_info = NULL;
 
-  //default log file
-  strncpy(bt_args->log_file,DEFAULTLOGFILE,FILE_NAME_MAX); 
+
   //initialize the connected peers array
   for(int i=0;i<MAX_CONNECTIONS;i++)
   {
@@ -198,7 +196,11 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
 		 
 		  break;
 		case 'l': //log file
-		  strncpy(bt_args->log_file,optarg,FILE_NAME_MAX);
+		  if(strlen(optarg)>FILE_NAME_MAX)
+		  {
+		  	HelperClass::TerminateApplication("file name limit exceeded");
+		  }
+		  HelperClass::logFileName=optarg;
 		  break;
 		case 'p': //peer
 		  //check if we are going to overflow
@@ -259,6 +261,9 @@ int main(int argc, char * argv[])
 {
 	try
 	{	
+		//start the timer for the log file...
+		HelperClass::startTime = std::chrono::steady_clock::now();
+
 		/*
 		//test code...
 		FileObject::CreateFileWithSize(1024, "testOutput.txt");
@@ -274,8 +279,15 @@ int main(int argc, char * argv[])
 		cout<<data<<endl;
 		delete[] data;
 		
-		HelperClass::TerminateApplication("debugging");
+
 		*/
+		int i=0;
+		while(i<10000)
+		{
+			i++;
+		}
+		HelperClass::Log("Testing!!");
+		HelperClass::TerminateApplication("debugging");
 
 		//this is the main entry point to the code....
 		bt_args_t args;

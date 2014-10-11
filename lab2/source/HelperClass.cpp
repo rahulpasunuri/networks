@@ -84,3 +84,46 @@ void HelperClass::Usage(FILE * file)
           "  -v            \t verbose, print additional verbose info\n");
 }
 
+
+string HelperClass::logFileName="bt-client.log";
+chrono::steady_clock::time_point HelperClass::startTime = std::chrono::steady_clock::now();
+mutex HelperClass::mutexLog;
+void HelperClass::Log(const char* message)
+{
+	//logs the messages into a log file...	
+	mutexLog.lock();
+	//mutex is required here... as multiple threads will be accessing this part...
+	try
+	{
+		// the operation to time (for elapsed time)
+
+		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now() ;
+
+		typedef std::chrono::duration<int,std::milli> millisecs_t ;
+		millisecs_t duration( std::chrono::duration_cast<millisecs_t>(end-HelperClass::startTime) ) ;
+		std::cout << duration.count() << " milliseconds.\n" ;
+		fstream f;
+		try
+		{
+			// open the file in an append mode...
+			f.open(HelperClass::logFileName.c_str(),ios::app | ios::out);
+		}
+		catch(...)
+		{
+			HelperClass::TerminateApplication("Error opening the log file");
+		}
+		f<<'['<<duration.count()<<']'; //add the time stamp...
+		//TODO .. shld add the message type as well...
+		f<<" "<<message;
+		f<<endl;
+		f.flush();
+		f.close();		
+	}
+	catch(...)
+	{
+		mutexLog.unlock();	
+		TerminateApplication("Error in logging messages");
+	}
+	mutexLog.unlock();	
+}
+

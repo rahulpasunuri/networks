@@ -294,7 +294,7 @@ void Peer::startServer()
 	if(this->verboseMode)
 	{	 
     	cout<<"Server started"<<endl;
-        }
+    }
 	// Mark the socket so it will listen for incoming connections
 	if (listen(sock, MAXPENDING) < 0)
 	{

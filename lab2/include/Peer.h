@@ -21,7 +21,14 @@ class Peer
 {
 	private:	
 	bool isInit;
+	
+	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+	mutex readMutex;
+	mutex writeMutex;
 	mutex mutexConnectedPeers;
+	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+	
+	
 	bool verboseMode;
 	bool isHandShakeDone;
 	sockaddr_in localAddress;		 

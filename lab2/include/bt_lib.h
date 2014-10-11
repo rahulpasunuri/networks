@@ -37,7 +37,6 @@
 #define BT_PIECE 7
 #define BT_CANCEL 8
 
-#define DEFAULTLOGFILE "bt-client.log"
 
 /*size (in bytes) of id field for peers*/
 #define ID_SIZE 20
@@ -74,7 +73,6 @@ typedef struct
   int n_peers;
   char save_file[FILE_NAME_MAX];//the filename to save to
   FILE * f_save;
-  char log_file[FILE_NAME_MAX];//the log file
   char torrent_file[FILE_NAME_MAX];// *.torrent file
   co_peer_t * connectedPeers[MAX_CONNECTIONS]; // array of peer_t pointers
   unsigned int id; //this bt_clients id

@@ -25,5 +25,5 @@ class FileObject
 		static void CreateFileWithSize(const int , const char* );
 		static void WritePartialFile(const int ,const int , const char*, const char* );
 		static char* ReadPartialFile(const int ,const int , const char* );
-		void Append(string text); //returns whether the append was succesfull or not..			
+		void Append(string text); //returns whether the append was succesfull or not..		
 };
