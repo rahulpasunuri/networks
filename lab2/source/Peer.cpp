@@ -112,108 +112,75 @@ void Peer::sendPacket(co_peer_t* leecher=NULL)
 	
 	char *cli_id = new char[(int)ID_SIZE]; 
 	HelperClass::calc_id(inet_ntoa(adr_inet.sin_addr),(unsigned)ntohs(adr_inet.sin_port),cli_id);          
+	string packet="";
+	char buffer[BUFSIZE]; // Buffer for echo string
 	if(leecher->isHandShakeDone==false)            // hand shake protocol must take place here before file data is exchanged....
 	{    	
 		cout<<"Hand shake started";
 		sendHandshakeReq(sock, cli_id);
 		//free memory
 		delete[] cli_id;
-		 //to send handshake buffer over TCP using int sock.....
-	// RECIEVING HAND SHAKE RESPONSE FROM PEER...
-	
-   	char buffer[BUFSIZE]; // Buffer for echo string
-	// Receive message from client
-        string packet="";   usleep(100);
-	ssize_t numBytesRcvd = recv(sock, buffer, BUFSIZE, 0);  int num=numBytesRcvd;
+		// RECIEVING HAND SHAKE RESPONSE FROM PEER...
+        usleep(100);
+		ssize_t numBytesRcvd = recv(sock, buffer, BUFSIZE, 0);  int num=numBytesRcvd;
 		if (numBytesRcvd < 0)
 		{
 			HelperClass::TerminateApplication("recv() failed!!");
 		}
 	
-		while (num<=68)
+		while (num<=HAND_SHAKE_BUFSIZE)
 		{
 		 	// 0 indicates end of stream
-		//        buffer[numBytesRcvd]='\0';     
-		packet.append(buffer,numBytesRcvd);           
+			//        buffer[numBytesRcvd]='\0';     
+			packet.append(buffer,numBytesRcvd);           
 			num+=numBytesRcvd;
 			// See if there is more data to receive
 			numBytesRcvd = recv(sock, buffer, BUFSIZE, 0);		
-		}cout<<packet;
+		}
 		if(packet!="")
 		{
 		    recvHandShakeResp(packet, (char*)leecher->id); 			
 		}
 		else
 		HelperClass::TerminateApplication("RECEIVED EMPTY BUFFER FROM PEER");  
-	}	
-
-	/**string fileName="input"; //TODO
-
-	ifstream file (fileName.c_str(),ios::in|ios::ate);
-	string s="";
-	if (file.is_open())
-	{
-		int size = file.tellg();
-		cout<<"Printing file size"<<size<<"\n";
-		char* memblock = new char [size+1];
-		file.seekg (0, ios::beg);
-		file.read (memblock, size);
-		memblock[size]='\0';
-
-		s.append(memblock,size);
-		cout<<"length of string s is "<<s.length()<<"\n";               
-		file.close();        
-		cout << "the entire file content is in memory"<<endl;
-
-		delete[] memblock;
-	}
-	else
-	{
-		 HelperClass::TerminateApplication("Unable to open file");
 	}
 	
-	cout<<"before sending"<<endl;		
-	sendString(leecher, sock, s ,HelperClass::GetDigest(s), fileName);
-		       // sending loaded buffer with file name into the string...**/
-	close(sock);	
+	// #########........RECEIVING FILE FROM THE SERVER..................############
+    ssize_t numBytesRcvd = recv(sock, buffer, BUFSIZE, 0);
+	if (numBytesRcvd < 0)
+		{
+			HelperClass::TerminateApplication("recv() failed!! while downloading file");
+		}
+  
+	while (numBytesRcvd > 0)
+	{ 	// 0 indicates end of stream
+        //        buffer[numBytesRcvd]='\0';     
+        packet.append(buffer,numBytesRcvd);           
+
+		// See if there is more data to receive
+		numBytesRcvd = recv(sock, buffer, BUFSIZE, 0);		
+
+	} 
+	handlePacket(packet);		// SENDING THE FILE DATA RECEIVED FOR PARSING....	
+		close(sock);	
+}	
+
+void Peer::handlePacket(string packetContents)
+{  
+    //parse the packet...
+    string fileName=this->bt_info->name;
+    FileObject fp(fileName.c_str(),0,0,false);
+	if(verboseMode)
+	{
+        cout<<"\nFile Name : "<<fileName<<endl;	       
+	    cout<<"Writing to File:"<<endl;
+	}
+    	
+    fp.Append(packetContents);    
 }
 
 
-void Peer::sendString(co_peer_t* leecher, int sock,string message,const char * digest,string fileName="")
-{         
-	if(leecher==NULL)
-	{
-		HelperClass::TerminateApplication("Error in Send String. leecher doesn't exist");
-	}
-    	string d(digest);       
-
-	//TODO -- send digest as well(??? is it necessary).
-    if(verboseMode)
-    {
-        //cout<<"Packet to be sent is:\n"<<MSG<<endl;
-    }    
-    int messageLen = message.length(); // determining the length of the string....
-    cout<<"Length of the packet is "<<messageLen;
-    ssize_t msgDesc = send(sock, message.data(), messageLen, 0);
-
-    if(msgDesc < 1)
-    {
-        HelperClass::TerminateApplication("send() failed");
-    }
-    else if(msgDesc != messageLen)
-    {
-        HelperClass::TerminateApplication("send() failed due to incorrect no. of bytes");
-    }
-
-    if(verboseMode)
-    {
-        cout<<"message sent successfully"<<endl;
-    }	
-
-} 
-
-
-
+					
 /**code from server.cpp
 */
 
@@ -288,7 +255,7 @@ void  Peer::bindToAPort()
 	}
 	this->portNumber=port;
 }
-
+//#################.......SERVER STARTS HERE.......#####################################
 void Peer::startServer()
 {    
 	if(this->verboseMode)
@@ -324,7 +291,7 @@ void Peer::startServer()
 			{
 				cout<<"\nStarted handling the TCP client."<<endl;	
 			}
-			//thread d ([&] { a.foo(100); });
+			
 			new thread(&Peer::handleTCPClient,this,clntSock,&clntAddr);		
 		}
 		else
@@ -334,91 +301,38 @@ void Peer::startServer()
 	 }
 }
 
-void Peer::handlePacket(string packetContents)
-{  
-    //parse the packet...
-    string fileName="savedFile"; //TODO -- take file name from torrent file...
-  
-  	//TODO
-    //string computedDigest=HelperClass::GetDigest(packetContents);
-    //cout<<"\nPrinting Packet Contents"<<packetContents<<endl;
-    cout<<"Length of the message is"<<packetContents.length();
-    
-    //compare clients digest with computed digest...
-    //TODO
-    /*
-    if(digest!=computedDigest)
-    {
-        HelperClass::TerminateApplication("\nDigest doesn't match. Packet has been modified in between.");
-    }
-	*/
-	
-    FileObject fp(fileName.c_str(),0,0,false);
-	if(verboseMode)
+
+void Peer::sendString(co_peer_t* leecher, int sock, string message)
+{         
+	if(leecher==NULL)
 	{
-        cout<<"\nFile Name : "<<fileName<<endl;	       
-	    cout<<"Writing to File:"<<endl;
+		HelperClass::TerminateApplication("Error in Send String. leecher doesn't exist");
 	}
-    	
-    fp.Append(packetContents);    
-}
+        
+    int messageLen = message.length(); // determining the length of the string....
+    cout<<"Length of the packet is "<<messageLen;
+    ssize_t msgDesc = send(sock, message.data(), messageLen, 0);
 
-
-//TODO
-/*
-void Server::parsePacket(string packetContents,string &fileName,string &body,string &digest)
-{
-    int startFileTag=packetContents.find(STARTFILENAMETAG);
-    int startBodyTag=packetContents.find(STARTBODYTAG);
-
-    if(startFileTag<0)
+    if(msgDesc < 1)
     {
-        //packet has no file name...save it in a default file name "output.txt"
-        cout<<"assigning a default filename\n";
-        fileName="output.txt";
+        HelperClass::TerminateApplication("send() failed");
     }
-    else
+    else if(msgDesc != messageLen)
     {
-        int endFileTag=packetContents.find(ENDFILENAMETAG);
-        fileName=packetContents.substr(startFileTag,endFileTag-startFileTag);
-        fileName.replace(0,STARTFILENAMETAG.length(),"");                        
+        HelperClass::TerminateApplication("send() failed due to incorrect no. of bytes");
     }
-    
-    int endBodyTag=packetContents.rfind(ENDBODYTAG);
-    body=packetContents.substr(startBodyTag,endBodyTag-startBodyTag);
-    body.replace(0,STARTBODYTAG.length(),"");
-    
-    int startDigestTag=packetContents.find(STARTDIGESTTAG);
-    int endDigestTag=packetContents.rfind(ENDDIGESTTAG);
-    digest=packetContents.substr(startDigestTag,endDigestTag-startDigestTag);
-    digest.replace(0,STARTDIGESTTAG.length(),"");
-            
-}
-*/
 
+    if(verboseMode)
+    {
+        cout<<"message sent successfully"<<endl;
+    }	
+	return;
+
+} 
 
 void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr) 
 {
-	char buffer[BUFSIZE]; // Buffer for echo string
-	// Receive message from client
-    string packet="";
-	ssize_t numBytesRcvd = recv(clntSocket, buffer, BUFSIZE, 0);  int num=numBytesRcvd;
-	if (numBytesRcvd < 0)
-	{
-		HelperClass::TerminateApplication("recv() failed!!");
-	}
-
-	while (num<=68)
-	{
-	 	// 0 indicates end of stream
-		//        buffer[numBytesRcvd]='\0';     
-		packet.append(buffer,numBytesRcvd);           
-		num+=numBytesRcvd;
-		// See if there is more data to receive
-		numBytesRcvd = recv(sock, buffer, BUFSIZE, 0);		
-	}
-	
-	 //create a new coPeer for this leecher..
+	//create a new coPeer for this leecher..
 	co_peer_t * leecher;
 	leecher=(co_peer_t *) malloc(sizeof(co_peer_t));
 	leecher->sockaddr=(*clntAddr);
@@ -441,10 +355,30 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 		HelperClass::TerminateApplication("Error updating the connected peers list");
 	}
 	mutexConnectedPeers.unlock();
-	if(packet!="")
-	{ 
-		if(leecher->isHandShakeDone==false)
+
+	char buffer[BUFSIZE]; // Buffer for echo string
+	// Receive message from client
+    string packet="";
+	ssize_t numBytesRcvd = recv(clntSocket, buffer, BUFSIZE, 0);  int num=numBytesRcvd;
+	if (numBytesRcvd < 0)
+	{
+		HelperClass::TerminateApplication("recv() failed!!");
+	}
+
+	
+	if(leecher->isHandShakeDone==false)  //  INITIATING THE HAND SHAKE PROTOCOL....
+	{   
+		while (num<=HAND_SHAKE_BUFSIZE)
 		{
+		 	// 0 indicates end of stream
+			//        buffer[numBytesRcvd]='\0';     
+			packet.append(buffer,numBytesRcvd);           
+			num+=numBytesRcvd;
+			// See if there is more data to receive
+			numBytesRcvd = recv(sock, buffer, BUFSIZE, 0);		
+		}
+        if(packet!="")
+		{ 	
 			if(this->verboseMode)
 			{					 
 				cout<<"...Handshake in process..."<<endl;
@@ -455,7 +389,7 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 			cout<<inet_ntoa(leecher->sockaddr.sin_addr);		   
 			unsigned short portNumber=(unsigned)ntohs(leecher->sockaddr.sin_port);
 			HelperClass::calc_id(id1,portNumber,id);
-			
+		
 			recvHandShakeResp(packet, id);
 
 			char *cli_id1 = new char[(int)ID_SIZE]; // calculating the ip and port of the leecher....
@@ -463,7 +397,7 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 			cout<<inet_ntoa(localAddress.sin_addr);
 			// INITIATING HANDSHAKE 2
 			sendHandshakeReq(clntSocket, cli_id1);
-			           
+				       
 			leecher->isHandShakeDone=true;
 			delete [] id;
 			delete [] cli_id1;
@@ -471,19 +405,43 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 			{
 				cout<<"Handshake successful at peer"<<endl;
 			}
-		leecher->isHandShakeDone= true;
+			leecher->isHandShakeDone= true;
 			   		   		   
 		}   
-        }   
+   		else
+		{
+			 HelperClass::TerminateApplication("...NO DATA RECEIVED FROM PEER...");
+		}
+	}
+	string fileName=this->bt_info->name;     // Assigning te file name
+	cout<<fileName<<"\n"; 
+
+	ifstream file (fileName.c_str(),ios::in|ios::ate);
+	string s="";
+	if (file.is_open())
+	{
+		int size = file.tellg();
+		cout<<"Printing file size"<<size<<"\n";
+		char* memblock = new char [size+1];
+		file.seekg (0, ios::beg);
+		file.read (memblock, size);
+		memblock[size]='\0';
+
+		s.append(memblock,size);
+		cout<<"length of string s is "<<s.length()<<"\n";               
+		file.close();        
+		cout << "the entire file content is in memory"<<endl;
+
+		delete[] memblock;
+	}
 	else
 	{
-	     HelperClass::TerminateApplication("...NO DATA RECEIVED FROM PEER...");
+		 HelperClass::TerminateApplication("Unable to open file");
 	}
-		
 	
-	// before retrieving data hand shake call must be made here....
-	cout<<"length of the packet is "<<packet.length();
-	//handlePacket(packet);					
+	cout<<"before sending"<<endl;		
+	sendString(leecher, clntSocket, s);
+   	// sending loaded buffer with file name into the string...**/
 	cout<<endl;
 	if(verboseMode)
 	{
@@ -501,6 +459,8 @@ void Peer:: handleTCPClient(int clntSocket,struct sockaddr_in *clntAddr)
 	//here.. the file objects destuctor gets called..
 }
 
+
+
 void Peer::startClient()
 {
 	if(bt_args.n_peers<=0 || bt_args.n_peers>MAX_CONNECTIONS )
@@ -515,6 +475,11 @@ void Peer::startClient()
 		}
     }
 }
+
+
+
+
+
 
 void Peer::recvHandShakeResp(string packet,char* id)
 {

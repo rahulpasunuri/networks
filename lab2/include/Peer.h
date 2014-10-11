@@ -77,7 +77,7 @@ class Peer
 	int read_from_peer(Peer * peer, bt_msg_t *msg);	
 	
 
-	void sendString(co_peer_t*, int ,string, const char *, string);
+	void sendString(co_peer_t*, int ,string);
 	void sendPacket(co_peer_t* leecher);
 
 	public:
