@@ -41,6 +41,12 @@
 /*size (in bytes) of id field for peers*/
 #define ID_SIZE 20
 
+const int protocol_name_offset = 1;
+const int reserved_offset = protocol_name_offset + 19; //20
+const int info_hash_offset = reserved_offset + 8; //28
+const int peer_id_offset = info_hash_offset + 20; //48
+const std::string BitTorrent_protocol = "BitTorrent protocol";
+
 
 //holds information about a peer
 typedef struct peer

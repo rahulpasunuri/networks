@@ -82,20 +82,20 @@ void Peer::sendHandshakeReq(int sock, char* cli_id)
 		handshake[i]=-1;
 	}   
 
-	handshake[0] = this->prefix;
-	for(int i=0;i<this->reserved_offset-1;i++) 
+	handshake[0] = prefix;
+	for(int i=0;i<reserved_offset-1;i++) 
 	{
-		handshake[i+1]=this->BitTorrent_protocol[i];
+		handshake[i+1]=BitTorrent_protocol[i];
 	}
 
-	for(int i=this->reserved_offset;i<this->info_hash_offset;i++) // Reserved bytes
+	for(int i=reserved_offset;i<info_hash_offset;i++) // Reserved bytes
 	{
 		handshake[i]=0;
 	}   
 
-	memcpy(&handshake[this->info_hash_offset],bt_args.bt_info->infoHash ,this->peer_id_offset-this->info_hash_offset); //storing infohash into buffer
+	memcpy(&handshake[info_hash_offset],bt_args.bt_info->infoHash ,peer_id_offset-info_hash_offset); //storing infohash into buffer
 		
-	memcpy(&handshake[this->peer_id_offset],cli_id, HAND_SHAKE_BUFSIZE-this->peer_id_offset); // storing peer_id into buffe
+	memcpy(&handshake[peer_id_offset],cli_id, HAND_SHAKE_BUFSIZE-peer_id_offset); // storing peer_id into buffe
 	
 	 //to send handshake buffer over TCP using int sock.....
 	 send(sock,handshake,HAND_SHAKE_BUFSIZE, 0); //;
@@ -538,7 +538,7 @@ void Peer::startClient()
 void Peer::recvHandShakeResp(string packet,char* id)
 {
 	int i; 
-	for(i=0;i<this->protocol_name_offset;i++)		
+	for(i=0;i<protocol_name_offset;i++)		
 	{    
 		 if(packet[i]!=19)
 		 {
@@ -549,9 +549,9 @@ void Peer::recvHandShakeResp(string packet,char* id)
 		 	cout<<"Handshake  stage cleared"<<endl;
 		 }
 	}
-	for(i=0;i<this->reserved_offset-1;i++)
+	for(i=0;i<reserved_offset-1;i++)
 	{
-		if(packet[i+1]!=this->BitTorrent_protocol[i])
+		if(packet[i+1]!=BitTorrent_protocol[i])
 		{
 			 HelperClass::TerminateApplication("Handshake terminated because strings did not match!!!");
 		}
@@ -562,7 +562,7 @@ void Peer::recvHandShakeResp(string packet,char* id)
 	{		
 		cout<<"Handshake 1st stage cleared on peer side"<<endl;
 	}  
-	for(i=this->reserved_offset;i<this->info_hash_offset;i++)
+	for(i=reserved_offset;i<info_hash_offset;i++)
 	{
 		if(packet[i]!=0)
 		{
@@ -577,7 +577,7 @@ void Peer::recvHandShakeResp(string packet,char* id)
 	
 	for(i=0;i<ID_SIZE;i++)
 	{
-		if(packet[i+this->info_hash_offset]!=bt_info->infoHash[i])
+		if(packet[i+info_hash_offset]!=bt_info->infoHash[i])
 		{
 			 HelperClass::TerminateApplication("Handshake 3rd part error");
 		}
@@ -590,7 +590,7 @@ void Peer::recvHandShakeResp(string packet,char* id)
 
 	for(i=0;i<ID_SIZE;i++)
 	{
-	   if(id[i]!=packet[this->peer_id_offset+i])
+	   if(id[i]!=packet[peer_id_offset+i])
 	   {
 		  //free memory of id.   		
 		  cout<<"\nPeer ids not matched\n";

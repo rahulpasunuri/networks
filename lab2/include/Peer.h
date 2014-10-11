@@ -86,14 +86,8 @@ class Peer
 	void sendPacket(co_peer_t* leecher);
 	bool* hasPieces;
 
-	public:
-	const int protocol_name_offset = 1;
-	const int reserved_offset = protocol_name_offset + 19; //20
-	const int info_hash_offset = reserved_offset + 8; //28
-	const int peer_id_offset = info_hash_offset + 20; //48
-	
-	const char prefix = 19;
-	const string BitTorrent_protocol = "BitTorrent protocol";
+	public:	
+	const char prefix = 19;	
 	void init(bt_args_t args);
 	Peer();
 	int getPortNumber();
