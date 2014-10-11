@@ -26,6 +26,52 @@ Peer::Peer()
 //does nothing..
 }
 
+//this is used by a client to know, if it recieved the entire file...
+bool Peer::hasFile()
+{
+	for(int i=0;i<bt_args.bt_info->num_pieces;i++)
+	{
+		mutexHasPieces.lock();
+		if(hasPieces[i]==false)
+		{
+			mutexHasPieces.unlock();
+			return false;
+		}
+		mutexHasPieces.unlock();
+	}
+	return true;	
+}
+
+int Peer::requestPiece()
+{	
+	mutexRequestPieces.lock();	
+	int i=-1;
+	try
+	{
+		if(!hasFile())
+		{
+			mutexRequestPieces.unlock();	
+			return i;		
+		}
+		i=rand()%bt_args.bt_info->num_pieces;
+
+		while(hasPieces[i]==true)
+		{
+			i=rand()%bt_args.bt_info->num_pieces;
+		}		
+		mutexHasPieces.lock();
+		hasPieces[i]=true;
+		mutexHasPieces.unlock();
+	}
+	catch(...)
+	{
+		mutexRequestPieces.unlock();	
+		HelperClass::TerminateApplication("Error in choosing a piece");
+	}	
+	mutexRequestPieces.unlock();	
+	return i;
+}
+
 
 void Peer::sendHandshakeReq(int sock, char* cli_id)
 {
@@ -114,7 +160,8 @@ void Peer::sendPacket(co_peer_t* leecher=NULL)
 	HelperClass::calc_id(inet_ntoa(adr_inet.sin_addr),(unsigned)ntohs(adr_inet.sin_port),cli_id);          
 	string packet="";
 	char buffer[BUFSIZE]; // Buffer for echo string
-	if(leecher->isHandShakeDone==false)            // hand shake protocol must take place here before file data is exchanged....
+	// hand shake protocol must take place here before file data is exchanged....
+	if(leecher->isHandShakeDone==false)            
 	{    	
 		cout<<"Hand shake started";
 		sendHandshakeReq(sock, cli_id);
@@ -148,10 +195,10 @@ void Peer::sendPacket(co_peer_t* leecher=NULL)
 	// #########........RECEIVING FILE FROM THE SERVER..................############
     ssize_t numBytesRcvd = recv(sock, buffer, BUFSIZE, 0);
 	if (numBytesRcvd < 0)
-		{
-			HelperClass::TerminateApplication("recv() failed!! while downloading file");
-		}
-  
+	{
+		HelperClass::TerminateApplication("recv() failed!! while downloading file");
+	}
+
 	while (numBytesRcvd > 0)
 	{ 	// 0 indicates end of stream
         //        buffer[numBytesRcvd]='\0';     
@@ -162,7 +209,7 @@ void Peer::sendPacket(co_peer_t* leecher=NULL)
 
 	} 
 	handlePacket(packet);		// SENDING THE FILE DATA RECEIVED FOR PARSING....	
-		close(sock);	
+	close(sock);	
 }	
 
 void Peer::handlePacket(string packetContents)
@@ -469,6 +516,13 @@ void Peer::startClient()
 	}
 	else
 	{
+		//init arguments...		
+		hasPieces=new bool[bt_args.bt_info->num_pieces];
+		for(int i=0;i<bt_args.bt_info->num_pieces;i++)
+		{
+			hasPieces[i]=false;
+		}
+		
 		for(int i=0; i<bt_args.n_peers;i++)
 		{		 		
 		 	sendPacket(bt_args.connectedPeers[i]);
@@ -557,6 +611,7 @@ Peer::~Peer()
 {
 	if(isInit)
 	{
+		delete[] hasPieces;
 		//free all memories...
 		for(int i=0; i< MAX_CONNECTIONS;i++)
 		{

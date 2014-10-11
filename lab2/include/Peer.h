@@ -26,6 +26,8 @@ class Peer
 	mutex readMutex;
 	mutex writeMutex;
 	mutex mutexConnectedPeers;
+	mutex mutexHasPieces;
+	mutex mutexRequestPieces;
 	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
 	
 	
@@ -51,6 +53,9 @@ class Peer
 	unsigned int select_id();
 	double computeDigest();		
 	
+	bool hasFile();
+	int requestPiece();
+
 
 	/*propogate a Peer struct and add it */
 	int add_peer(Peer *peer, char * hostname, unsigned short port);
@@ -79,13 +84,14 @@ class Peer
 
 	void sendString(co_peer_t*, int ,string);
 	void sendPacket(co_peer_t* leecher);
+	bool* hasPieces;
 
 	public:
 	const int protocol_name_offset = 1;
 	const int reserved_offset = protocol_name_offset + 19; //20
 	const int info_hash_offset = reserved_offset + 8; //28
 	const int peer_id_offset = info_hash_offset + 20; //48
-
+	
 	const char prefix = 19;
 	const string BitTorrent_protocol = "BitTorrent protocol";
 	void init(bt_args_t args);
