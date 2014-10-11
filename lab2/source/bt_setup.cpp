@@ -8,7 +8,7 @@
 #include<thread>
 #include<iostream>
 #include "../include/HelperClass.h"
-
+#include<time.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -289,7 +289,8 @@ int main(int argc, char * argv[])
 
 		*/
 
-
+		//use a seed for the random function..
+		srand (time(NULL));
 		//this is the main entry point to the code....
 		bt_args_t args;
 		parse_args(&args, argc, argv);
