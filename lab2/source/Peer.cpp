@@ -75,7 +75,6 @@ int Peer::requestPieceIndex()
 void Peer::requestPiece(co_peer_t* seeder)
 {
 	FILE *instream = fdopen(seeder->sock, "r+b");	
-	//int totalBytes=0;
 	while(!hasFile())
 	{
 		
@@ -142,8 +141,6 @@ void Peer::requestPiece(co_peer_t* seeder)
 			numBytesRcvd+=reply.payload.piece.length;
 
 		}
-
-		//totalBytes+=numBytesRcvd;
 	}
 	//cout<<"Total Bytes Received is "<<totalBytes<<endl;	
 	//we have the entire file now...so send a cancel message...
@@ -427,6 +424,7 @@ void Peer::startServer()
 //this method recieves requests and send the files...
 void Peer::handleRequest(co_peer_t* leecher)
 {
+	FILE *instream = fdopen(leecher->sock, "r");
 	while(true)
 	{
 		if(this->verboseMode)
@@ -435,8 +433,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 		}
 		//read the request message;;;;
 		//construct the request message here..
-		bt_msg_t request;
-		FILE *instream = fdopen(leecher->sock, "r");
+		bt_msg_t request;		
 		if (fread(&request, sizeof(bt_msg_t), 1, instream) != 1) 
 		{
 			HelperClass::TerminateApplication("Receiving failed in bt_msg*************");
