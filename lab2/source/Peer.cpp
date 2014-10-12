@@ -75,11 +75,36 @@ int Peer::requestPieceIndex()
 void Peer::requestPiece(co_peer_t* seeder)
 {
 	FILE *instream = fdopen(seeder->sock, "r+b");		
+	
+	//recieve unchoke message...
+	bt_msg_t unchoke;
+	if (fread(&unchoke, sizeof(bt_msg_t), 1, instream) != 1) 
+	{
+		HelperClass::TerminateApplication("Receiving failed in bt_msg");
+	}
+	if(ntohs(unchoke.bt_type)!=BT_UNCHOKE)
+	{
+		HelperClass::TerminateApplication("Didnot receive the unchoke message!!");
+	}
+	if(verboseMode)
+	{
+		cout<<"Unchoke Message Recieved";
+	}
+	
 	//receive bit field message...
 	bt_msg_t bitReply;
 	if (fread(&bitReply, sizeof(bt_msg_t), 1, instream) != 1) 
 	{
 		HelperClass::TerminateApplication("Receiving failed in bt_msg");
+	}
+	bitReply.bt_type=ntohs(bitReply.bt_type);
+	if(bitReply.bt_type!=BT_BITFILED)
+	{
+		HelperClass::TerminateApplication("Did not reeive the bit message");
+	}
+	if(verboseMode)
+	{
+		cout<<"Bit Message Received\n";
 	}
 	
 	//send the bit field message...
@@ -97,6 +122,10 @@ void Peer::requestPiece(co_peer_t* seeder)
 		HelperClass::TerminateApplication("Piece Message send Failed");
 	}	
 	delete[] bitField.payload.bitfiled.bitfield;	
+	if(verboseMode)
+	{
+		cout<<"Bit Field Message Sent\n";
+	}
 	
 	while(!hasFile())
 	{
@@ -449,6 +478,18 @@ void Peer::handleRequest(co_peer_t* leecher)
 {
 	FILE *instream = fdopen(leecher->sock, "r");
 
+	//send the unchoked 
+	bt_msg_t unchoked;
+	unchoked.bt_type=htons(BT_UNCHOKE);
+	if (send(leecher->sock, &unchoked, sizeof(unchoked), 0) != sizeof(unchoked))
+	{		
+		HelperClass::TerminateApplication("Piece Message send Failed");
+	}	
+	if(verboseMode)
+	{
+		cout<<"Unchoke Message Sent\n";
+	}	
+
 	//send the bit field message...
 	bt_msg_t bitField;
 	bitField.bt_type=htons(BT_BITFILED);
@@ -461,17 +502,29 @@ void Peer::handleRequest(co_peer_t* leecher)
 	if (send(leecher->sock, &bitField, sizeof(bitField), 0) != sizeof(bitField))
 	{
 		delete[] bitField.payload.bitfiled.bitfield;
-		HelperClass::TerminateApplication("Piece Message send Failed");
+		HelperClass::TerminateApplication("Bit Field Message send Failed");
 	}	
 
 	delete[] bitField.payload.bitfiled.bitfield;
-
+	if(verboseMode)
+	{
+		cout<<"Bit Field Message Sent\n";
+	}
+	
 	//receive bit field message...
 	bt_msg_t bitReply;
 	if (fread(&bitReply, sizeof(bt_msg_t), 1, instream) != 1) 
 	{
 		HelperClass::TerminateApplication("Receiving failed in bt_msg");
 	}
+	if(ntohs(bitReply.bt_type)!=BT_BITFILED)
+	{
+		HelperClass::TerminateApplication("Didnot Receive bit field message");
+	}
+	if(verboseMode)
+	{
+		cout<<"Bit Field Message Received\n";
+	}	
 		
 	while(true)
 	{
