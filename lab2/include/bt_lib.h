@@ -25,6 +25,7 @@
 
 /*max port to try and open a listen socket on*/
 #define MAX_PORT 6699
+#define MAXBLOCKLEN 1024
 
 /*Different BitTorrent Message Types*/
 #define BT_CHOKE 0
@@ -58,6 +59,7 @@ typedef struct peer
   struct sockaddr_in sockaddr; //sockaddr for peer
   int choked; //peer choked?
   int interested; //peer interested?
+  int sock;// sock in which it is connected to the main peer...
 }co_peer_t;
 
 //holds information about a torrent file
@@ -117,7 +119,8 @@ typedef struct
 {
   int index; //which piece index
   int begin; //offset within piece
-  char piece[0]; //pointer to start of the data for a piece
+  int length; //length may not be the requested length...
+  char data[MAXBLOCKLEN]; //pointer to start of the data for a piece
 } bt_piece_t;
 
 
@@ -129,12 +132,12 @@ typedef struct bt_msg
   unsigned int bt_type;//type of bt_mesage
 
   //payload can be any of these
-  union { 
+  union 
+  { 
     bt_bitfield_t bitfiled;//send a bitfield
     int have; //what piece you have
     bt_piece_t piece; //a peice message
     bt_request_t request; //request messge
-    bt_request_t cancel; //cancel message, same type as request
     char data[0];//pointer to start of payload, just incase
   }payload;
 

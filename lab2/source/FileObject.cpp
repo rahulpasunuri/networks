@@ -115,11 +115,6 @@ void FileObject::CreateFileWithSize(const int size, const char* outputFileName)
 void FileObject::WritePartialFile(const int offset,const int numBytes,const char* content,const char* fileName)
 {
 	fstream f;
-	int len=strlen(content);
-	if(len<numBytes)
-	{
-		HelperClass::TerminateApplication("Lenght of the content is less");
-	}
 	if(numBytes<=0)
 	{
 		HelperClass::TerminateApplication("numBytes is <=0");
@@ -159,7 +154,7 @@ void FileObject::WritePartialFile(const int offset,const int numBytes,const char
 }
 
 
-char* FileObject::ReadPartialFile(const int offset,const int numBytes,const char* fileName)
+string FileObject::ReadPartialFile(const int offset,int &numBytes,const char* fileName)
 {
 
 	fstream f;
@@ -175,15 +170,17 @@ char* FileObject::ReadPartialFile(const int offset,const int numBytes,const char
 	{
 		HelperClass::TerminateApplication("Error opening file for write.");
 	}
-	
+	string s="";
 	f.seekg(0,ios::end);
     int size = f.tellg();
 	if( (offset+numBytes) > size)
 	{
-		cout<<"Offset is "<<offset<<endl;
-		cout<<"numBytes is "<<numBytes<<endl;
-		cout<<"Size is "<<size<<endl;
-		HelperClass::TerminateApplication("Size limits exceeding");
+		numBytes= size-offset;
+		if(numBytes==0)
+		{
+			f.close();
+			return "";
+		}
 	}
 	char* content=new char[numBytes+1];		
 	f.seekp(offset,ios::beg);
@@ -194,13 +191,15 @@ char* FileObject::ReadPartialFile(const int offset,const int numBytes,const char
 			f>>content[i];			
 		}		
 		content[numBytes]='\0';
+		s.append(content,numBytes);
+		delete[] content;
 	}
 	catch(...)
 	{
 		HelperClass::TerminateApplication("File write failed!!!");
 	}
 	f.close();	
-	return content;		
+	return s;		
 }
 
 
