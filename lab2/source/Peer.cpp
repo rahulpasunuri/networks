@@ -74,7 +74,30 @@ int Peer::requestPieceIndex()
 
 void Peer::requestPiece(co_peer_t* seeder)
 {
-	FILE *instream = fdopen(seeder->sock, "r+b");	
+	FILE *instream = fdopen(seeder->sock, "r+b");		
+	//receive bit field message...
+	bt_msg_t bitReply;
+	if (fread(&bitReply, sizeof(bt_msg_t), 1, instream) != 1) 
+	{
+		HelperClass::TerminateApplication("Receiving failed in bt_msg");
+	}
+	
+	//send the bit field message...
+	bt_msg_t bitField;
+	bitField.bt_type=htons(BT_BITFILED);
+	bitField.payload.bitfiled.size=htons(bt_args.bt_info->num_pieces);	
+	bitField.payload.bitfiled.bitfield = new char[bt_args.bt_info->num_pieces];
+	for(int i=0;i<bt_args.bt_info->num_pieces;i++)
+	{
+		bitField.payload.bitfiled.bitfield[i]='1';
+	}
+	if (send(seeder->sock, &bitField, sizeof(bitField), 0) != sizeof(bitField))
+	{
+		delete[] bitField.payload.bitfiled.bitfield;
+		HelperClass::TerminateApplication("Piece Message send Failed");
+	}	
+	delete[] bitField.payload.bitfiled.bitfield;	
+	
 	while(!hasFile())
 	{
 		
@@ -94,7 +117,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 			}
 			if(this->verboseMode)
 			{
-				cout<<"Sending Request Message************"<<endl;
+				cout<<"Sending Request Message"<<endl;
 			}		
 			
 			//construct the request message here..
@@ -242,7 +265,7 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 	{
 		HelperClass::TerminateApplication("Unable to determine peer's local IP to which it is binded");
 	}
-	else
+	if(this->verboseMode)
 	{
 		cout<<"IP address saved successfully"<<endl;
 	}
@@ -425,6 +448,31 @@ void Peer::startServer()
 void Peer::handleRequest(co_peer_t* leecher)
 {
 	FILE *instream = fdopen(leecher->sock, "r");
+
+	//send the bit field message...
+	bt_msg_t bitField;
+	bitField.bt_type=htons(BT_BITFILED);
+	bitField.payload.bitfiled.size=htons(bt_args.bt_info->num_pieces);	
+	bitField.payload.bitfiled.bitfield = new char[bt_args.bt_info->num_pieces];
+	for(int i=0;i<bt_args.bt_info->num_pieces;i++)
+	{
+		bitField.payload.bitfiled.bitfield[i]='1';
+	}
+	if (send(leecher->sock, &bitField, sizeof(bitField), 0) != sizeof(bitField))
+	{
+		delete[] bitField.payload.bitfiled.bitfield;
+		HelperClass::TerminateApplication("Piece Message send Failed");
+	}	
+
+	delete[] bitField.payload.bitfiled.bitfield;
+
+	//receive bit field message...
+	bt_msg_t bitReply;
+	if (fread(&bitReply, sizeof(bt_msg_t), 1, instream) != 1) 
+	{
+		HelperClass::TerminateApplication("Receiving failed in bt_msg");
+	}
+		
 	while(true)
 	{
 		if(this->verboseMode)
@@ -436,7 +484,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 		bt_msg_t request;		
 		if (fread(&request, sizeof(bt_msg_t), 1, instream) != 1) 
 		{
-			HelperClass::TerminateApplication("Receiving failed in bt_msg*************");
+			HelperClass::TerminateApplication("Receiving failed in bt_msg");
 		}
 		if(this->verboseMode)
 		{
