@@ -1,0 +1,5 @@
+1) Extract Files
+2) Run python 2.X on maketorrent.py
+3) A GUI will pop up that lets you specify a file/directory to create a .torrent file for [you only need to deal with single files]
+4) You can also specify a different piece size and specify a different tracker [the tracker value is immaterial to this assignment, I usually just put foobar:6969 in]
+5) After clicking "make" in the GUI, the torrent file will be created and placed in the same directory as the file you selected
