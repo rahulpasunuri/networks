@@ -74,9 +74,11 @@ int Peer::requestPieceIndex()
 
 void Peer::requestPiece(co_peer_t* seeder)
 {
+	FILE *instream = fdopen(seeder->sock, "r+b");	
 	//int totalBytes=0;
 	while(!hasFile())
 	{
+		
 		int numBytesRcvd=0;
 		int index=requestPieceIndex();
 		int offset=(bt_args.bt_info->piece_length)*index;
@@ -98,7 +100,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 			
 			//construct the request message here..
 			bt_msg_t request;
-
+			memset(&request,0,sizeof(request));
 			//convert the things into network format...
 			request.bt_type = htons(BT_REQUEST);
 			request.payload.request.index=htons(index); //set the piece index;;
@@ -118,13 +120,13 @@ void Peer::requestPiece(co_peer_t* seeder)
 		
 			bt_msg_t reply;
 			//read the message;;;;
-		
-			FILE *instream = fdopen(seeder->sock, "r+b");		
+					
 			if (fread(&reply, sizeof(bt_msg_t), 1, instream) != 1) 
 			{
 				HelperClass::TerminateApplication("Receiving failed in bt_msg");
 			}
-			reply.bt_type = ntohs(request.bt_type);
+			
+			reply.bt_type = ntohl(request.bt_type);
 			reply.payload.piece.index=ntohl(reply.payload.piece.index);
 			reply.payload.piece.begin=ntohl(reply.payload.piece.begin);
 			reply.payload.piece.length=ntohl(reply.payload.piece.length);
@@ -138,6 +140,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 			//update parameters...
 			offset+=reply.payload.piece.length;
 			numBytesRcvd+=reply.payload.piece.length;
+
 		}
 
 		//totalBytes+=numBytesRcvd;
@@ -148,10 +151,13 @@ void Peer::requestPiece(co_peer_t* seeder)
 	//convert the things into network format...// TODO -- request the piece in blocks...
 	request.bt_type = htons(BT_CANCEL);
 	//sending the request message...
+	//fclose(instream);
+	//free(instream);
 	if (send(seeder->sock, &request, sizeof(request), 0) != sizeof(request))
 	{
 		HelperClass::TerminateApplication("Cancel Message Send Failed");
 	}
+	
 	if(this->verboseMode)
 	{
 		cout<<"Cancel Message Sent"<<endl;
@@ -439,7 +445,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 		{
 			cout<<"message recieved\n";
 		}
-		
+
 		request.bt_type = ntohs(request.bt_type);
 		request.payload.request.index=ntohs(request.payload.request.index); //set the piece index;;
 		request.payload.request.begin=ntohl(request.payload.request.begin);
@@ -614,6 +620,7 @@ void Peer::startClient()
 			{
 				if(bt_args.connectedPeers[i]->rThread!=NULL)
 				bt_args.connectedPeers[i]->rThread->join();
+				delete bt_args.connectedPeers[i]->rThread; // works ??
 			}
 		}			
 		//while(!hasFile()); //loop till it has the file...
