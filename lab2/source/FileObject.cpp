@@ -91,6 +91,7 @@ void FileObject::CreateFileWithSize(const int size, const char* outputFileName)
 {
 	if(size<=0)
 	{
+		cout<<size<<endl;
 		HelperClass::TerminateApplication("Invalid file Size!!");			
 	}
 	fstream f;

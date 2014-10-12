@@ -569,7 +569,6 @@ void Peer:: handleConnectionRequest(int clntSocket,struct sockaddr_in *clntAddr)
 	{
 		 HelperClass::TerminateApplication("...NO DATA RECEIVED FROM PEER...");
 	}
-
 	
 	//recieves all the requests made by the leecher...
 	handleRequest(leecher);	
@@ -608,9 +607,10 @@ void Peer::startClient()
 		}
 		
 		for(int i=0; i<bt_args.n_peers;i++)
-		{		 		
-		 	SendConnectionRequests(bt_args.connectedPeers[i]);
+		{
+			new thread(&Peer::SendConnectionRequests,this,bt_args.connectedPeers[i]);	
 		}
+		while(!hasFile()); //loop till it has the file...
     }
 }
 
@@ -633,9 +633,7 @@ void Peer::recvHandShakeResp(string packet,char* id)
 		if(packet[i+1]!=BitTorrent_protocol[i])
 		{
 			 HelperClass::TerminateApplication("Handshake terminated because strings did not match!!!");
-		}
-	
-	
+		}		
 	}
 	if(this->verboseMode)
 	{		
