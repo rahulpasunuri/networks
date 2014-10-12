@@ -184,7 +184,10 @@ void Peer::sendHandshakeReq(int sock, char* cli_id)
 	
 	 //to send handshake buffer over TCP using int sock.....
 	send(sock,handshake,HAND_SHAKE_BUFSIZE, 0); //;
-	cout<<"Message Sent Succesfull\n";
+	if(verboseMode)
+	{
+		cout<<"Message Sent Succesfull\n";
+	}
 	return;
 }
 
@@ -266,8 +269,7 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 				HelperClass::TerminateApplication("recv() failed!!");
 			}
 			num+=numBytesRcvd;
-			packet.append(buffer,numBytesRcvd);           			
-			cout<<num<<"\n";			
+			packet.append(buffer,numBytesRcvd);           						
 		}
 		if(packet!="")
 		{
@@ -463,7 +465,6 @@ void Peer::handleRequest(co_peer_t* leecher)
 			reply.payload.piece.index=htonl(request.payload.request.index);
 			reply.payload.piece.begin=htonl(request.payload.request.begin);
 			reply.payload.piece.length=htonl(numBytes);
-			
 			//sending the request message...
 			if (send(leecher->sock, &reply, sizeof(reply), 0) != sizeof(reply))
 			{
