@@ -93,7 +93,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 			}
 			if(this->verboseMode)
 			{
-				cout<<"Sending Request Message"<<endl;
+				cout<<"Sending Request Message************"<<endl;
 			}		
 			
 			//construct the request message here..
@@ -110,6 +110,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 			{
 				HelperClass::TerminateApplication("Request Message Send Failed");
 			}
+
 			if(this->verboseMode)
 			{
 				cout<<"Request Message Sent"<<endl;
@@ -432,7 +433,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 		FILE *instream = fdopen(leecher->sock, "r");
 		if (fread(&request, sizeof(bt_msg_t), 1, instream) != 1) 
 		{
-			HelperClass::TerminateApplication("Receiving failed in bt_msg");
+			HelperClass::TerminateApplication("Receiving failed in bt_msg*************");
 		}
 		if(this->verboseMode)
 		{
@@ -459,7 +460,6 @@ void Peer::handleRequest(co_peer_t* leecher)
 			reply.bt_type=htons(BT_PIECE);
 			int messageLen = message.length(); // determining the length of the string....			
 			memcpy(reply.payload.piece.data, message.data(), messageLen); 
-			//cout<<reply.payload.piece.data<<endl;
 			
 			// set up parameters...
 			reply.payload.piece.index=htonl(request.payload.request.index);
@@ -512,8 +512,7 @@ void Peer:: handleConnectionRequest(int clntSocket,struct sockaddr_in *clntAddr)
 	//add it to the list of peers for server...
 
 	addToConnectedPeers(leecher);
-
-	cout<<"ok?????\n";
+	
 	char buffer[BUFSIZE]; // Buffer for echo string
 	// Receive message from client
     string packet="";
@@ -562,8 +561,7 @@ void Peer:: handleConnectionRequest(int clntSocket,struct sockaddr_in *clntAddr)
 		{
 			cout<<"Handshake successful at peer"<<endl;
 		}
-		leecher->isHandShakeDone= true;
-		   		   		   
+		leecher->isHandShakeDone= true;		   		   		   
 	}   
 	else
 	{
@@ -608,9 +606,17 @@ void Peer::startClient()
 		
 		for(int i=0; i<bt_args.n_peers;i++)
 		{
-			new thread(&Peer::SendConnectionRequests,this,bt_args.connectedPeers[i]);	
+			bt_args.connectedPeers[i]->rThread = new thread(&Peer::SendConnectionRequests,this,bt_args.connectedPeers[i]);	
 		}
-		while(!hasFile()); //loop till it has the file...
+		for(int i=0;i<MAX_CONNECTIONS;i++)
+		{
+			if(bt_args.connectedPeers[i]!=NULL)
+			{
+				if(bt_args.connectedPeers[i]->rThread!=NULL)
+				bt_args.connectedPeers[i]->rThread->join();
+			}
+		}			
+		//while(!hasFile()); //loop till it has the file...
     }
 }
 

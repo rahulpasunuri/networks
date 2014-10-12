@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include<string>
 #include <poll.h>
-
+#include<thread>
 //networking stuff
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -60,6 +60,7 @@ typedef struct peer
   int choked; //peer choked?
   int interested; //peer interested?
   int sock;// sock in which it is connected to the main peer...
+  std::thread* rThread;
 }co_peer_t;
 
 //holds information about a torrent file

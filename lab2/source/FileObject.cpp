@@ -184,9 +184,7 @@ string FileObject::ReadPartialFile(const int offset,int &numBytes,const char* fi
 		for(int i=0;i<numBytes;i++)
 		{
 			f.get(content[i]);
-			cout<<content[i];	
 		}		
-		cout<<endl;
 		content[numBytes]='\0';
 		s.append(content,numBytes);
 		delete[] content;
@@ -196,7 +194,6 @@ string FileObject::ReadPartialFile(const int offset,int &numBytes,const char* fi
 		HelperClass::TerminateApplication("File write failed!!!");
 	}
 	f.close();		
-	cout<<s;
 	return s;		
 }
 
