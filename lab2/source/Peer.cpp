@@ -8,7 +8,7 @@
 #include <openssl/hmac.h> // need to add -lssl to compile
 #include "../include/Peer.h"
 #include <openssl/sha.h> //hashing pieces
-
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -93,11 +93,8 @@ void Peer::requestPiece(co_peer_t* seeder)
 	//recieve unchoke message...
 	bt_msg_t unchoke;
 	readBtMsg(unchoke,instream);
+	unchoke.bt_type=ntohl(unchoke.bt_type);
 	
-	if(ntohs(unchoke.bt_type)!=BT_UNCHOKE)
-	{
-		HelperClass::TerminateApplication("Didnot receive the unchoke message!!");
-	}
 	if(verboseMode)
 	{
 		cout<<"Unchoke Message Recieved";
@@ -125,7 +122,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 	for(int i=0;i<bt_args.bt_info->num_pieces;i++)
 	{
 		bitField.payload.bitfiled.bitfield[i]='1';
-	}
+	}	
 	if (send(seeder->sock, &bitField, sizeof(bitField), 0) != sizeof(bitField))
 	{
 		delete[] bitField.payload.bitfiled.bitfield;
@@ -170,10 +167,9 @@ void Peer::requestPiece(co_peer_t* seeder)
 			
 			//sending the request message...
 			if (send(seeder->sock, &request, sizeof(request), 0) != sizeof(request))
-			{
-				HelperClass::TerminateApplication("Request Message Send Failed");
-			}
-
+			{		
+				HelperClass::TerminateApplication("Piece Message send Failed");
+			}	
 			if(this->verboseMode)
 			{
 				cout<<"Request Message Sent"<<endl;
@@ -201,6 +197,28 @@ void Peer::requestPiece(co_peer_t* seeder)
 		//TODO -- match hash vallues of the piece
 		
 		setHasPiece(index); //here we have the piece..		
+		
+		//send have message to all seeders...
+		if(verboseMode)
+		{
+			cout<<"Sending Have Messages to Peers"<<endl;
+		}		
+		mutexConnectedPeers.lock();
+		bt_msg_t haveMsg;
+		haveMsg.bt_type=(int)BT_HAVE;		
+		for(int i=0;i<MAX_CONNECTIONS;i++)
+		{		
+			if(bt_args.connectedPeers[i]!=NULL)
+			{					
+				HelperClass::Log("Sending Have message to", bt_args.connectedPeers[i]);
+				if (send(bt_args.connectedPeers[i]->sock, &haveMsg, sizeof(haveMsg), 0) != sizeof(haveMsg))
+				{		
+					HelperClass::TerminateApplication("Piece Message send Failed");
+				}		
+			}
+		}
+		
+		mutexConnectedPeers.unlock();
 	}
 	//cout<<"Total Bytes Received is "<<totalBytes<<endl;	
 	//we have the entire file now...so send a cancel message...
@@ -480,7 +498,6 @@ void Peer::readBtMsg(bt_msg_t& val,FILE* instream)
 	}
 }
 
-
 //this method recieves requests and send the files...
 void Peer::handleRequest(co_peer_t* leecher)
 {   
@@ -489,11 +506,19 @@ void Peer::handleRequest(co_peer_t* leecher)
 
 	//send the unchoked 
 	bt_msg_t unchoked;
-	unchoked.bt_type=htons(BT_UNCHOKE);
+	unchoked.bt_type=(int)BT_UNCHOKE;
+	cout<<"Unchoke message sent is "<<unchoked.bt_type<<endl;
+	unchoked.bt_type=htonl(unchoked.bt_type);
+
 	if (send(leecher->sock, &unchoked, sizeof(unchoked), 0) != sizeof(unchoked))
+
 	{	HelperClass::Log("Sending Requested Piece Failed:",leecher,MISC);	
 		HelperClass::TerminateApplication("Piece Message send Failed");
+	{
+		HelperClass::TerminateApplication("Bit Field Message send Failed");
+
 	}	
+
 	if(verboseMode)
 	{
 		HelperClass::Log("Unchoke Message Sent:",leecher,MISC);
@@ -502,7 +527,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 
 	//send the bit field message...
 	bt_msg_t bitField;
-	bitField.bt_type=htons(BT_BITFILED);
+	bitField.bt_type=htons(BT_BITFILED);	
 	bitField.payload.bitfiled.size=htons(bt_args.bt_info->num_pieces);	
 	bitField.payload.bitfiled.bitfield = new char[bt_args.bt_info->num_pieces];
 	for(int i=0;i<bt_args.bt_info->num_pieces;i++)
@@ -529,6 +554,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 	readBtMsg(bitReply, instream);
 	if(ntohs(bitReply.bt_type)!=BT_BITFILED)
 	{
+		cout<<"Recieved Bit type is"<<bitReply.bt_type<<endl;
 		cout<<"Didnot Receive bit field message"<<endl<<"Terminating Thread!!!"<<endl;
 		//TODO --exit the thread..
 	}
@@ -548,7 +574,6 @@ void Peer::handleRequest(co_peer_t* leecher)
 		bt_msg_t request;		
 		readBtMsg(request, instream);
 
-		if(this->verboseMode)
 		{
 			cout<<"message recieved\n";
 		}
@@ -559,7 +584,8 @@ void Peer::handleRequest(co_peer_t* leecher)
 		request.payload.request.length=ntohl(request.payload.request.length);			
 		
 		if(request.bt_type==BT_REQUEST)
-		{   HelperClass::Log("Request for Piece received:",leecher,MESSAGE_REQUEST_FROM);
+		{   
+			HelperClass::Log("Request for Piece received:",leecher,MESSAGE_REQUEST_FROM);
 			//request message...have to send a packet here...
 			//request is received now...process the request now...
 			int offset=request.payload.request.begin;
@@ -581,9 +607,15 @@ void Peer::handleRequest(co_peer_t* leecher)
 			//sending the request message...
 			if (send(leecher->sock, &reply, sizeof(reply), 0) != sizeof(reply))
 			{
+
 				HelperClass::Log("Request for Piece received:",leecher,MISC);
 				HelperClass::TerminateApplication("Piece Message send Failed");
 			}
+
+				HelperClass::TerminateApplication("Bit Field Message send Failed");
+			}	
+	
+
 			if(this->verboseMode)
 			{
 				cout<<"Message Sent\n";
@@ -740,18 +772,16 @@ void Peer::startClient()
 
 void Peer::recvHandShakeResp(string packet,char* id)
 {
-	int i; 
-	for(i=0;i<protocol_name_offset;i++)		
-	{    
-		 if(packet[i]!=19)
-		 {
-			   HelperClass::TerminateApplication("1st offset value did not match");
-		 }
-		 else if(this->verboseMode)
-		 {
-		 	cout<<"Handshake  stage cleared"<<endl;
-		 }
+	int i;
+	if(packet[0]!=19)
+	{
+	   HelperClass::TerminateApplication("1st offset value did not match");
 	}
+	else if(this->verboseMode)
+	{
+		cout<<"Handshake  stage cleared"<<endl;
+	}
+
 	for(i=0;i<reserved_offset-1;i++)
 	{
 		if(packet[i+1]!=BitTorrent_protocol[i])
