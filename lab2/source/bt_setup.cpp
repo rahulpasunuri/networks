@@ -263,32 +263,6 @@ int main(int argc, char * argv[])
 		//start the timer for the log file...
 		HelperClass::startTime = clock();
 
-		/*
-		//test code...
-		FileObject::CreateFileWithSize(1024, "testOutput.txt");
-		int i=0;int num=8;int size=0;
-		while(size<1024)
-		{
-			FileObject::WritePartialFile(i,num,"bbbbbbbb","testOutput.txt");
-			i+=num;
-			size+=num;
-		}
-		
-		char* data=FileObject::ReadPartialFile(3,10,"testOutput.txt");
-		cout<<data<<endl;
-		delete[] data;
-		
-		int i=0;
-		while(i<10000)
-		{
-			i++;
-		}
-		HelperClass::Log("Testing!!");
-		HelperClass::TerminateApplication("debugging");
-
-		*/
-
-
 		//use a seed for the random function..
 		srand (time(NULL));
 		//this is the main entry point to the code....
