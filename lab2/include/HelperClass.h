@@ -12,6 +12,7 @@
 #include<string>
 #include<mutex>
 #include<time.h>
+#include "bt_lib.h"
 
 using namespace std;
 #define BUFSIZE 1024
@@ -35,7 +36,7 @@ class HelperClass
 		static void Usage(FILE*);
 		static void calc_id(const char * ip, unsigned short port, char *id);
 		static string logFileName;
-		static void Log(const char* message, LOG_TYPES=MISC);	
+		static void Log(const char* message, co_peer_t* peer, LOG_TYPES=MISC);	
 		static mutex mutexLog;
 		static clock_t startTime;		
 };
