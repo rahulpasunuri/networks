@@ -59,7 +59,7 @@ void HelperClass::Usage(FILE * file)
 string HelperClass::logFileName="bt-client.log";
 clock_t HelperClass::startTime = clock();
 mutex HelperClass::mutexLog;
-void HelperClass::Log(const char* message, co_peer_t* peer,LOG_TYPES logType)
+void HelperClass::Log(const char* message, co_peer_t* peer, LOG_TYPES logType)
 {
 	//logs the messages into a log file...	
 	mutexLog.lock();
@@ -100,7 +100,7 @@ void HelperClass::Log(const char* message, co_peer_t* peer,LOG_TYPES logType)
 		}		
 						
 		f<<" "<<message;
-		f<<" ip: ";
+		f<<" ip: "<<inet_ntoa(peer->sockaddr.sin_addr);
 		//print peer ip here..
 		
 		f<<" port: "<<peer->port;				

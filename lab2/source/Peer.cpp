@@ -224,6 +224,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 
 void Peer::sendHandshakeReq(int sock, char* cli_id)
 {
+
 	char handshake[HAND_SHAKE_BUFSIZE];
 
 	for(int i=0;i<HAND_SHAKE_BUFSIZE;i++) // Reserved bytes
@@ -319,7 +320,7 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 		{ 	
 			cout<<"Hand shake started\n";
 		}
-		
+		HelperClass::Log("HAND SHAKE REQUEST INITIATED BY PEER:",seeder,HANDSHAKE_INIT);
 		sendHandshakeReq(sock, cli_id);
 		//free memory
 		delete[] cli_id;
@@ -482,18 +483,20 @@ void Peer::readBtMsg(bt_msg_t& val,FILE* instream)
 
 //this method recieves requests and send the files...
 void Peer::handleRequest(co_peer_t* leecher)
-{
+{   
+	HelperClass::Log("Message Request received from:",leecher,MISC);
 	FILE *instream = fdopen(leecher->sock, "r");
 
 	//send the unchoked 
 	bt_msg_t unchoked;
 	unchoked.bt_type=htons(BT_UNCHOKE);
 	if (send(leecher->sock, &unchoked, sizeof(unchoked), 0) != sizeof(unchoked))
-	{		
+	{	HelperClass::Log("Sending Requested Piece Failed:",leecher,MISC);	
 		HelperClass::TerminateApplication("Piece Message send Failed");
 	}	
 	if(verboseMode)
 	{
+		HelperClass::Log("Unchoke Message Sent:",leecher,MISC);
 		cout<<"Unchoke Message Sent\n";
 	}	
 
@@ -506,10 +509,13 @@ void Peer::handleRequest(co_peer_t* leecher)
 	{
 		bitField.payload.bitfiled.bitfield[i]='1';
 	}
+	HelperClass::Log("Sending Bit Field Message to the Peer:",leecher,MISC);
 	if (send(leecher->sock, &bitField, sizeof(bitField), 0) != sizeof(bitField))
 	{
 		delete[] bitField.payload.bitfiled.bitfield;
+		HelperClass::Log("Sending BitField message Failed to:",leecher,MISC);
 		HelperClass::TerminateApplication("Bit Field Message send Failed");
+		
 	}	
 
 	delete[] bitField.payload.bitfiled.bitfield;
@@ -553,7 +559,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 		request.payload.request.length=ntohl(request.payload.request.length);			
 		
 		if(request.bt_type==BT_REQUEST)
-		{
+		{   HelperClass::Log("Request for Piece received:",leecher,MESSAGE_REQUEST_FROM);
 			//request message...have to send a packet here...
 			//request is received now...process the request now...
 			int offset=request.payload.request.begin;
@@ -575,6 +581,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 			//sending the request message...
 			if (send(leecher->sock, &reply, sizeof(reply), 0) != sizeof(reply))
 			{
+				HelperClass::Log("Request for Piece received:",leecher,MISC);
 				HelperClass::TerminateApplication("Piece Message send Failed");
 			}
 			if(this->verboseMode)
@@ -648,7 +655,7 @@ void Peer:: handleConnectionRequest(int clntSocket,struct sockaddr_in *clntAddr)
 		char * id1 = inet_ntoa(leecher->sockaddr.sin_addr);	   
 		unsigned short portNumber=(unsigned)ntohs(leecher->sockaddr.sin_port);
 		HelperClass::calc_id(id1,portNumber,id);
-	
+		HelperClass::Log("Processing Hand Shake Request from Peer:",leecher, HANDSHAKE_INIT);
 		recvHandShakeResp(packet, id);
 
 		char *cli_id1 = new char[(int)ID_SIZE]; // calculating the ip and port of the leecher....
@@ -660,8 +667,7 @@ void Peer:: handleConnectionRequest(int clntSocket,struct sockaddr_in *clntAddr)
 		}
 		// INITIATING HANDSHAKE 2
 		sendHandshakeReq(clntSocket, cli_id1);
-			       
-		leecher->isHandShakeDone=true;
+		HelperClass::Log(" Hand Shake Successful with Peer:",leecher, HANDSHAKE_SUCCESS);	       
 		delete [] id;
 		delete [] cli_id1;
 		if(this->verboseMode)
@@ -671,11 +677,12 @@ void Peer:: handleConnectionRequest(int clntSocket,struct sockaddr_in *clntAddr)
 		leecher->isHandShakeDone= true;		   		   		   
 	}   
 	else
-	{
+	{    HelperClass::Log("Processing failed during Hand Shake from Peer:",leecher, HANDSHAKE_INIT);
 		 HelperClass::TerminateApplication("...NO DATA RECEIVED FROM PEER...");
 	}
 	
 	//recieves all the requests made by the leecher...
+	HelperClass::Log("Handling Requests of Peer:",leecher,MISC);
 	handleRequest(leecher);	
 
 	if(verboseMode)
@@ -684,13 +691,14 @@ void Peer:: handleConnectionRequest(int clntSocket,struct sockaddr_in *clntAddr)
 	}
 	if(close(clntSocket)<0) // Close client socket
 	{
+		HelperClass::Log("Closing Socket connection Failed:",leecher,MISC);
 		HelperClass::TerminateApplication("Some error happened while closing the socket!!");
 	}
 	if(verboseMode)
 	{
 		cout<<"\nConnection Closed Succesfully with the client!";	
 	}
-	         
+	HelperClass::Log("Closing Socket connection Successful:",leecher,MISC);         
 	//here.. the file objects destuctor gets called..
 }
 
