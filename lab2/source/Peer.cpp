@@ -42,6 +42,20 @@ bool Peer::hasFile()
 	return true;	
 }
 
+void Peer::setHasPiece(int index)
+{
+	mutexHasPieces.lock();
+	hasPieces[index]=true;
+	mutexHasPieces.unlock();
+}
+
+void Peer::unSetRequestedPieces(int index)
+{
+	mutexHasPieces.lock();
+	requestedPieces[index]=false;
+	mutexHasPieces.unlock();
+}
+
 int Peer::requestPieceIndex()
 {	
 	mutexRequestPieces.lock();	
@@ -55,12 +69,12 @@ int Peer::requestPieceIndex()
 		}
 		i=rand()%bt_args.bt_info->num_pieces;
 
-		while(hasPieces[i]==true)
+		mutexHasPieces.lock();
+		while(hasPieces[i]==true && requestedPieces[i]==false) //find a piece which is not present and not in progress.
 		{
 			i=rand()%bt_args.bt_info->num_pieces;
 		}		
-		mutexHasPieces.lock();
-		hasPieces[i]=true;
+		requestedPieces[i]=true;
 		mutexHasPieces.unlock();
 	}
 	catch(...)
@@ -193,11 +207,14 @@ void Peer::requestPiece(co_peer_t* seeder)
 			numBytesRcvd+=reply.payload.piece.length;
 
 		}
+		//TODO -- match hash vallues of the piece
+		
+		setHasPiece(index); //here we have the piece..		
 	}
 	//cout<<"Total Bytes Received is "<<totalBytes<<endl;	
 	//we have the entire file now...so send a cancel message...
 	bt_msg_t request;
-	//convert the things into network format...// TODO -- request the piece in blocks...
+	//convert the things into network format...
 	request.bt_type = htons(BT_CANCEL);
 	//sending the request message...
 	//fclose(instream);
@@ -703,8 +720,10 @@ void Peer::startClient()
 	{
 		//init arguments...		
 		hasPieces=new bool[bt_args.bt_info->num_pieces];
+		requestedPieces=new bool[bt_args.bt_info->num_pieces];
 		for(int i=0;i<bt_args.bt_info->num_pieces;i++)
 		{
+			requestedPieces[i]=false;
 			hasPieces[i]=false;
 		}
 		
@@ -799,6 +818,7 @@ Peer::~Peer()
 	if(isInit)
 	{
 		delete[] hasPieces;
+		delete[] requestedPieces;
 		//free all memories...
 		for(int i=0; i< MAX_CONNECTIONS;i++)
 		{

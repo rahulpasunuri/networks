@@ -43,7 +43,9 @@ class Peer
 	
 	//leecher properties...
 	bool* hasPieces;
-		
+	bool* requestedPieces;
+	void setHasPiece(int index);
+	void unSetRequestedPieces(int index);
 	/*drop an unresponsive or failed peer*/
 	int drop_peer(Peer *peer);
 
