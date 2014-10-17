@@ -552,7 +552,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 	unchoked.bt_type=(int)BT_UNCHOKE;
 	cout<<"Unchoke message sent is "<<unchoked.bt_type<<endl;
 	unchoked.bt_type=htonl(unchoked.bt_type);
-
+	
 	if (send(leecher->sock, &unchoked, sizeof(unchoked), 0) != sizeof(unchoked))
 	{
 		HelperClass::TerminateApplication("Bit Field Message send Failed");
@@ -657,15 +657,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 			}
 			//it means that the peer has the entire file now.. 
 			//removing the peer from connectedPeers;
-			mutexConnectedPeers.lock();
-			for(int i=0;i<MAX_CONNECTIONS;i++)
-			{
-				if(bt_args.connectedPeers[i]==leecher)
-				{
-					bt_args.connectedPeers[i]=NULL;
-				}
-			}
-			mutexConnectedPeers.unlock();
+			deleteFromConnectedPeers(leecher);
 			return;
 		}
 		else
@@ -920,5 +912,18 @@ int Peer::addToConnectedPeers(co_peer_t* peer)
 		HelperClass::TerminateApplication("Max connections reached!!");
 	}
 	return n;
+}
+
+void Peer::deleteFromConnectedPeers(co_peer_t* peer)
+{
+	mutexConnectedPeers.lock();
+	for(int i=0;i<MAX_CONNECTIONS;i++)
+	{
+		if(bt_args.connectedPeers[i]==peer)
+		{
+			bt_args.connectedPeers[i]=NULL;
+		}	
+	}	
+	mutexConnectedPeers.unlock();
 }
 
