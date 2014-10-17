@@ -92,10 +92,8 @@ void Peer::requestPiece(co_peer_t* seeder)
 	
 	//recieve unchoke message...
 	bt_msg_t unchoke;
-	if (fread(&unchoke, sizeof(bt_msg_t), 1, instream) != 1) 
-	{
-		HelperClass::TerminateApplication("Receiving failed in bt_msg");
-	}
+	readBtMsg(unchoke,instream);
+	
 	if(ntohs(unchoke.bt_type)!=BT_UNCHOKE)
 	{
 		HelperClass::TerminateApplication("Didnot receive the unchoke message!!");
@@ -107,14 +105,12 @@ void Peer::requestPiece(co_peer_t* seeder)
 	
 	//receive bit field message...
 	bt_msg_t bitReply;
-	if (fread(&bitReply, sizeof(bt_msg_t), 1, instream) != 1) 
-	{
-		HelperClass::TerminateApplication("Receiving failed in bt_msg");
-	}
+	readBtMsg(bitReply, instream);
+	
 	bitReply.bt_type=ntohs(bitReply.bt_type);
 	if(bitReply.bt_type!=BT_BITFILED)
 	{
-		HelperClass::TerminateApplication("Did not reeive the bit message");
+		HelperClass::TerminateApplication("Did not receive the bit message");
 	}
 	if(verboseMode)
 	{
@@ -184,13 +180,8 @@ void Peer::requestPiece(co_peer_t* seeder)
 			}
 		
 			bt_msg_t reply;
-			//read the message;;;;
-					
-			if (fread(&reply, sizeof(bt_msg_t), 1, instream) != 1) 
-			{
-				HelperClass::TerminateApplication("Receiving failed in bt_msg");
-			}
-			
+			//read the message;;;;			
+			readBtMsg(reply, instream);					
 			reply.bt_type = ntohl(request.bt_type);
 			reply.payload.piece.index=ntohl(reply.payload.piece.index);
 			reply.payload.piece.begin=ntohl(reply.payload.piece.begin);
@@ -356,21 +347,6 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 	close(sock);	
 }	
 
-void Peer::handlePacket(string packetContents)
-{  
-    //parse the packet...
-    string fileName=this->bt_info->name;
-    FileObject fp(fileName.c_str(),0,0,false);
-	if(verboseMode)
-	{
-        cout<<"\nFile Name : "<<fileName<<endl;	       
-	    cout<<"Writing to File:"<<endl;
-	}
-    	
-    fp.Append(packetContents);    
-}
-
-
 					
 /**code from server.cpp
 */
@@ -443,7 +419,6 @@ void  Peer::bindToAPort()
 	this->portNumber=port;
 }
 
-//#################.......SERVER STARTS HERE.......#####################################
 void Peer::startServer()
 {    
 	if(this->verboseMode)
@@ -490,6 +465,21 @@ void Peer::startServer()
 }
 
 
+void Peer::readBtMsg(bt_msg_t& val,FILE* instream)
+{	
+	val.bt_type=(int)BT_HAVE; //init with this..
+	
+	while(val.bt_type == (int)BT_HAVE) //this loop prevents making sense of "have" messages... 
+	{
+		if (fread(&val, sizeof(bt_msg_t), 1, instream) != 1) 
+		{
+			cout<<"Receiving failed in bt_msg"<<endl;
+			throw; //throwing an exception..
+		}
+	}
+}
+
+
 //this method recieves requests and send the files...
 void Peer::handleRequest(co_peer_t* leecher)
 {
@@ -530,13 +520,11 @@ void Peer::handleRequest(co_peer_t* leecher)
 	
 	//receive bit field message...
 	bt_msg_t bitReply;
-	if (fread(&bitReply, sizeof(bt_msg_t), 1, instream) != 1) 
-	{
-		HelperClass::TerminateApplication("Receiving failed in bt_msg");
-	}
+	readBtMsg(bitReply, instream);
 	if(ntohs(bitReply.bt_type)!=BT_BITFILED)
 	{
-		HelperClass::TerminateApplication("Didnot Receive bit field message");
+		cout<<"Didnot Receive bit field message"<<endl<<"Terminating Thread!!!"<<endl;
+		//TODO --exit the thread..
 	}
 	if(verboseMode)
 	{
@@ -552,10 +540,8 @@ void Peer::handleRequest(co_peer_t* leecher)
 		//read the request message;;;;
 		//construct the request message here..
 		bt_msg_t request;		
-		if (fread(&request, sizeof(bt_msg_t), 1, instream) != 1) 
-		{
-			HelperClass::TerminateApplication("Receiving failed in bt_msg");
-		}
+		readBtMsg(request, instream);
+
 		if(this->verboseMode)
 		{
 			cout<<"message recieved\n";

@@ -1,22 +1,97 @@
+Project 2: Bittorrent Client
+-----------------------
 
-This is skeleton development for your BitTorrent (BT) client. 
+Name: RAHUL PASUNURI
+email: rahupasu@indiana.edu
 
-Included Files and Purpose (feel free to change as necessary)
+Name: MANISH KUMAR
+email:manivutt@indiana.edu
 
-bt_client.c   :   Main file where the control loop lives
-bt_setup.c    :   Contains setup code, such as parsing arguments
-bt_lib.c      :   Code for core functionality of bt
+------------------------
 
-bt_setup.h    :   Header file for setup
-bt_lib.h      :   Header file for bt_lib
+Introduction:
+This project implements the functionalities of a Bit torrent client, in which all the participating Leechers can download files in parallel from multiple Seeders and a Seeder allows incoming Leecher connections as long as the no. of connections are below the maximum limit of support. This parallelism is acheived using C++11 threads.
 
-Suggested Additional Files [and headers]
+Functionalities:
+1) The program takes the torrent file name as input from the command line and automatically extracts the file related info, which are saved in a special bencoding format, and connects to all the Seeders that have pieces related to that particular file.   
 
-bt_io.c[.h]   :   File for handing input output
-bt_sock.c[.h] :   File for handling socket and network issues
+2) Integrity of the file downloaded is checked by comparing the downloaded piece’s SHA1 hash (computed) with the corresponding hash piece obtained from the parsed Torrent file. 
 
+3) The program has the ability to handle multiple download connections to the leechers at the same time, and multiple upload connections to the seeder.
+
+4) A leecher can connect to any of the seeders that are provided from the command line, and can download the file by following the steps according to Bit torrent specification.
+
+Rules for Compiling the code:
+There is a 'makefile' written in the project's main folder. Open a comman prompt, 'cd' to the project's main folder, and then execute 'make' command. This command creates the object files and the executables in the "object/" and "bin/" directories respectively.  
+
+Usage:
+executable.out [OPTIONS] torrent-fileName
+           -h 
+              Print this help screen
+              
+           -b [ip] 
+           	  Bind to this "ip" for incoming connections, Default IP is "127.0.0.1".
+              Ports are selected automatically (in the range 6667 and 6699). This argument is only for Seeder.
+              
+           -s [save_file_name] 
+              Save the torrent in directory. (dflt: current directory)              
+              
+           -l [log_file]
+              Save logs to log_file (dflt: bt-client.log)
+              
+           -p ip:port
+              Instead of contacting the tracker for a peer list,
+              use this peer instead, ip:port (ip or hostname)
+              (include multiple -p for more than 1 peer)
+                            
+           -v 
+              Print additional verbose info
+              
+           -f 
+              If the option is provided then the program will be launched as a Seeder, else it instantiates a leecher. This argument is used to      
+              differentiate between Seeder and Leecher
+              
+              
+Examples:
+(For the below commands to work, the command prompt must 'cd' to the project's main folder)
+
+1) ./bin/executable.out -v –f –b localhost download.mp3.torrent
+This binds the server (also a seeder) to the local IP address and uploads the download.mp3 file to the connected leechers. Port number is selected automatically. Re-run the same program to create multiple instances of seeders.
+
+2) ./bin/executable.out -h
+This prints the help screen.
+
+3) ./bin/executable.out -p 127.0.0.1:6668 -v download.mp3.torrent
+This initializes the leecher that connects to a seeder listening on 127.0.0.1 and port no: 6668. 
+
+4) ./bin/executable.out -p 127.0.0.1:6668 –p 1, 27.0.0.1:6669 -v download.mp3.torrent
+This initializes a leecher having a seeder list(IP:Port combinations after every -p) and establishes connections to them for downloading the torrent.  
+
+5) ./bin/executable.out -p 127.0.0.1:6668 –p 127.0.0.1:6669 –v –s <PATH> download.mp3.torrent
+Using the -s option we address the program to save the downloaded file in the PATH provided. Note here that, two Seeders were specified using two '-p' options.
+
+Warnings:
+1) If '-f' is given in the options list, we ignore all the leecher options, and run only the seeder. This is the distinguishing parameter we used to differentiate between seeders and leechers. Similarly, if the '-f' option is not provided, we ignore all the leecher arguments from command line.
+2) If '-b' is specified, then the server binds to the ip given using this option else it binds to localhost by default.
+3) The actual file of the server must be in the main directory.
+
+Exception Handling:
+1) The program terminates if the specified torrent file does not exist.
+
+Description of Project Folders:
+1) All the header files are placed in the 'include/' folder. 
+2) All the .cpp files are placed in the 'source/' folder.
+3) The generated object files will be placed in the 'object/' folder.
+4) The generated executable files will be placed in the 'bin/' folder.
+
+Limitations of the Project:
+1) Works only for IPv4 addresses.
+2) The project developed doesn’t have the functionality to connect to trackers. Hence the peer list must be manually given to the program using –p option when instantiating a leecher. 
 
 References:
 1) A Simple BitTorrent "bencode" Decoder (in python), http://effbot.org/zone/bencode.htm
 2) Bencode, http://en.wikipedia.org/wiki/Bencode#section_1for
 3) Regular expressions using Regex.h, http://www.codeproject.com/Questions/275223/Regular-expressions-using-regex-h
+4) Using Valgrind to Find Memory Leaks and Invalid Memory Use, http://www.cprogramming.com/debugging/valgrind.html
+5) Threads and Shared Variables in C++11, http://channel9.msdn.com/Events/GoingNative/GoingNative-2012/Threads-and-Shared-Variables-in-C-11
+ 

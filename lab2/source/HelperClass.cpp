@@ -14,18 +14,6 @@
 #include "../include/HelperClass.h"
 using namespace std;
 
-//define helper class methods..
-bool HelperClass::IsValidPortNumber(short portNum)
-{
-	if(portNum<1024 || portNum>65535)
-	{
-		//dont allow this range of port numbers..
-		HelperClass::TerminateApplication("Port Number Out of Bounds!!. Terminating Application");		
-		return false; //writing this return to make the compiler happy..
-	}
-	else return true;
-}
-
 void HelperClass::TerminateApplication(string text)
 {
 	cout<<text<<endl<<"Terminating Application!!"<<endl;
@@ -33,23 +21,6 @@ void HelperClass::TerminateApplication(string text)
 	return;
 }
 
-bool HelperClass::CheckIfFileExists(const char* fileName)
-{
-	ifstream f(fileName);
-	if (f.good()) 
-	{
-		//file exists...
-		f.close();
-		return true;
-	} 
-	else 
-	{
-		//file doesnt exist...
-		f.close();
-		return false;
-	}
-}
-   
 void HelperClass::calc_id(const char * ip,const unsigned short port, char *id)
 {
   char data[256];

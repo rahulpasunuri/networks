@@ -31,9 +31,7 @@ enum LOG_TYPES
 class HelperClass
 {	
 	public:
-		static bool IsValidPortNumber(short portNum);
 		static void TerminateApplication(string);
-		static bool CheckIfFileExists(const char*);
 		static void Usage(FILE*);
 		static void calc_id(const char * ip, unsigned short port, char *id);
 		static string logFileName;
