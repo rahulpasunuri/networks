@@ -877,14 +877,22 @@ void Peer::startClient()
 		}
 		while(!hasFile()) 		; //loop till it has the file...
 		{
+			int activePeers=0;
 			for(int i=0;i<MAX_CONNECTIONS;i++)
-			{
+			{				
 				if(bt_args.connectedPeers[i]!=NULL)
 				{
+					activePeers++;
 					if(bt_args.connectedPeers[i]->rThread!=NULL)
 					bt_args.connectedPeers[i]->rThread->join();
 					delete bt_args.connectedPeers[i]->rThread; 
 				}
+			}
+			if(activePeers==0)
+			{
+				cout<<"Error in receiving the file"<<endl;
+				cout<<"File didnot receive completely"<<endl;
+				break;				
 			}
 		}			
     }
