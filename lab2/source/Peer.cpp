@@ -503,8 +503,6 @@ void Peer::init(bt_args_t input)
 		//bind to a port...
 		bindToAPort();
 
-		cout<<"\nBinding to Port Successfull!!"<<this.portNumber<<endl;
-
 		thread serverThread(&Peer::startServer,this);		
 		serverThread.join();
     }
@@ -541,6 +539,7 @@ void  Peer::bindToAPort()
 	{
 		HelperClass::TerminateApplication("Binding Failed!!");
 	}
+	cout<<"\nBinding to Port Successfull!!"<<port<<endl;
 	this->portNumber=port;
 }
 
