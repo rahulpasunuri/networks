@@ -466,6 +466,8 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 
 void Peer::init(bt_args_t input)
 {		
+	downloaded=0;
+	uploaded=0;
 	//intitialize the local address..		
 	//zero - out all entries of client...
 	verboseMode=input.verboseMode;
@@ -696,16 +698,15 @@ void Peer::handleRequest(co_peer_t* leecher)
 		request.payload.request.length=ntohl(request.payload.request.length);			
 		
 		if(request.bt_type==BT_REQUEST)
-		{   
-		
+		{   		
 			int offset=request.payload.request.begin;
 			int numBytes=request.payload.request.length;
 			string s="Request for Piece:\t" ;
-				s+= to_string(request.payload.request.index);
+				s+= to_string((long long)request.payload.request.index);
 				s+= "\toffset\t";
-				s+=to_string(offset);
+				s+=to_string((long long)offset);
 				s+="\tlength\t";
-				s+=to_string(numBytes);
+				s+=to_string((long long)numBytes);
 				s+=" \tto\t ";		
 			HelperClass::Log((const char*)s.c_str(),leecher);
 			//request message...have to send a packet here...

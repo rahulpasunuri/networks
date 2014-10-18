@@ -32,8 +32,8 @@ class Peer
 	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	
 	//download status
-	long uploaded=0;
-	long downloaded=0;
+	long uploaded;
+	long downloaded;
 	///
 	
 	bool verboseMode;
