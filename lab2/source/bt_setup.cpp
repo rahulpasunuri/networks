@@ -160,7 +160,7 @@ void parse_args(bt_args_t * bt_args, int argc,  char * argv[])
   //null save_file, log_file and torrent_file
   memset(bt_args->save_file,0x00,FILE_NAME_MAX);
   memset(bt_args->torrent_file,0x00,FILE_NAME_MAX);
-  
+  bt_args->save_file[0]='\0'; //will be used to know whether it is set or not...
   //null out file pointers
   bt_args->f_save = NULL;
   bt_args->port=INIT_PORT;

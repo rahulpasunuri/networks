@@ -16,6 +16,7 @@
 #include<iostream>
 #include<mutex>
 #include <thread>
+#include <netinet/tcp.h>
 using namespace std;
 
 Peer::Peer()
@@ -84,10 +85,41 @@ int Peer::requestPieceIndex()
 	return i;
 }
 
+void Peer::updateFileStatus(bool isServer, int bytes)
+{
+	mutexStatus.lock();
+	try
+	{
+		string msg="";
+		if(isServer)
+		{
+			uploaded+=bytes;
+			msg="Total bytes uploaded ";
+			msg+=to_string((long long) uploaded);			
+		}
+		else
+		{
+			downloaded+=bytes;
+			msg="Percentage Downloaded is ";
+			float percentage=(downloaded*100)/bt_args.bt_info->length;
+			msg+=to_string((long long)percentage);
+		}
+		HelperClass::Log(msg.c_str());
+		cout<<msg<<endl; //no verbose mode here...
+
+	}
+	catch(...)
+	{
+		mutexStatus.unlock();		
+		HelperClass::TerminateApplication("Error in updating the file status");
+	}
+	mutexStatus.unlock();
+}
+
 void Peer::requestPiece(co_peer_t* seeder)
 {
 	FILE *instream = fdopen(seeder->sock, "r+b");		
-
+	cout.flush();
 	//recieve unchoke message...
 	bt_msg_t unchoke;
 	readBtMsg(unchoke,instream);
@@ -101,7 +133,6 @@ void Peer::requestPiece(co_peer_t* seeder)
 	//receive bit field message...
 	bt_msg_t bitReply;
 	readBtMsg(bitReply, instream);
-	
 	bitReply.bt_type=ntohs(bitReply.bt_type);
 	if(bitReply.bt_type!=BT_BITFILED)
 	{
@@ -111,7 +142,6 @@ void Peer::requestPiece(co_peer_t* seeder)
 	{
 		cout<<"Bit Message Received\n";
 	}
-	
 	//send the bit field message...
 	bt_msg_t bitField;
 	bitField.bt_type=htons(BT_BITFILED);
@@ -192,17 +222,17 @@ void Peer::requestPiece(co_peer_t* seeder)
 			}
 
 			//write the partial content into file
-			FileObject::WritePartialFile(offset,reply.payload.piece.length,reply.payload.piece.data,"alpha.mp3");						
+			FileObject::WritePartialFile(offset,reply.payload.piece.length,reply.payload.piece.data,fileNameWithPath.c_str());						
 			//update parameters...
 			offset+=reply.payload.piece.length;
 			numBytesRcvd+=reply.payload.piece.length;
-
+			cout.flush();
 		}
 		if(!isException)
 		{
 				//-- match hash vallues of the piece
 			int numBytes=bt_args.bt_info->piece_length;
-			string data=FileObject::ReadPartialFile(origOffset, numBytes, "alpha.mp3"); //note that numBytes is pass by a reference parameter..
+			string data=FileObject::ReadPartialFile(origOffset, numBytes, fileNameWithPath.c_str()); //note that numBytes is pass by a reference parameter..
 			char *piece=new char[ID_SIZE];
 			SHA1((unsigned char *) data.data(), numBytes, (unsigned char *) piece); 		
 			bool isHashMatch=true;
@@ -220,6 +250,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 
 			if(isHashMatch)
 			{
+				updateFileStatus(false, numBytes); //update the file status for every piece received..
 				if(verboseMode)
 				{
 					cout<<"Hash value matched for the piece with index "<<index<<endl;
@@ -237,7 +268,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 
 				haveMsg.bt_type=(int)BT_HAVE;
 				string s="Sending Have message for piece- ";
-				s+=to_string(index);
+				s+=to_string((long long)index);
 				s+=" to ";		
 				for(int i=0;i<MAX_CONNECTIONS;i++)
 				{		
@@ -330,7 +361,9 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 	
 	if(seeder==NULL)
 	{
-		HelperClass::TerminateApplication("No seeder specified");
+		cout<<"No seeder specified\n";
+		cout<<"Stopping the thread"<<endl;
+		return; //exit from thread
 	}	
 
 	sockaddr_in destinationAddress=seeder->sockaddr;
@@ -340,7 +373,9 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
     seeder->sock=sock;
 	if (sock < 0)
 	{
-		HelperClass::TerminateApplication("Socket Creation Failed!!");
+		cout<<"Socket Creation Failed!!\n";
+		cout<<"Stopping the thread"<<endl;
+		return; //exit from thread
 	}
 
 	if(verboseMode)
@@ -351,7 +386,9 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 	// connecting socket to the server    
 	if (connect(sock, (struct sockaddr *) &destinationAddress, sizeof(destinationAddress)) < 0)
 	{      
-		HelperClass::TerminateApplication("connect() failed");
+		cout<<"connect() failed"<<endl;
+		cout<<"Stopping the thread"<<endl;
+		return; //exit from thread
 	}
     
 	if(verboseMode)
@@ -361,16 +398,20 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
     sockaddr_in adr_inet;
     socklen_t len_inet = sizeof(seeder->sockaddr);  /* length */  
 	
-	cout<<"socket port value "<<ntohs(seeder->sockaddr.sin_port);
 	// HERE WE ARE EXTRACTING THE IP AND PORT TO WHICH THE PEER(OUR CLIENT) IS CONNECTED TO!
 	if(getsockname(sock, (struct sockaddr *)&adr_inet, &len_inet)<0)  	
 	{
-		HelperClass::TerminateApplication("Unable to determine peer's local IP to which it is binded");
-	}cout<<"socket port value "<<ntohs(adr_inet.sin_port);
+		cout<<"Unable to determine peer's local IP to which it is binded"<<endl;
+		cout<<"Stopping the thread"<<endl;
+		return; //exit from thread
+	}
 	if(this->verboseMode)
 	{
 		cout<<"IP address saved successfully"<<endl;
-	}  
+	} 
+	int flag = 1;
+	setsockopt(sock, IPPROTO_TCP,TCP_NODELAY,(char *) &flag,sizeof(int));    
+ 
 	//cout<<ntohs(seeder->sockaddr.sin_port);
 	seeder->port=ntohs(seeder->sockaddr.sin_port);
 	char *cli_id = new char[(int)ID_SIZE]; 
@@ -396,7 +437,9 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 			ssize_t numBytesRcvd = recv(sock, buffer, BUFSIZE, 0);		
 			if (numBytesRcvd < 0)
 			{
-				HelperClass::TerminateApplication("recv() failed!!");
+				cout<<"recv() failed!! in Hand shake"<<endl;
+				cout<<"Stopping the thread"<<endl;
+				return; //exit from thread..
 			}
 			num+=numBytesRcvd;
 			packet.append(buffer,numBytesRcvd);           						
@@ -406,9 +449,13 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 		    recvHandShakeResp(packet, (char*)seeder->id); 			
 		}
 		else
-		HelperClass::TerminateApplication("RECEIVED EMPTY BUFFER FROM PEER");  
+		{
+			cout<<"RECEIVED EMPTY BUFFER FROM PEER"<<endl;
+			cout<<"Stopping the thread"<<endl;
+			return; //exit from thread..
+		}
 	}
-		HelperClass::Log("HAND SHAKE REQUEST SUCCESSFUL AT PEER:",seeder,HANDSHAKE_INIT);
+	HelperClass::Log("HAND SHAKE REQUEST SUCCESSFUL AT PEER:",seeder,HANDSHAKE_INIT);
 	requestPiece(seeder);	
 	close(sock);	
 }	
@@ -419,13 +466,26 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 
 void Peer::init(bt_args_t input)
 {		
+	downloaded=0;
+	uploaded=0;
 	//intitialize the local address..		
 	//zero - out all entries of client...
 	verboseMode=input.verboseMode;
 	localAddress=input.destaddr;
 	bt_args=input;
 	this->bt_info=bt_args.bt_info;
-		
+	fileNameWithPath="";
+	if(bt_args.save_file[0]!='\0')
+	{
+		fileNameWithPath=string(bt_args.save_file);	
+		//if the save file has no "/" at the end, then add "/"
+		int len=strlen(bt_args.save_file);
+		if(bt_args.save_file[len-1]!='/')
+		{
+			fileNameWithPath+="/";
+		}			
+	}	
+	fileNameWithPath+=string(bt_args.bt_info->name);
 	if(input.isSeeder==true)
 	{
 		
@@ -451,7 +511,7 @@ void Peer::init(bt_args_t input)
     }
 	else
 	{   
-		FileObject::CreateFileWithSize(bt_args.bt_info->length, "alpha.mp3"); //TODO --change file name here...
+		FileObject::CreateFileWithSize(bt_args.bt_info->length, fileNameWithPath.c_str()); 
 		thread clientThread(&Peer::startClient,this);
 		clientThread.join();
 	}
@@ -533,6 +593,7 @@ void Peer::startServer()
 
 int Peer::readBtMsg(bt_msg_t& val,FILE* instream)
 {	
+	cout.flush();	                         
 	val.bt_type=(int)BT_HAVE; //init with this..
 	
 	while(val.bt_type == (int)BT_HAVE) //this loop prevents making sense of "have" messages... 
@@ -540,9 +601,11 @@ int Peer::readBtMsg(bt_msg_t& val,FILE* instream)
 		if (fread(&val, sizeof(bt_msg_t), 1, instream) != 1) 
 		{
 			cout<<"Receiving failed in bt_msg"<<endl;
+			cout.flush();
 			return -1;
 		}
 	}
+	cout.flush();
 	return 1;
 }
 
@@ -563,7 +626,9 @@ void Peer::handleRequest(co_peer_t* leecher)
 	if (send(leecher->sock, &unchoked, sizeof(unchoked), 0) != sizeof(unchoked))
 	{	
 		HelperClass::Log("SENDING UNCHOKED MESSAGE FAILED:",leecher,MISC);
-		HelperClass::TerminateApplication("Unchoke Message send Failed");
+		cout<<"Unchoke Message send Failed"<<endl;
+		cout<<"Stopping the thread"<<endl;
+		return; //exit from the thread;
 	}	
 	HelperClass::Log("SENDING UNCHOKED MESSAGE SUCCESSFUL TO:",leecher,MISC);
 	
@@ -587,7 +652,9 @@ void Peer::handleRequest(co_peer_t* leecher)
 	{
 		delete[] bitField.payload.bitfiled.bitfield;
 		HelperClass::Log("Sending BitField message Failed to:",leecher,MISC);
-		HelperClass::TerminateApplication("Bit Field Message send Failed");
+		cout<<"Bit Field Message send Failed";
+		cout<<"Stopping the thread"<<endl;
+		return; //exit from thread.
 		
 	}	
 
@@ -607,7 +674,8 @@ void Peer::handleRequest(co_peer_t* leecher)
 		HelperClass::Log("BIT FIELD DID NOT MATCH:",leecher,MISC);
 		cout<<"Recieved Bit type is"<<bitReply.bt_type<<endl;
 		cout<<"Didnot Receive bit field message"<<endl<<"Terminating Thread!!!"<<endl;
-		//TODO --exit the thread..
+		cout<<"Stopping the thread"<<endl;
+		return; //exit from thread.
 	}
 	if(verboseMode)
 	{
@@ -623,28 +691,22 @@ void Peer::handleRequest(co_peer_t* leecher)
 		//read the request message;;;;
 		//construct the request message here..
 		bt_msg_t request;		
-		readBtMsg(request, instream);
-
-		{
-			//cout<<"message recieved\n";
-		}
-			
+		readBtMsg(request, instream);			
 		request.bt_type = ntohs(request.bt_type);
 		request.payload.request.index=ntohs(request.payload.request.index); //set the piece index;;
 		request.payload.request.begin=ntohl(request.payload.request.begin);
 		request.payload.request.length=ntohl(request.payload.request.length);			
 		
 		if(request.bt_type==BT_REQUEST)
-		{   
-		
+		{   		
 			int offset=request.payload.request.begin;
 			int numBytes=request.payload.request.length;
 			string s="Request for Piece:\t" ;
-				s+= to_string(request.payload.request.index);
+				s+= to_string((long long)request.payload.request.index);
 				s+= "\toffset\t";
-				s+=to_string(offset);
+				s+=to_string((long long)offset);
 				s+="\tlength\t";
-				s+=to_string(numBytes);
+				s+=to_string((long long)numBytes);
 				s+=" \tto\t ";		
 			HelperClass::Log((const char*)s.c_str(),leecher);
 			//request message...have to send a packet here...
@@ -653,7 +715,9 @@ void Peer::handleRequest(co_peer_t* leecher)
 			string message=	FileObject::ReadPartialFile(offset, numBytes, this->bt_info->name);
 			if(leecher==NULL)
 			{	HelperClass::Log("LEECHER DOES NOT EXIST :",leecher,MISC);
-				HelperClass::TerminateApplication("Error in Send String. leecher doesn't exist");
+				cout<<"Error in Send String. leecher doesn't exist"<<endl;
+				cout<<"Stopping the thread"<<endl;
+				return; //exit from thread.
 			}
 			bt_msg_t reply;
 			reply.bt_type=htons(BT_PIECE);
@@ -668,8 +732,11 @@ void Peer::handleRequest(co_peer_t* leecher)
 			if (send(leecher->sock, &reply, sizeof(reply), 0) != sizeof(reply))
 			{   
 				HelperClass::Log(" FAILED:",leecher,MESSAGE_PIECE_TO);
-				HelperClass::TerminateApplication("Piece Message send Failed");
+				cout<<"Piece Message send Failed"<<endl;
+				cout<<"Stopping the thread"<<endl;
+				return; //exit from thread.
 			}		
+			updateFileStatus(true, messageLen);
 			HelperClass::Log("SUCCESS:",leecher,MESSAGE_PIECE_TO);
 			if(this->verboseMode)
 			{
@@ -678,20 +745,14 @@ void Peer::handleRequest(co_peer_t* leecher)
 		}
 		else if(request.bt_type==BT_CANCEL)
 		{	
-			HelperClass::Log("closing connection with :",leecher,MISC);
-			if(verboseMode)
-			{
-				cout<<"Closing Connection with Client\n";
-			}
-			//it means that the peer has the entire file now.. 
-
-			HelperClass::Log("DELETING THE LEECHER FROM CONNECTED PEERS:",leecher,MISC);
-			deleteFromConnectedPeers(leecher);
+			//peer sent the disconnected message
 			return;
 		}
 		else
 		{   HelperClass::Log("ERROR IN BT_TYPE:",leecher,MISC);
-			HelperClass::TerminateApplication("Un-supported bt type");
+			cout<<"Un-supported bt type"<<endl;
+			cout<<"Stopping the thread"<<endl;
+			return; //exit from thread.
 		}
 	}
 	return;
@@ -700,6 +761,9 @@ void Peer::handleRequest(co_peer_t* leecher)
 void Peer:: handleConnectionRequest(int clntSocket,struct sockaddr_in *clntAddr) 
 {
 	//create a new coPeer for this leecher..
+	int flag = 1;
+	setsockopt(clntSocket, IPPROTO_TCP,TCP_NODELAY,(char *) &flag,sizeof(int));    
+
 	co_peer_t * leecher;
 	leecher=(co_peer_t *) malloc(sizeof(co_peer_t));
 	leecher->sockaddr=(*clntAddr);
@@ -764,7 +828,13 @@ void Peer:: handleConnectionRequest(int clntSocket,struct sockaddr_in *clntAddr)
 	//recieves all the requests made by the leecher...
 	HelperClass::Log("Handling Requests of Peer:",leecher,MISC);
 	handleRequest(leecher);	
-    
+
+	HelperClass::Log("closing connection with :",leecher,MISC);
+	//it means that the leecher has the entire file now, or some error occurred with the leecher
+
+	HelperClass::Log("DELETING THE LEECHER FROM CONNECTED PEERS:",leecher,MISC);
+	deleteFromConnectedPeers(leecher);
+
 	if(verboseMode)
 	{
 		cout<<"\nClosing the connection with the client!";	
@@ -805,16 +875,26 @@ void Peer::startClient()
 		{
 			bt_args.connectedPeers[i]->rThread = new thread(&Peer::SendConnectionRequests,this,bt_args.connectedPeers[i]);	
 		}
-		for(int i=0;i<MAX_CONNECTIONS;i++)
+		while(!hasFile()) 		; //loop till it has the file...
 		{
-			if(bt_args.connectedPeers[i]!=NULL)
+			int activePeers=0;
+			for(int i=0;i<MAX_CONNECTIONS;i++)
+			{				
+				if(bt_args.connectedPeers[i]!=NULL)
+				{
+					activePeers++;
+					if(bt_args.connectedPeers[i]->rThread!=NULL)
+					bt_args.connectedPeers[i]->rThread->join();
+					delete bt_args.connectedPeers[i]->rThread; 
+				}
+			}
+			if(activePeers==0)
 			{
-				if(bt_args.connectedPeers[i]->rThread!=NULL)
-				bt_args.connectedPeers[i]->rThread->join();
-				delete bt_args.connectedPeers[i]->rThread; // works ??
+				cout<<"Error in receiving the file"<<endl;
+				cout<<"File didnot receive completely"<<endl;
+				return;				
 			}
 		}			
-		//while(!hasFile()); //loop till it has the file...
     }
 }
 
