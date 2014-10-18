@@ -162,7 +162,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 		cout<<"Bit Field Message Sent\n";
 	}
 	bool isException=false;			
-	while(!hasFile() && !isException)
+	while(!hasFile() || !isException)
 	{
 		int numBytesRcvd=0;
 		int index=requestPieceIndex();
