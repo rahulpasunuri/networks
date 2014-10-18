@@ -892,7 +892,7 @@ void Peer::startClient()
 			{
 				cout<<"Error in receiving the file"<<endl;
 				cout<<"File didnot receive completely"<<endl;
-				break;				
+				return;				
 			}
 		}			
     }
