@@ -101,7 +101,7 @@ void Peer::updateFileStatus(bool isServer, int bytes)
 			downloaded+=bytes;
 			msg="Percentage Downloaded is ";
 			float percentage=downloaded/bt_args.bt_info->length;
-			msg+=to_string(percentage);
+			msg+=to_string((long long)percentage);
 		}
 		HelperClass::Log(msg.c_str());
 		cout<<msg<<endl; //no verbose mode here...
@@ -269,7 +269,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 
 				haveMsg.bt_type=(int)BT_HAVE;
 				string s="Sending Have message for piece- ";
-				s+=to_string(index);
+				s+=to_string((long long)index);
 				s+=" to ";		
 				for(int i=0;i<MAX_CONNECTIONS;i++)
 				{		
