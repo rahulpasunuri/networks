@@ -13,9 +13,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h> 
-
 #include<iostream>
-
 #include<mutex>
 #include <thread>
 using namespace std;
@@ -70,7 +68,7 @@ int Peer::requestPieceIndex()
 		i=rand()%bt_args.bt_info->num_pieces;
 
 		mutexHasPieces.lock();
-		while(hasPieces[i]==true && requestedPieces[i]==false) //find a piece which is not present and not in progress.
+		while(hasPieces[i]==true || requestedPieces[i]==true) //find a piece which is not present and not in progress.
 		{
 			i=rand()%bt_args.bt_info->num_pieces;
 		}		
@@ -236,12 +234,16 @@ void Peer::requestPiece(co_peer_t* seeder)
 				}		
 				mutexConnectedPeers.lock();
 				bt_msg_t haveMsg;
-				haveMsg.bt_type=(int)BT_HAVE;		
+
+				haveMsg.bt_type=(int)BT_HAVE;
+				string s="Sending Have message for piece- ";
+				s+=to_string(index);
+				s+=" to ";		
 				for(int i=0;i<MAX_CONNECTIONS;i++)
 				{		
 					if(bt_args.connectedPeers[i]!=NULL)
 					{					
-						HelperClass::Log("Sending Have message to", bt_args.connectedPeers[i]);
+						HelperClass::Log( s.c_str(), bt_args.connectedPeers[i]);
 						send(bt_args.connectedPeers[i]->sock, &haveMsg, sizeof(haveMsg), 0);	
 					}
 				}
