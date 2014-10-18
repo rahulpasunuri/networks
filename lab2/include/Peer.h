@@ -64,8 +64,8 @@ class Peer
 	void recvHandShakeResp(string packet,char* id);
 	int addToConnectedPeers(co_peer_t* peer);
 	int getNumConnectedPeers();
-	void readBtMsg(bt_msg_t& var, FILE* instream);
-	
+	int readBtMsg(bt_msg_t& var, FILE* instream); //return -1 on error.
+	void deleteFromConnectedPeers(co_peer_t* peer);
 	//*****************seeder functionalities*************************
 	void handleRequest(co_peer_t* leecher);
 	void bindToAPort();

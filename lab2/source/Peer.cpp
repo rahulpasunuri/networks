@@ -133,12 +133,12 @@ void Peer::requestPiece(co_peer_t* seeder)
 	{
 		cout<<"Bit Field Message Sent\n";
 	}
-	
-	while(!hasFile())
+	bool isException=false;			
+	while(!hasFile() && !isException)
 	{
-		
 		int numBytesRcvd=0;
 		int index=requestPieceIndex();
+		int origOffset=(bt_args.bt_info->piece_length)*index;
 		int offset=(bt_args.bt_info->piece_length)*index;
 		while(numBytesRcvd<bt_args.bt_info->piece_length)
 		{
@@ -167,8 +167,9 @@ void Peer::requestPiece(co_peer_t* seeder)
 			
 			//sending the request message...
 			if (send(seeder->sock, &request, sizeof(request), 0) != sizeof(request))
-			{		
-				HelperClass::TerminateApplication("Piece Message send Failed");
+			{	
+				isException	=true;
+				cout<<"Piece Message send Failed"<<endl;
 			}	
 			if(this->verboseMode)
 			{
@@ -177,7 +178,12 @@ void Peer::requestPiece(co_peer_t* seeder)
 		
 			bt_msg_t reply;
 			//read the message;;;;			
-			readBtMsg(reply, instream);					
+			int out=readBtMsg(reply, instream);					
+			if(out<0)
+			{
+				isException=true;
+				cout<<"Reading Message Failed\n";
+			}
 			reply.bt_type = ntohl(request.bt_type);
 			reply.payload.piece.index=ntohl(reply.payload.piece.index);
 			reply.payload.piece.begin=ntohl(reply.payload.piece.begin);
@@ -194,32 +200,73 @@ void Peer::requestPiece(co_peer_t* seeder)
 			numBytesRcvd+=reply.payload.piece.length;
 
 		}
-		//TODO -- match hash vallues of the piece
-		
-		setHasPiece(index); //here we have the piece..		
-		
-		//send have message to all seeders...
-		if(verboseMode)
+		if(!isException)
 		{
-			cout<<"Sending Have Messages to Peers"<<endl;
-		}		
-		mutexConnectedPeers.lock();
-		bt_msg_t haveMsg;
-		haveMsg.bt_type=(int)BT_HAVE;		
-		for(int i=0;i<MAX_CONNECTIONS;i++)
-		{		
-			if(bt_args.connectedPeers[i]!=NULL)
-			{					
-				HelperClass::Log("Sending Have message to", bt_args.connectedPeers[i]);
-				if (send(bt_args.connectedPeers[i]->sock, &haveMsg, sizeof(haveMsg), 0) != sizeof(haveMsg))
-				{		
-					HelperClass::TerminateApplication("Piece Message send Failed");
-				}		
+				//-- match hash vallues of the piece
+			int numBytes=bt_args.bt_info->piece_length;
+			string data=FileObject::ReadPartialFile(origOffset, numBytes, "alpha.mp3"); //note that numBytes is pass by a reference parameter..
+			char *piece=new char[ID_SIZE];
+			SHA1((unsigned char *) data.data(), numBytes, (unsigned char *) piece); 		
+			bool isHashMatch=true;
+			for(int i=0;i<ID_SIZE;i++)
+			{
+				if(piece[i]!=bt_args.bt_info->piece_hashes[index][i])
+				{
+					isHashMatch=false;
+					break;			
+				}			
 			}
-		}
+
+			//free up space...
+			delete[] piece;
+
+			if(isHashMatch)
+			{
+				if(verboseMode)
+				{
+					cout<<"Hash value matched for the piece with index "<<index<<endl;
+				}
+				//everything is perfect...even hash values match...
+				setHasPiece(index); //here we have the piece..		
+					
+				//send have message to all seeders...
+				if(verboseMode)
+				{
+					cout<<"Sending Have Messages to Peers"<<endl;
+				}		
+				mutexConnectedPeers.lock();
+				bt_msg_t haveMsg;
+				haveMsg.bt_type=(int)BT_HAVE;		
+				for(int i=0;i<MAX_CONNECTIONS;i++)
+				{		
+					if(bt_args.connectedPeers[i]!=NULL)
+					{					
+						HelperClass::Log("Sending Have message to", bt_args.connectedPeers[i]);
+						send(bt_args.connectedPeers[i]->sock, &haveMsg, sizeof(haveMsg), 0);	
+					}
+				}
 		
-		mutexConnectedPeers.unlock();
+				mutexConnectedPeers.unlock();
+			}
+			else
+			{
+				//hash did not match....so unset request piece here..
+				//if u unset here.. the peer can then request the same piece from some other seeder..
+				unSetRequestedPieces(index);
+			}			
+		}
+		if(isException)
+		{
+			//some exception happened in the code...
+			//if u unset here.. the peer can then request the same piece from some other seeder..
+			unSetRequestedPieces(index);			
+		}		
 	}
+	if(isException)
+	{
+		return;
+	}
+	
 	//cout<<"Total Bytes Received is "<<totalBytes<<endl;	
 	//we have the entire file now...so send a cancel message...
 	bt_msg_t request;
@@ -228,10 +275,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 	//sending the request message...
 	//fclose(instream);
 	//free(instream);
-	if (send(seeder->sock, &request, sizeof(request), 0) != sizeof(request))
-	{
-		HelperClass::TerminateApplication("Cancel Message Send Failed");
-	}
+	send(seeder->sock, &request, sizeof(request), 0);
 	
 	if(this->verboseMode)
 	{
@@ -484,7 +528,7 @@ void Peer::startServer()
 }
 
 
-void Peer::readBtMsg(bt_msg_t& val,FILE* instream)
+int Peer::readBtMsg(bt_msg_t& val,FILE* instream)
 {	
 	val.bt_type=(int)BT_HAVE; //init with this..
 	
@@ -493,9 +537,10 @@ void Peer::readBtMsg(bt_msg_t& val,FILE* instream)
 		if (fread(&val, sizeof(bt_msg_t), 1, instream) != 1) 
 		{
 			cout<<"Receiving failed in bt_msg"<<endl;
-			throw; //throwing an exception..
+			return -1;
 		}
 	}
+	return 1;
 }
 
 //this method recieves requests and send the files...
@@ -509,7 +554,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 	unchoked.bt_type=(int)BT_UNCHOKE;
 	cout<<"Unchoke message sent is "<<unchoked.bt_type<<endl;
 	unchoked.bt_type=htonl(unchoked.bt_type);
-
+	
 	if (send(leecher->sock, &unchoked, sizeof(unchoked), 0) != sizeof(unchoked))
 
 	{	HelperClass::Log("Sending Requested Piece Failed:",leecher,MISC);	
@@ -629,15 +674,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 			}
 			//it means that the peer has the entire file now.. 
 			//removing the peer from connectedPeers;
-			mutexConnectedPeers.lock();
-			for(int i=0;i<MAX_CONNECTIONS;i++)
-			{
-				if(bt_args.connectedPeers[i]==leecher)
-				{
-					bt_args.connectedPeers[i]=NULL;
-				}
-			}
-			mutexConnectedPeers.unlock();
+			deleteFromConnectedPeers(leecher);
 			return;
 		}
 		else
@@ -893,5 +930,18 @@ int Peer::addToConnectedPeers(co_peer_t* peer)
 		HelperClass::TerminateApplication("Max connections reached!!");
 	}
 	return n;
+}
+
+void Peer::deleteFromConnectedPeers(co_peer_t* peer)
+{
+	mutexConnectedPeers.lock();
+	for(int i=0;i<MAX_CONNECTIONS;i++)
+	{
+		if(bt_args.connectedPeers[i]==peer)
+		{
+			bt_args.connectedPeers[i]=NULL;
+		}	
+	}	
+	mutexConnectedPeers.unlock();
 }
 
