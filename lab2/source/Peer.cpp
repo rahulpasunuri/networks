@@ -100,7 +100,7 @@ void Peer::updateFileStatus(bool isServer, int bytes)
 		{
 			downloaded+=bytes;
 			msg="Percentage Downloaded is ";
-			float percentage=downloaded/bt_args.bt_info->length;
+			float percentage=(downloaded*100)/bt_args.bt_info->length;
 			msg+=to_string((long long)percentage);
 		}
 		HelperClass::Log(msg.c_str());
@@ -118,7 +118,7 @@ void Peer::updateFileStatus(bool isServer, int bytes)
 void Peer::requestPiece(co_peer_t* seeder)
 {
 	FILE *instream = fdopen(seeder->sock, "r+b");		
-
+	cout.flush();
 	//recieve unchoke message...
 	bt_msg_t unchoke;
 	readBtMsg(unchoke,instream);
@@ -142,7 +142,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 	{
 		cout<<"Bit Message Received\n";
 	}
-	
+	cout.flush();
 	//send the bit field message...
 	bt_msg_t bitField;
 	bitField.bt_type=htons(BT_BITFILED);
@@ -227,7 +227,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 			//update parameters...
 			offset+=reply.payload.piece.length;
 			numBytesRcvd+=reply.payload.piece.length;
-
+			cout.flush();
 		}
 		if(!isException)
 		{
@@ -393,12 +393,11 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
     sockaddr_in adr_inet;
     socklen_t len_inet = sizeof(seeder->sockaddr);  /* length */  
 	
-	cout<<"socket port value "<<ntohs(seeder->sockaddr.sin_port);
 	// HERE WE ARE EXTRACTING THE IP AND PORT TO WHICH THE PEER(OUR CLIENT) IS CONNECTED TO!
 	if(getsockname(sock, (struct sockaddr *)&adr_inet, &len_inet)<0)  	
 	{
 		HelperClass::TerminateApplication("Unable to determine peer's local IP to which it is binded");
-	}cout<<"socket port value "<<ntohs(adr_inet.sin_port);
+	}
 	if(this->verboseMode)
 	{
 		cout<<"IP address saved successfully"<<endl;
