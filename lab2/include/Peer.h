@@ -28,8 +28,13 @@ class Peer
 	mutex mutexConnectedPeers;
 	mutex mutexHasPieces;
 	mutex mutexRequestPieces;
+	mutex mutexStatus;
 	//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	
+	//download status
+	long uploaded=0;
+	long downloaded=0;
+	///
 	
 	bool verboseMode;
 	bool isHandShakeDone;
@@ -66,6 +71,8 @@ class Peer
 	int getNumConnectedPeers();
 	int readBtMsg(bt_msg_t& var, FILE* instream); //return -1 on error.
 	void deleteFromConnectedPeers(co_peer_t* peer);
+	void updateFileStatus(bool isServer, int bytes);
+	
 	//*****************seeder functionalities*************************
 	void handleRequest(co_peer_t* leecher);
 	void bindToAPort();

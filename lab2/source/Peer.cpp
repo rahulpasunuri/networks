@@ -84,6 +84,37 @@ int Peer::requestPieceIndex()
 	return i;
 }
 
+void Peer::updateFileStatus(bool isServer, int bytes)
+{
+	mutexStatus.lock();
+	try
+	{
+		string msg="";
+		if(isServer)
+		{
+			uploaded+=bytes;
+			msg="Total bytes uploaded ";
+			msg+=to_string((long long) uploaded);			
+		}
+		else
+		{
+			downloaded+=bytes;
+			msg="Percentage Downloaded is ";
+			float percentage=downloaded/bt_args.bt_info->length;
+			msg+=to_string(percentage);
+		}
+		HelperClass::Log(msg.c_str());
+		cout<<msg<<endl; //no verbose mode here...
+
+	}
+	catch(...)
+	{
+		mutexStatus.unlock();		
+		HelperClass::TerminateApplication("Error in updating the file status");
+	}
+	mutexStatus.unlock();
+}
+
 void Peer::requestPiece(co_peer_t* seeder)
 {
 	FILE *instream = fdopen(seeder->sock, "r+b");		
@@ -220,6 +251,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 
 			if(isHashMatch)
 			{
+				updateFileStatus(false, numBytes); //update the file status for every piece received..
 				if(verboseMode)
 				{
 					cout<<"Hash value matched for the piece with index "<<index<<endl;
@@ -652,7 +684,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 			{
 				HelperClass::TerminateApplication("Piece Message send Failed");
 			}		
-
+			updateFileStatus(true, messageLen);
 			if(this->verboseMode)
 			{
 				cout<<"Message Sent\n";
