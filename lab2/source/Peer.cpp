@@ -223,7 +223,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 			}
 
 			//write the partial content into file
-			FileObject::WritePartialFile(offset,reply.payload.piece.length,reply.payload.piece.data,"alpha.mp3");						
+			FileObject::WritePartialFile(offset,reply.payload.piece.length,reply.payload.piece.data,fileNameWithPath.c_str());						
 			//update parameters...
 			offset+=reply.payload.piece.length;
 			numBytesRcvd+=reply.payload.piece.length;
@@ -233,7 +233,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 		{
 				//-- match hash vallues of the piece
 			int numBytes=bt_args.bt_info->piece_length;
-			string data=FileObject::ReadPartialFile(origOffset, numBytes, "alpha.mp3"); //note that numBytes is pass by a reference parameter..
+			string data=FileObject::ReadPartialFile(origOffset, numBytes, fileNameWithPath.c_str()); //note that numBytes is pass by a reference parameter..
 			char *piece=new char[ID_SIZE];
 			SHA1((unsigned char *) data.data(), numBytes, (unsigned char *) piece); 		
 			bool isHashMatch=true;
@@ -456,7 +456,19 @@ void Peer::init(bt_args_t input)
 	localAddress=input.destaddr;
 	bt_args=input;
 	this->bt_info=bt_args.bt_info;
-		
+	fileNameWithPath="";
+	if(bt_args.save_file[0]!='\0')
+	{
+		fileNameWithPath=string(bt_args.save_file);	
+		//if the save file has no "/" at the end, then add "/"
+		int len=strlen(bt_args.save_file);
+		if(bt_args.save_file[len-1]!='/')
+		{
+			fileNameWithPath+="/";
+		}			
+	}	
+	fileNameWithPath+=string(bt_args.bt_info->name);
+	cout<<"Printin Torrent File Name"<<fileNameWithPath;
 	if(input.isSeeder==true)
 	{
 		
@@ -482,7 +494,7 @@ void Peer::init(bt_args_t input)
     }
 	else
 	{   
-		FileObject::CreateFileWithSize(bt_args.bt_info->length, "alpha.mp3"); //TODO --change file name here...
+		FileObject::CreateFileWithSize(bt_args.bt_info->length, fileNameWithPath.c_str()); //TODO --change file name here...
 		thread clientThread(&Peer::startClient,this);
 		clientThread.join();
 	}

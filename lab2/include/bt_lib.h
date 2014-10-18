@@ -81,7 +81,7 @@ typedef struct
   bool verboseMode; //verbose level
   bool isSeeder;
   int n_peers;
-  char save_file[FILE_NAME_MAX];//the filename to save to
+  char save_file[FILE_NAME_MAX];//the directory to save to
   FILE * f_save;
   char torrent_file[FILE_NAME_MAX];// *.torrent file
   co_peer_t * connectedPeers[MAX_CONNECTIONS]; // array of peer_t pointers

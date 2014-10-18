@@ -53,7 +53,7 @@ class Peer
 	void unSetRequestedPieces(int index);
 	/*drop an unresponsive or failed peer*/
 	int drop_peer(Peer *peer);
-
+	string fileNameWithPath;
 	/* initialize connection with peers */
 	int init_peer(Peer *peer, char * id, char * ip, unsigned short port);
 
