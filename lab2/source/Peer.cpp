@@ -87,7 +87,7 @@ int Peer::requestPieceIndex()
 void Peer::requestPiece(co_peer_t* seeder)
 {
 	FILE *instream = fdopen(seeder->sock, "r+b");		
-	
+
 	//recieve unchoke message...
 	bt_msg_t unchoke;
 	readBtMsg(unchoke,instream);
@@ -320,12 +320,9 @@ void Peer::sendHandshakeReq(int sock, char* cli_id)
 	return;
 }
 
-//code from client.cpp
+//#######################LEECHER FUNCTIONALITY #########################
 void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 {	
-
-	struct sockaddr_in adr_inet;
-    socklen_t len_inet = sizeof(adr_inet);  /* length */  
 	if(this->verboseMode)
 	{
 		cout<<"Client Started"<<endl;	
@@ -361,17 +358,21 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 	{
 		cout<<"Connection established successfully"<<endl; 
 	}
-
+    sockaddr_in adr_inet;
+    socklen_t len_inet = sizeof(seeder->sockaddr);  /* length */  
+	
+	cout<<"socket port value "<<ntohs(seeder->sockaddr.sin_port);
 	// HERE WE ARE EXTRACTING THE IP AND PORT TO WHICH THE PEER(OUR CLIENT) IS CONNECTED TO!
 	if(getsockname(sock, (struct sockaddr *)&adr_inet, &len_inet)<0)  	
 	{
 		HelperClass::TerminateApplication("Unable to determine peer's local IP to which it is binded");
-	}
+	}cout<<"socket port value "<<ntohs(adr_inet.sin_port);
 	if(this->verboseMode)
 	{
 		cout<<"IP address saved successfully"<<endl;
-	}
-	
+	}  
+	//cout<<ntohs(seeder->sockaddr.sin_port);
+	seeder->port=ntohs(seeder->sockaddr.sin_port);
 	char *cli_id = new char[(int)ID_SIZE]; 
 	HelperClass::calc_id(inet_ntoa(adr_inet.sin_addr),(unsigned)ntohs(adr_inet.sin_port),cli_id);          
 	string packet="";
@@ -381,7 +382,7 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 	if(seeder->isHandShakeDone==false)            
 	{   
 		if(verboseMode)
-		{ 	
+		{ 
 			cout<<"Hand shake started\n";
 		}
 		HelperClass::Log("HAND SHAKE REQUEST INITIATED BY PEER:",seeder,HANDSHAKE_INIT);
@@ -557,14 +558,17 @@ void Peer::handleRequest(co_peer_t* leecher)
 	cout<<"Unchoke message sent is "<<unchoked.bt_type<<endl;
 	unchoked.bt_type=htonl(unchoked.bt_type);
 	
+	HelperClass::Log("SENDING UNCHOKED MESSAGE FROM:",leecher,MISC);
+	
 	if (send(leecher->sock, &unchoked, sizeof(unchoked), 0) != sizeof(unchoked))
 	{	
+		HelperClass::Log("SENDING UNCHOKED MESSAGE FAILED:",leecher,MISC);
 		HelperClass::TerminateApplication("Unchoke Message send Failed");
 	}	
-
+	HelperClass::Log("SENDING UNCHOKED MESSAGE SUCCESSFUL TO:",leecher,MISC);
+	
 	if(verboseMode)
 	{
-		HelperClass::Log("Unchoke Message Sent:",leecher,MISC);
 		cout<<"Unchoke Message Sent\n";
 	}	
 
@@ -573,6 +577,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 	bitField.bt_type=htons(BT_BITFILED);	
 	bitField.payload.bitfiled.size=htons(bt_args.bt_info->num_pieces);	
 	bitField.payload.bitfiled.bitfield = new char[bt_args.bt_info->num_pieces];
+	
 	for(int i=0;i<bt_args.bt_info->num_pieces;i++)
 	{
 		bitField.payload.bitfiled.bitfield[i]='1';
@@ -587,6 +592,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 	}	
 
 	delete[] bitField.payload.bitfiled.bitfield;
+	HelperClass::Log("SENDING BITFIELD MESSAGE SUCCESSFUL TO :",leecher,MISC);
 	if(verboseMode)
 	{
 		cout<<"Bit Field Message Sent\n";
@@ -594,9 +600,11 @@ void Peer::handleRequest(co_peer_t* leecher)
 	
 	//receive bit field message...
 	bt_msg_t bitReply;
+	HelperClass::Log("RECEIVING BITFIELD REPLY FROM:",leecher,MISC);
 	readBtMsg(bitReply, instream);
 	if(ntohs(bitReply.bt_type)!=BT_BITFILED)
-	{
+	{	
+		HelperClass::Log("BIT FIELD DID NOT MATCH:",leecher,MISC);
 		cout<<"Recieved Bit type is"<<bitReply.bt_type<<endl;
 		cout<<"Didnot Receive bit field message"<<endl<<"Terminating Thread!!!"<<endl;
 		//TODO --exit the thread..
@@ -605,7 +613,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 	{
 		cout<<"Bit Field Message Received\n";
 	}	
-		
+	HelperClass::Log("BITFIELD RECEIVE SUCCESSFUL :",leecher,MISC);	
 	while(true)
 	{
 		if(this->verboseMode)
@@ -618,9 +626,9 @@ void Peer::handleRequest(co_peer_t* leecher)
 		readBtMsg(request, instream);
 
 		{
-			cout<<"message recieved\n";
+			//cout<<"message recieved\n";
 		}
-
+			
 		request.bt_type = ntohs(request.bt_type);
 		request.payload.request.index=ntohs(request.payload.request.index); //set the piece index;;
 		request.payload.request.begin=ntohl(request.payload.request.begin);
@@ -628,14 +636,23 @@ void Peer::handleRequest(co_peer_t* leecher)
 		
 		if(request.bt_type==BT_REQUEST)
 		{   
-			HelperClass::Log("Request for Piece received:",leecher,MESSAGE_REQUEST_FROM);
-			//request message...have to send a packet here...
-			//request is received now...process the request now...
+		
 			int offset=request.payload.request.begin;
 			int numBytes=request.payload.request.length;
+			string s="Request for Piece:\t" ;
+				s+= to_string(request.payload.request.index);
+				s+= "\toffset\t";
+				s+=to_string(offset);
+				s+="\tlength\t";
+				s+=to_string(numBytes);
+				s+=" \tto\t ";		
+			HelperClass::Log((const char*)s.c_str(),leecher);
+			//request message...have to send a packet here...
+			//request is received now...process the request now...
+			
 			string message=	FileObject::ReadPartialFile(offset, numBytes, this->bt_info->name);
 			if(leecher==NULL)
-			{
+			{	HelperClass::Log("LEECHER DOES NOT EXIST :",leecher,MISC);
 				HelperClass::TerminateApplication("Error in Send String. leecher doesn't exist");
 			}
 			bt_msg_t reply;
@@ -649,28 +666,31 @@ void Peer::handleRequest(co_peer_t* leecher)
 			reply.payload.piece.length=htonl(numBytes);
 			//sending the request message...
 			if (send(leecher->sock, &reply, sizeof(reply), 0) != sizeof(reply))
-			{
+			{   
+				HelperClass::Log(" FAILED:",leecher,MESSAGE_PIECE_TO);
 				HelperClass::TerminateApplication("Piece Message send Failed");
 			}		
-
+			HelperClass::Log("SUCCESS:",leecher,MESSAGE_PIECE_TO);
 			if(this->verboseMode)
 			{
 				cout<<"Message Sent\n";
 			}
 		}
 		else if(request.bt_type==BT_CANCEL)
-		{
+		{	
+			HelperClass::Log("closing connection with :",leecher,MISC);
 			if(verboseMode)
 			{
 				cout<<"Closing Connection with Client\n";
 			}
 			//it means that the peer has the entire file now.. 
-			//removing the peer from connectedPeers;
+
+			HelperClass::Log("DELETING THE LEECHER FROM CONNECTED PEERS:",leecher,MISC);
 			deleteFromConnectedPeers(leecher);
 			return;
 		}
 		else
-		{
+		{   HelperClass::Log("ERROR IN BT_TYPE:",leecher,MISC);
 			HelperClass::TerminateApplication("Un-supported bt type");
 		}
 	}
@@ -718,7 +738,6 @@ void Peer:: handleConnectionRequest(int clntSocket,struct sockaddr_in *clntAddr)
 		HelperClass::calc_id(id1,portNumber,id);
 		HelperClass::Log("Processing Hand Shake Request from Peer:",leecher, HANDSHAKE_INIT);
 		recvHandShakeResp(packet, id);
-
 		char *cli_id1 = new char[(int)ID_SIZE]; // calculating the ip and port of the leecher....
 		HelperClass::calc_id((string("127.0.0.1")).c_str(),(unsigned)ntohs(localAddress.sin_port),cli_id1);
 		
@@ -728,7 +747,7 @@ void Peer:: handleConnectionRequest(int clntSocket,struct sockaddr_in *clntAddr)
 		}
 		// INITIATING HANDSHAKE 2
 		sendHandshakeReq(clntSocket, cli_id1);
-		HelperClass::Log(" Hand Shake Successful with Peer:",leecher, HANDSHAKE_SUCCESS);	       
+		HelperClass::Log(" HAND SHAKE SUCCESSFULL WITH LEECHER:",leecher, HANDSHAKE_SUCCESS);	       
 		delete [] id;
 		delete [] cli_id1;
 		if(this->verboseMode)
@@ -745,7 +764,7 @@ void Peer:: handleConnectionRequest(int clntSocket,struct sockaddr_in *clntAddr)
 	//recieves all the requests made by the leecher...
 	HelperClass::Log("Handling Requests of Peer:",leecher,MISC);
 	handleRequest(leecher);	
-
+    
 	if(verboseMode)
 	{
 		cout<<"\nClosing the connection with the client!";	
@@ -759,7 +778,7 @@ void Peer:: handleConnectionRequest(int clntSocket,struct sockaddr_in *clntAddr)
 	{
 		cout<<"\nConnection Closed Succesfully with the client!";	
 	}
-	HelperClass::Log("Closing Socket connection Successful:",leecher,MISC);         
+	HelperClass::Log("Closing Socket connection Successful at leecher:",leecher,MISC);         
 	//here.. the file objects destuctor gets called..
 }
 
@@ -905,7 +924,8 @@ int Peer::getNumConnectedPeers()
 }
 
 int Peer::addToConnectedPeers(co_peer_t* peer)
-{
+{   
+	HelperClass::Log("ADDING PEER TO THE LIST:",peer,MISC);
 	mutexConnectedPeers.lock();
 	int n=-1;
 	for(int i=0;i<MAX_CONNECTIONS;i++)
@@ -925,7 +945,8 @@ int Peer::addToConnectedPeers(co_peer_t* peer)
 }
 
 void Peer::deleteFromConnectedPeers(co_peer_t* peer)
-{
+{	
+	HelperClass::Log("PEER DELETED:",peer,MISC);
 	mutexConnectedPeers.lock();
 	for(int i=0;i<MAX_CONNECTIONS;i++)
 	{

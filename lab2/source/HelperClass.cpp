@@ -103,7 +103,7 @@ void HelperClass::Log(const char* message, co_peer_t* peer, LOG_TYPES logType)
 		f<<" ip: "<<inet_ntoa(peer->sockaddr.sin_addr);
 		//print peer ip here..
 		
-		f<<" port: "<<peer->port;				
+		f<<" port: "<<ntohs(peer->sockaddr.sin_port);				
 		//f<<"id: ";
 		//for(int i=0;i<ID_SIZE;i++)
 		//{
