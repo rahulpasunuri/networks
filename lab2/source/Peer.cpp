@@ -162,7 +162,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 		cout<<"Bit Field Message Sent\n";
 	}
 	bool isException=false;			
-	while(!hasFile() && !isException)
+	while(!hasFile() || !isException)
 	{
 		int numBytesRcvd=0;
 		int index=requestPieceIndex();
@@ -502,10 +502,9 @@ void Peer::init(bt_args_t input)
 
 		//bind to a port...
 		bindToAPort();
-		if(verboseMode)
-		{
-			cout<<"\nBinding to Port Successfull!!"<<endl;
-		}
+
+		cout<<"\nBinding to Port Successfull!!"<<this.portNumber<<endl;
+
 		thread serverThread(&Peer::startServer,this);		
 		serverThread.join();
     }
@@ -547,10 +546,9 @@ void  Peer::bindToAPort()
 
 void Peer::startServer()
 {    
-	if(this->verboseMode)
-	{	 
-    	cout<<"Server started"<<endl;
-    }
+ 
+	cout<<"Server started"<<endl;
+
 	// Mark the socket so it will listen for incoming connections
 	if (listen(sock, MAXPENDING) < 0)
 	{
