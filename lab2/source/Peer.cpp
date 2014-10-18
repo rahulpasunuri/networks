@@ -405,7 +405,7 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 		else
 		HelperClass::TerminateApplication("RECEIVED EMPTY BUFFER FROM PEER");  
 	}
-		
+		HelperClass::Log("HAND SHAKE REQUEST SUCCESSFUL AT PEER:",seeder,HANDSHAKE_INIT);
 	requestPiece(seeder);	
 	close(sock);	
 }	
@@ -556,12 +556,8 @@ void Peer::handleRequest(co_peer_t* leecher)
 	unchoked.bt_type=htonl(unchoked.bt_type);
 	
 	if (send(leecher->sock, &unchoked, sizeof(unchoked), 0) != sizeof(unchoked))
-
-	{	HelperClass::Log("Sending Requested Piece Failed:",leecher,MISC);	
-		HelperClass::TerminateApplication("Piece Message send Failed");
-	{
-		HelperClass::TerminateApplication("Bit Field Message send Failed");
-
+	{	
+		HelperClass::TerminateApplication("Unchoke Message send Failed");
 	}	
 
 	if(verboseMode)
@@ -652,14 +648,8 @@ void Peer::handleRequest(co_peer_t* leecher)
 			//sending the request message...
 			if (send(leecher->sock, &reply, sizeof(reply), 0) != sizeof(reply))
 			{
-
-				HelperClass::Log("Request for Piece received:",leecher,MISC);
 				HelperClass::TerminateApplication("Piece Message send Failed");
-			}
-
-				HelperClass::TerminateApplication("Bit Field Message send Failed");
-			}	
-	
+			}		
 
 			if(this->verboseMode)
 			{

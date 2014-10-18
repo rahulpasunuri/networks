@@ -104,11 +104,11 @@ void HelperClass::Log(const char* message, co_peer_t* peer, LOG_TYPES logType)
 		//print peer ip here..
 		
 		f<<" port: "<<peer->port;				
-		f<<"id: ";
-		for(int i=0;i<ID_SIZE;i++)
-		{
-			f.put(peer->id[i]);
-		}		
+		//f<<"id: ";
+		//for(int i=0;i<ID_SIZE;i++)
+		//{
+	//		f.put(peer->id[i]);
+	//	}		
 		f<<endl;
 		f.flush();
 		f.close();		
