@@ -1014,6 +1014,7 @@ int Peer::addToConnectedPeers(co_peer_t* peer)
 		{
 			bt_args.connectedPeers[i]=peer;
 			n=i;
+			break;
 		}	
 	}	
 	mutexConnectedPeers.unlock();
