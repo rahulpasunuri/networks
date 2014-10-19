@@ -64,16 +64,21 @@ This prints the help screen.
 3) ./bin/executable.out -p 127.0.0.1:6668 -v download.mp3.torrent
 This initializes the leecher that connects to a seeder listening on 127.0.0.1 and port no: 6668. 
 
-4) ./bin/executable.out -p 127.0.0.1:6668 –p 1, 27.0.0.1:6669 -v download.mp3.torrent
+4) ./bin/executable.out -p 127.0.0.1:6668 -p 1, 27.0.0.1:6669 -v download.mp3.torrent
 This initializes a leecher having a seeder list(IP:Port combinations after every -p) and establishes connections to them for downloading the torrent.  
 
-5) ./bin/executable.out -p 127.0.0.1:6668 –p 127.0.0.1:6669 –v –s <PATH> download.mp3.torrent
+5) ./bin/executable.out -p 127.0.0.1:6668 -p 127.0.0.1:6669 –v –s <PATH> download.mp3.torrent
 Using the -s option we address the program to save the downloaded file in the PATH provided. Note here that, two Seeders were specified using two '-p' options.
+
+6) ./bin/executable.out –v -l <LOGFILE NAME> download.mp3.torrent
+Using the -l option to give the name to the log file for logging information. This functionality can be used by both seeder and leecher.
 
 Warnings:
 1) If '-f' is given in the options list, we ignore all the leecher options, and run only the seeder. This is the distinguishing parameter we used to differentiate between seeders and leechers. Similarly, if the '-f' option is not provided, we ignore all the leecher arguments from command line.
 2) If '-b' is specified, then the server binds to the ip given using this option else it binds to localhost by default.
 3) The actual file of the server must be in the main directory.
+4) Provide different paths to save the downloaded file when running multiple leechers.
+5) Provide different names to the log files of leechers else the logging information will be written into the same file making it difficult to understand.
 
 Exception Handling:
 1) The program terminates if the specified torrent file does not exist.
