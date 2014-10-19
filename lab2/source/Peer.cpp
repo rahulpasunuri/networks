@@ -372,7 +372,7 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 	{
 		cout<<"No seeder specified\n";
 		cout<<"Stopping the thread"<<endl;
-		return; //exit from thread
+		exit(1); //exit from thread
 	}	
 
 	sockaddr_in destinationAddress=seeder->sockaddr;
@@ -384,7 +384,7 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 	{
 		cout<<"Socket Creation Failed!!\n";
 		cout<<"Stopping the thread"<<endl;
-		return; //exit from thread
+		exit(1); //exit from thread
 	}
 
 	if(verboseMode)
@@ -397,7 +397,7 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 	{      
 		cout<<"connect() failed"<<endl;
 		cout<<"Stopping the thread"<<endl;
-		return; //exit from thread
+		exit(1); //exit from thread
 	}
     
 	if(verboseMode)
@@ -412,7 +412,7 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 	{
 		cout<<"Unable to determine peer's local IP to which it is binded"<<endl;
 		cout<<"Stopping the thread"<<endl;
-		return; //exit from thread
+		exit(1); //exit from thread
 	}
 	if(this->verboseMode)
 	{
@@ -448,7 +448,7 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 			{
 				cout<<"recv() failed!! in Hand shake"<<endl;
 				cout<<"Stopping the thread"<<endl;
-				return; //exit from thread..
+				exit(1); //exit from thread..
 			}
 			num+=numBytesRcvd;
 			packet.append(buffer,numBytesRcvd);           						
@@ -461,7 +461,7 @@ void Peer::SendConnectionRequests(co_peer_t* seeder=NULL)
 		{
 			cout<<"RECEIVED EMPTY BUFFER FROM PEER"<<endl;
 			cout<<"Stopping the thread"<<endl;
-			return; //exit from thread..
+			exit(1); //exit from thread..
 		}
 	}
 	HelperClass::Log("HAND SHAKE REQUEST SUCCESSFUL AT PEER:",seeder,HANDSHAKE_INIT);
@@ -633,7 +633,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 		HelperClass::Log("SENDING UNCHOKED MESSAGE FAILED:",leecher,MISC);
 		cout<<"Unchoke Message send Failed"<<endl;
 		cout<<"Stopping the thread"<<endl;
-		return; //exit from the thread;
+		exit(1); //exit from the thread;
 	}	
 	HelperClass::Log("SENDING UNCHOKED MESSAGE SUCCESSFUL TO:",leecher,MISC);
 	
@@ -659,7 +659,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 		HelperClass::Log("Sending BitField message Failed to:",leecher,MISC);
 		cout<<"Bit Field Message send Failed";
 		cout<<"Stopping the thread"<<endl;
-		return; //exit from thread.
+		exit(1); //exit from thread.
 		
 	}	
 
@@ -680,7 +680,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 		cout<<"Recieved Bit type is"<<bitReply.bt_type<<endl;
 		cout<<"Didnot Receive bit field message"<<endl<<"Terminating Thread!!!"<<endl;
 		cout<<"Stopping the thread"<<endl;
-		return; //exit from thread.
+		exit(1); //exit from thread.
 	}
 	if(verboseMode)
 	{
@@ -722,7 +722,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 			{	HelperClass::Log("LEECHER DOES NOT EXIST :",leecher,MISC);
 				cout<<"Error in Send String. leecher doesn't exist"<<endl;
 				cout<<"Stopping the thread"<<endl;
-				return; //exit from thread.
+				exit(1); //exit from thread.
 			}
 			bt_msg_t reply;
 			reply.bt_type=htons(BT_PIECE);
@@ -739,7 +739,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 				HelperClass::Log(" FAILED:",leecher,MESSAGE_PIECE_TO);
 				cout<<"Piece Message send Failed"<<endl;
 				cout<<"Stopping the thread"<<endl;
-				return; //exit from thread.
+				exit(1); //exit from thread.
 			}		
 			updateFileStatus(true, messageLen);
 			HelperClass::Log("SUCCESS:",leecher,MESSAGE_PIECE_TO);
@@ -755,7 +755,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 		}
 		else
 		{  
-			return; //exit from thread.
+			exit(1); //exit from thread.
 		}
 	}
 	return;
@@ -891,6 +891,7 @@ void Peer::startClient()
 						bt_args.connectedPeers[i]->rThread->join();
 						delete bt_args.connectedPeers[i]->rThread;
 						bt_args.connectedPeers[i]->rThread=NULL; 
+						cout<<"Deleting client"<<endl;
 						deleteFromConnectedPeers(bt_args.connectedPeers[i]);
 					}
 				}
