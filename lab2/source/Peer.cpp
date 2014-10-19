@@ -888,8 +888,12 @@ void Peer::startClient()
 				{
 					activePeers++;
 					if(bt_args.connectedPeers[i]->rThread!=NULL)
-					bt_args.connectedPeers[i]->rThread->join();
-					delete bt_args.connectedPeers[i]->rThread; 
+					{
+						bt_args.connectedPeers[i]->rThread->join();
+						delete bt_args.connectedPeers[i]->rThread;
+						bt_args.connectedPeers[i]->rThread=NULL; 
+						deleteFromConnectedPeers(bt_args.connectedPeers[i]);
+					}
 				}
 			}
 			if(activePeers==0)
@@ -1037,6 +1041,7 @@ void Peer::deleteFromConnectedPeers(co_peer_t* peer)
 	{
 		if(bt_args.connectedPeers[i]==peer)
 		{
+			delete bt_args.connectedPeers[i];
 			bt_args.connectedPeers[i]=NULL;
 		}	
 	}	
