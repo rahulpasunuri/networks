@@ -61,20 +61,25 @@ int Peer::requestPieceIndex()
 	int i=-1;
 	try
 	{
-		if(hasFile())
-		{
-			mutexRequestPieces.unlock();	
-			return i;		
-		}
-		i=rand()%bt_args.bt_info->num_pieces;
-
-		mutexHasPieces.lock();
-		while(hasPieces[i]==true || requestedPieces[i]==true) //find a piece which is not present and not in progress.
+		while(true) //find a piece which is not present and not in progress.
 		{
 			i=rand()%bt_args.bt_info->num_pieces;
+			if(hasFile())
+			{
+				mutexHasPieces.unlock();
+				mutexRequestPieces.unlock();	
+				return -1;		
+			}
+			mutexHasPieces.lock();
+			if(hasPieces[i]!=true && requestedPieces[i] != true)
+			{
+				mutexHasPieces.unlock();
+				break;
+			}
+			mutexHasPieces.unlock();
 		}		
 		requestedPieces[i]=true;
-		mutexHasPieces.unlock();
+
 	}
 	catch(...)
 	{
@@ -166,6 +171,10 @@ void Peer::requestPiece(co_peer_t* seeder)
 	{
 		int numBytesRcvd=0;
 		int index=requestPieceIndex();
+		if(index==-1)
+		{
+			return;
+		}
 		int origOffset=(bt_args.bt_info->piece_length)*index;
 		int offset=(bt_args.bt_info->piece_length)*index;
 		while(numBytesRcvd<bt_args.bt_info->piece_length)
@@ -234,6 +243,7 @@ void Peer::requestPiece(co_peer_t* seeder)
 			int numBytes=bt_args.bt_info->piece_length;
 			string data=FileObject::ReadPartialFile(origOffset, numBytes, fileNameWithPath.c_str()); //note that numBytes is pass by a reference parameter..
 			char *piece=new char[ID_SIZE];
+			cout<<"Num Bytes is "<<numBytes;
 			SHA1((unsigned char *) data.data(), numBytes, (unsigned char *) piece); 		
 			bool isHashMatch=true;
 			for(int i=0;i<ID_SIZE;i++)
@@ -274,7 +284,6 @@ void Peer::requestPiece(co_peer_t* seeder)
 				{		
 					if(bt_args.connectedPeers[i]!=NULL)
 					{					
-						HelperClass::Log( s.c_str(), bt_args.connectedPeers[i]);
 						send(bt_args.connectedPeers[i]->sock, &haveMsg, sizeof(haveMsg), 0);	
 					}
 				}
