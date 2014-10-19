@@ -61,20 +61,25 @@ int Peer::requestPieceIndex()
 	int i=-1;
 	try
 	{
-		if(hasFile())
-		{
-			mutexRequestPieces.unlock();	
-			return i;		
-		}
-		i=rand()%bt_args.bt_info->num_pieces;
-
-		mutexHasPieces.lock();
-		while(hasPieces[i]==true || requestedPieces[i]==true) //find a piece which is not present and not in progress.
+		while(true) //find a piece which is not present and not in progress.
 		{
 			i=rand()%bt_args.bt_info->num_pieces;
+			if(hasFile())
+			{
+				mutexHasPieces.unlock();
+				mutexRequestPieces.unlock();	
+				return -1;		
+			}
+			mutexHasPieces.lock();
+			if(hasPieces[i]!=true && requestedPieces[i] != true)
+			{
+				mutexHasPieces.unlock();
+				break;
+			}
+			mutexHasPieces.unlock();
 		}		
 		requestedPieces[i]=true;
-		mutexHasPieces.unlock();
+
 	}
 	catch(...)
 	{
