@@ -606,7 +606,6 @@ int Peer::readBtMsg(bt_msg_t& val,FILE* instream)
 	{
 		if (fread(&val, sizeof(bt_msg_t), 1, instream) != 1) 
 		{
-			cout<<"Receiving failed in bt_msg"<<endl;
 			cout.flush();
 			return -1;
 		}
