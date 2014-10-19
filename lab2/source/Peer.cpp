@@ -755,9 +755,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 			return;
 		}
 		else
-		{   HelperClass::Log("ERROR IN BT_TYPE:",leecher,MISC);
-			cout<<"Un-supported bt type"<<endl;
-			cout<<"Stopping the thread"<<endl;
+		{  
 			return; //exit from thread.
 		}
 	}
