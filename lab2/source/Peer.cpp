@@ -633,7 +633,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 		HelperClass::Log("SENDING UNCHOKED MESSAGE FAILED:",leecher,MISC);
 		cout<<"Unchoke Message send Failed"<<endl;
 		cout<<"Stopping the thread"<<endl;
-		exit(1); //exit from the thread;
+		return; //exit from the thread;
 	}	
 	HelperClass::Log("SENDING UNCHOKED MESSAGE SUCCESSFUL TO:",leecher,MISC);
 	
@@ -659,7 +659,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 		HelperClass::Log("Sending BitField message Failed to:",leecher,MISC);
 		cout<<"Bit Field Message send Failed";
 		cout<<"Stopping the thread"<<endl;
-		exit(1); //exit from thread.
+		return; //exit from thread.
 		
 	}	
 
@@ -680,7 +680,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 		cout<<"Recieved Bit type is"<<bitReply.bt_type<<endl;
 		cout<<"Didnot Receive bit field message"<<endl<<"Terminating Thread!!!"<<endl;
 		cout<<"Stopping the thread"<<endl;
-		exit(1); //exit from thread.
+		return; //exit from thread.
 	}
 	if(verboseMode)
 	{
@@ -722,7 +722,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 			{	HelperClass::Log("LEECHER DOES NOT EXIST :",leecher,MISC);
 				cout<<"Error in Send String. leecher doesn't exist"<<endl;
 				cout<<"Stopping the thread"<<endl;
-				exit(1); //exit from thread.
+				return; //exit from thread.
 			}
 			bt_msg_t reply;
 			reply.bt_type=htons(BT_PIECE);
@@ -739,7 +739,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 				HelperClass::Log(" FAILED:",leecher,MESSAGE_PIECE_TO);
 				cout<<"Piece Message send Failed"<<endl;
 				cout<<"Stopping the thread"<<endl;
-				exit(1); //exit from thread.
+				return; //exit from thread.
 			}		
 			updateFileStatus(true, messageLen);
 			HelperClass::Log("SUCCESS:",leecher,MESSAGE_PIECE_TO);
@@ -755,7 +755,7 @@ void Peer::handleRequest(co_peer_t* leecher)
 		}
 		else
 		{  
-			exit(1); //exit from thread.
+			return; //exit from thread.
 		}
 	}
 	return;
