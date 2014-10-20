@@ -116,3 +116,19 @@ void HelperClass::Log(const char* message, co_peer_t* peer, LOG_TYPES logType)
 	mutexLog.unlock();	
 }
 
+bool HelperClass::CheckIfFileExists(const char* fileName)
+{
+	ifstream f(fileName);
+	if (f.good()) 
+	{
+		//file exists...
+		f.close();
+		return true;
+	} 
+	else 
+	{
+		//file doesnt exist...
+		f.close();
+		return false;
+	}
+}
