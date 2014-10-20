@@ -202,48 +202,54 @@ Bencode::~Bencode()
 
 bt_info_t Bencode::ParseTorrentFile(const char* fileName)
 {
-	bt_info_t result;
-    char *backUp;
-    if(fileName==NULL)
-    {
-        HelperClass::TerminateApplication("Please pass the name of the torrent file");
-    }	
-    try
-    {
-        fstream fp(fileName,ios::in|ios::binary);
-        fp.seekg(0,ios::end);
-        int size = fp.tellg();                 
-        fp.seekg(0,ios::beg);
-        buffer = new char[size+1];
-        backUp=buffer;
-        fp.read(buffer,size);
-        buffer[size] = '\0';
-        fp.close();
-    }
-    catch(...)
-    {
-        HelperClass::TerminateApplication("Error reading the torrent file");
-    }  
-    
-    //parsing the torrent file tokens        	    
-    while(true)
-    {    
-        string P = "";
-        char *text=nextToken(&exp,buffer, &sm,result);
-        if(text==NULL)
-        {
-           break;
-        }
-        else 
-        {
-  		   token(text,&exp,result);
-	    }   		
-	    delete[] text;                                           
-   }
+	if(HelperClass::CheckIfFileExists(fileName))
+	{ }
+	else
+   	HelperClass::TerminateApplication("File doesnt exist\n");
+		bt_info_t result;
+		char *backUp;
+		if(fileName==NULL)
+		{
+		    HelperClass::TerminateApplication("Please pass the name of the torrent file");
+		}	
+		try
+		{
+		    fstream fp(fileName,ios::in|ios::binary);
+		    fp.seekg(0,ios::end);
+		    int size = fp.tellg();                 
+		    fp.seekg(0,ios::beg);
+		    buffer = new char[size+1];
+		    backUp=buffer;
+		    fp.read(buffer,size);
+		    buffer[size] = '\0';
+		    fp.close();
+		}
+		catch(...)
+		{
+		    HelperClass::TerminateApplication("Error reading the torrent file");
+		}  
+		
+		//parsing the torrent file tokens        	    
+		while(true)
+		{    
+		    string P = "";
+		    char *text=nextToken(&exp,buffer, &sm,result);
+		    if(text==NULL)
+		    {
+		       break;
+		    }
+		    else 
+		    {
+	  		   token(text,&exp,result);
+			}   		
+			delete[] text;                                           
+	   }
 
-   //free buffer...
-   delete[] backUp;
-   return result;               
+	   //free buffer...
+	   delete[] backUp;
+	   return result;
+   
+                  
 }			
 
 

@@ -38,5 +38,7 @@ class HelperClass
 		static string logFileName;
 		static void Log(const char* message, co_peer_t* peer=NULL, LOG_TYPES=MISC);	
 		static mutex mutexLog;
-		static clock_t startTime;		
+		static clock_t startTime;
+		static bool HelperClass::CheckIfFileExists(const char* fileName);
+		
 };
