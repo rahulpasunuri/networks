@@ -8,17 +8,7 @@ using namespace std;
 /*
 void applyFilter()
 {
-	const char filter[]="!ipv6"; //filter out the ipv6 packets...
-	if (pcap_compile(handle, &fp, filter_exp, 0, net) == -1) 
-	{
-		fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(handle));
-		return(2);
-	}
-	if (pcap_setfilter(handle, &fp) == -1) 
-	{
-		fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, pcap_geterr(handle));
-		return(2);
- }
+
 }
 */
 
@@ -52,6 +42,15 @@ char* parseArguments(int argc, char* argv[])
 	return argv[2];
 }
 
+int numPackets=0;
+
+void callback(u_char *, const struct pcap_pkthdr *, const u_char *)
+{
+	cout<<"Callback called"<<endl;
+	numPackets++;
+}
+
+
 int main(int argc, char* argv[])
 {
 	char* fileName=parseArguments(argc, argv);
@@ -79,8 +78,29 @@ int main(int argc, char* argv[])
 		cout<<"The data provided has not been captured from Ethernet"<<endl;
 		exit(1);
 	}
+
+	//apply filter
+	const char filter[]="not ip6"; //filter out the ipv6 packets...
+	struct bpf_program fp;		/* The compiled filter */
+	if (pcap_compile(handle, &fp, filter, 0, PCAP_NETMASK_UNKNOWN) == -1) 
+	{
+		printf("Unable to parse filter %s: %s\n", filter, pcap_geterr(handle));
+		exit(1);
+	}
+	if (pcap_setfilter(handle, &fp) == -1) 
+	{
+		printf("Unable to apply filter %s: %s\n", filter, pcap_geterr(handle));
+		exit(1);
+ 	}	
 	
-	
-	
+
+	//call the loop back function...
+	int returnVal = pcap_loop(handle, -1, callback, NULL); //-1 here implies all the packets...
+	if(returnVal==-1)
+	{
+		printf("Error occurred in pcap_loop %s\n",pcap_geterr(handle));
+		exit(1);
+	}
+	cout<<"Number of Packets processed is "<<numPackets<<endl;
 	return 0;
 }
