@@ -1,5 +1,5 @@
 all:
-	g++ -o wiretap wiretap.cpp -lpcap 
+	g++ -g -o wiretap wiretap.cpp -lpcap 
 	
 clear:
 	rm -f wiretap
