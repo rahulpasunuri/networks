@@ -2,7 +2,8 @@
 #include <pcap.h> //header file required for pcap...
 #include <sys/socket.h>
 #include <netinet/in.h>
-//#include <netinet/ip.h> /* superset of previous *
+#include <iomanip>
+#include <ctime>
 using namespace std;
 
 #include<string.h>
@@ -109,11 +110,33 @@ char* parseArguments(int argc, char* argv[])
 }
 
 int numPackets=0;
+float sumPacketLength=0;
+int smallestPacketLength=10000;
+int largestPacketLength=0;
+timeval startTime;
+timeval endTime;
+bool isTimeInit=false;
 
 void callback(u_char *, const struct pcap_pkthdr *header, const u_char *packet) //the first argument is NULL in our case..
 {
-	cout<<"Length of the packet is "<<header->len<<endl;	
+	if(isTimeInit==false)
+	{
+		isTimeInit=true;
+		startTime=header->ts;
+	}
+	endTime=header->ts;
+	
+	sumPacketLength+=header->len;
+	if(header->len<smallestPacketLength)
+	{
+		smallestPacketLength=header->len;		
+	}
+	if((header->len)>largestPacketLength)
+	{		
+		largestPacketLength=header->len;
+	}
 	numPackets++;
+	
 	
 	ethernet = (struct sniff_ethernet*)(packet);
 	ip = (struct sniff_ip*)(packet + SIZE_ETHERNET);
@@ -135,6 +158,21 @@ void callback(u_char *, const struct pcap_pkthdr *header, const u_char *packet) 
 	
 }
 
+void printSummary()
+{
+	cout<<"\n=== Summary ===\n\n";
+	cout<<"Number of Packets processed is "<<numPackets<<endl;
+	cout<<"Smallest Packet length is "<<smallestPacketLength<<" bytes"<<endl;
+	cout<<"Largest Packet length is "<<largestPacketLength<<" bytes"<<endl;
+	cout<<"Average Packet length is "<<(sumPacketLength/numPackets)<<endl;
+
+	//compute the start time stamp..
+	char timestamp[64] = {0};
+	strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", localtime(&startTime.tv_sec));
+	cout<<"Start Time is "<<timestamp<<endl;
+	float time=(endTime.tv_sec-startTime.tv_sec)+ (endTime.tv_usec-startTime.tv_usec)/1000000;
+	cout<<"Duration is "<<time<<" seconds"<<endl;
+}
 
 int main(int argc, char* argv[])
 {
@@ -186,8 +224,7 @@ int main(int argc, char* argv[])
 		printf("Error occurred in pcap_loop %s\n",pcap_geterr(handle));
 		exit(1);
 	}
-	cout<<"Number of Packets processed is "<<numPackets<<endl;
-	
+	printSummary();	
 	//close the handle
 	pcap_close(handle);
 	return 0;
