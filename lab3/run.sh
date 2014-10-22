@@ -1,2 +1,2 @@
 make
-./wiretap.out --open rahul
+./wiretap --open wget.pcap

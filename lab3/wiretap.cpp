@@ -1,8 +1,26 @@
 #include<iostream>
+#include <pcap.h> //header file required for pcap...
 #include<string.h>
 #include<stdlib.h>
 using namespace std;
 
+
+/*
+void applyFilter()
+{
+	const char filter[]="!ipv6"; //filter out the ipv6 packets...
+	if (pcap_compile(handle, &fp, filter_exp, 0, net) == -1) 
+	{
+		fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(handle));
+		return(2);
+	}
+	if (pcap_setfilter(handle, &fp) == -1) 
+	{
+		fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, pcap_geterr(handle));
+		return(2);
+ }
+}
+*/
 
 void usage()
 {
@@ -37,6 +55,32 @@ char* parseArguments(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
 	char* fileName=parseArguments(argc, argv);
-	cout<<fileName<<endl;
+	cout<<"Evaluating file: "<<fileName<<endl;
+
+	char errbuf[PCAP_ERRBUF_SIZE]; //will hold the error messages..
+	
+	//opening the offline tcp dump.
+	pcap_t *handle=pcap_open_offline(fileName, errbuf);
+	if(handle==NULL)
+	{
+		cout<<"Error reading the tcp dump"<<endl;
+		exit(1);
+	}
+
+	//Check that the data you are provided has been captured from Ethernet
+	int linkLayerHeaderType=pcap_datalink(handle);
+	if(linkLayerHeaderType==PCAP_ERROR_NOT_ACTIVATED)
+	{
+		cout<<"Error getting the link layer header type"<<endl;
+		exit(1);
+	}
+	if(linkLayerHeaderType!=DLT_EN10MB)	
+	{
+		cout<<"The data provided has not been captured from Ethernet"<<endl;
+		exit(1);
+	}
+	
+	
+	
 	return 0;
 }
