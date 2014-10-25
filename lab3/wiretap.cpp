@@ -4,7 +4,11 @@
 #include <netinet/in.h>
 #include <iomanip>
 #include <ctime>
-#include<linux/if_ether.h>
+#include<linux/if_ether.h> //contains ethhdr struct...
+#include<netinet/udp.h> //contains udphdr struct
+#include<netinet/tcp.h> //contains tcphdr struct
+#include <netdb.h> //for getting the protocol type tcp, udp and icmp
+
 using namespace std;
 
 #include<string.h>
@@ -110,6 +114,8 @@ ethernetAddress* headSrcEthernetAddress=NULL;
 ethernetAddress* tailSrcEthernetAddress=NULL;
 ethernetAddress* headRmtEthernetAddress=NULL;
 ethernetAddress* tailRmtEthernetAddress=NULL;
+
+
 
 //this method will compute the information required by summary
 void computeSummary(const struct pcap_pkthdr *header, const u_char *packet)
