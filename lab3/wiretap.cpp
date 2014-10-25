@@ -136,7 +136,7 @@ void computeSummary(const struct pcap_pkthdr *header, const u_char *packet)
 bool computeLinkLayerInfo(const u_char *packet)
 {
 	struct ethhdr *e=(struct ethhdr*) packet;
-	if(ntohs(e->h_proto)!=ETH_P_IP)
+	if(ntohs(e->h_proto)==ETH_P_IPV6)  //not sure whether its correct...?
 	{
 		return false;
 	}
