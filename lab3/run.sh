@@ -1,3 +1,3 @@
 make
-#valgrind ./wiretap --open wget.pcap
+#valgrind --leak-check=full  --show-leak-kinds=all ./wiretap --open wget.pcap
 ./wiretap --open wget.pcap

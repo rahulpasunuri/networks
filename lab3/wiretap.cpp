@@ -4,81 +4,67 @@
 #include <netinet/in.h>
 #include <iomanip>
 #include <ctime>
+#include<linux/if_ether.h>
 using namespace std;
 
 #include<string.h>
 #include<stdlib.h>
 
 
+class ethernetAddress
+{
+	private:
+		int numInstances;
+	
+		//matches an input address with current address..
+		bool isAddressMatch(unsigned char* a)
+		{
+			int i=0;
+			for(;i<ETH_ALEN;i++)
+			{
+				if(a[i]!=addr[i])
+				{
+					return false;
+				}
+			}		
+			return true;
+		}
 
-//define structures....
-/* Ethernet addresses are 6 bytes */
-#define ETHER_ADDR_LEN	6
-
-	/* Ethernet header */
-	struct sniff_ethernet {
-		u_char ether_dhost[ETHER_ADDR_LEN]; /* Destination host address */
-		u_char ether_shost[ETHER_ADDR_LEN]; /* Source host address */
-		u_short ether_type; /* IP? ARP? RARP? etc */
-	};
-
-	/* IP header */
-	struct sniff_ip {
-		u_char ip_vhl;		/* version << 4 | header length >> 2 */
-		u_char ip_tos;		/* type of service */
-		u_short ip_len;		/* total length */
-		u_short ip_id;		/* identification */
-		u_short ip_off;		/* fragment offset field */
-	#define IP_RF 0x8000		/* reserved fragment flag */
-	#define IP_DF 0x4000		/* dont fragment flag */
-	#define IP_MF 0x2000		/* more fragments flag */
-	#define IP_OFFMASK 0x1fff	/* mask for fragmenting bits */
-		u_char ip_ttl;		/* time to live */
-		u_char ip_p;		/* protocol */
-		u_short ip_sum;		/* checksum */
-		struct in_addr ip_src; /* source and dest address */
-		struct in_addr ip_dst;
-	};
-	#define IP_HL(ip)		(((ip)->ip_vhl) & 0x0f)
-	#define IP_V(ip)		(((ip)->ip_vhl) >> 4)
-
-	/* TCP header */
-	typedef u_int tcp_seq;
-
-	struct sniff_tcp {
-		u_short th_sport;	/* source port */
-		u_short th_dport;	/* destination port */
-		tcp_seq th_seq;		/* sequence number */
-		tcp_seq th_ack;		/* acknowledgement number */
-		u_char th_offx2;	/* data offset, rsvd */
-	#define TH_OFF(th)	(((th)->th_offx2 & 0xf0) >> 4)
-		u_char th_flags;
-	#define TH_FIN 0x01
-	#define TH_SYN 0x02
-	#define TH_RST 0x04
-	#define TH_PUSH 0x08
-	#define TH_ACK 0x10
-	#define TH_URG 0x20
-	#define TH_ECE 0x40
-	#define TH_CWR 0x80
-	#define TH_FLAGS (TH_FIN|TH_SYN|TH_RST|TH_ACK|TH_URG|TH_ECE|TH_CWR)
-		u_short th_win;		/* window */
-		u_short th_sum;		/* checksum */
-		u_short th_urp;		/* urgent pointer */
+	public:
+		unsigned char addr[ETH_ALEN];
+		ethernetAddress(unsigned char* addr)
+		{
+			int i=0;
+			numInstances=1;
+			nextAddress=NULL;
+			memcpy(this->addr,addr,ETH_ALEN);	
+		}
+		
+		void printReadableAddress()
+		{
+			int i=0;
+			for(;i<ETH_ALEN-1;i++)
+			{
+				printf("%02x:",addr[i]);
+			}
+			printf("%02x",addr[i]);
+			cout<<"\t"<<numInstances<<endl;		
+		}
+		
+		bool updateCountIfMatch(unsigned char* a) //returns true on succesfull updation..
+		{
+			bool b=isAddressMatch(a);
+			if(!b)
+			{				
+				return false;
+			}
+			numInstances++; 
+			return true;
+		}
+		ethernetAddress* nextAddress;
 };
 
-//moooore structs
-/* ethernet headers are always exactly 14 bytes */
-#define SIZE_ETHERNET 14
-
-const struct sniff_ethernet *ethernet; /* The ethernet header */
-const struct sniff_ip *ip; /* The IP header */
-const struct sniff_tcp *tcp; /* The TCP header */
-u_char *payload; /* Packet payload */
-
-u_int size_ip;
-u_int size_tcp;
-
+//this  method prints out the proper usage of this program.
 void usage()
 {
 	cout<<"Invoke this application as: ./wiretap [option1, ..., optionN]"<<endl;
@@ -88,6 +74,7 @@ void usage()
 	exit(1);
 }
 
+//this method is used to parse the command line arguments.
 char* parseArguments(int argc, char* argv[])
 {
 	int i=1;
@@ -109,15 +96,23 @@ char* parseArguments(int argc, char* argv[])
 	return argv[2];
 }
 
+
+//global variables init statements..
+int numIpv6Packets=0; //this will hold the number of ipv6 packets ignored.
 int numPackets=0;
 float sumPacketLength=0;
-int smallestPacketLength=10000;
-int largestPacketLength=0;
+int smallestPacketLength=10000; //init it to a very high value
+int largestPacketLength=0; //init to a low value.
 timeval startTime;
 timeval endTime;
 bool isTimeInit=false;
+ethernetAddress* headSrcEthernetAddress=NULL;
+ethernetAddress* tailSrcEthernetAddress=NULL;
+ethernetAddress* headRmtEthernetAddress=NULL;
+ethernetAddress* tailRmtEthernetAddress=NULL;
 
-void callback(u_char *, const struct pcap_pkthdr *header, const u_char *packet) //the first argument is NULL in our case..
+//this method will compute the information required by summary
+void computeSummary(const struct pcap_pkthdr *header, const u_char *packet)
 {
 	if(isTimeInit==false)
 	{
@@ -136,31 +131,158 @@ void callback(u_char *, const struct pcap_pkthdr *header, const u_char *packet) 
 		largestPacketLength=header->len;
 	}
 	numPackets++;
-	
-	
-	ethernet = (struct sniff_ethernet*)(packet);
-	ip = (struct sniff_ip*)(packet + SIZE_ETHERNET);
-	size_ip = IP_HL(ip)*4;
-	if (size_ip < 20) 
-	{
-		//printf("   * Invalid IP header length: %u bytes\n", size_ip);TODO
-		return;
-	}
-	tcp = (struct sniff_tcp*)(packet + SIZE_ETHERNET + size_ip);
-	size_tcp = TH_OFF(tcp)*4;
-	if (size_tcp < 20) 
-	{
-		//printf("   * Invalid TCP header length: %u bytes\n", size_tcp); TODO
-		return;
-	}
-	payload = (u_char *)(packet + SIZE_ETHERNET + size_ip + size_tcp);
-	
-	
 }
 
+bool computeLinkLayerInfo(const u_char *packet)
+{
+	struct ethhdr *e=(struct ethhdr*) packet;
+	if(ntohs(e->h_proto)!=ETH_P_IP)
+	{
+		return false;
+	}
+	
+	if(headSrcEthernetAddress==NULL)
+	{
+		headSrcEthernetAddress=new ethernetAddress(e->h_source);
+		headSrcEthernetAddress->nextAddress=NULL;
+		tailSrcEthernetAddress=headSrcEthernetAddress;		
+	}
+	else
+	{
+		bool ret=false;
+		ethernetAddress* p=headSrcEthernetAddress;
+		while(p!=NULL&&!ret)
+		{
+			ret=p->updateCountIfMatch(e->h_source);
+			p=p->nextAddress; //move p
+		}
+		if(ret==false)
+		{
+			ethernetAddress* p1=new ethernetAddress(e->h_source);
+			p1->nextAddress=NULL;
+			tailSrcEthernetAddress->nextAddress=p1;
+			tailSrcEthernetAddress=p1;
+		}
+	}
+	
+	if(headRmtEthernetAddress==NULL)
+	{
+		headRmtEthernetAddress=new ethernetAddress(e->h_dest);
+		headRmtEthernetAddress->nextAddress=NULL;
+		tailRmtEthernetAddress=headRmtEthernetAddress;		
+	}	
+	else
+	{
+		bool ret=false;
+		ethernetAddress* p=headRmtEthernetAddress;
+		//cout<<"deadroof"<<endl;
+		while(p!=NULL && !ret)
+		{
+			ret=p->updateCountIfMatch(e->h_dest);
+			p=p->nextAddress; //move p
+			//cout<<"deadbeef"<<endl;
+		}
+		if(ret==false)
+		{		
+			ethernetAddress* p1=new ethernetAddress(e->h_dest);
+			p1->nextAddress=NULL;
+			tailRmtEthernetAddress->nextAddress=p1;
+			tailRmtEthernetAddress=p1;
+		}
+	}
+	
+	return true;
+}
+
+void printLinkLayerInfo()
+{
+	cout<<"\n\n=== Link layer ===\n\n";
+	cout<<"--- Source ethernet addresses ---\n";
+	//print source ethernet addresses here..
+	ethernetAddress* p=headSrcEthernetAddress;
+	while(p!=NULL)
+	{	
+		p->printReadableAddress();				
+		p=p->nextAddress;
+	}
+	
+	cout<<"\n--- Destination ethernet addresses ---\n";
+	//print destination addresses here..
+	p=headRmtEthernetAddress;	
+	while(p!=NULL)
+	{
+		p->printReadableAddress();	
+		p=p->nextAddress;
+	}
+	
+	//destruct network layer info..
+	p=headSrcEthernetAddress;
+	ethernetAddress* q;
+	while(p!=NULL)
+	{
+		q=p->nextAddress;
+		delete p;
+		p=q;
+	}
+	
+	p=headRmtEthernetAddress;
+	while(p!=NULL)
+	{
+		q=p->nextAddress;
+		delete p;
+		p=q;
+	}	
+	cout<<"\n";
+}
+
+
+
+
+void computeNetworkLayerInfo()
+{
+	//TODO
+			
+}
+
+void  printNetworkLayerInfo()
+{
+	cout<<"\n\n=== Network layer ===\n\n";
+	cout<<"--- Network layer protocols ---\n";//TODO
+	
+	
+	cout<<"--- Source IP addresses ---\n";//TODO
+}
+
+
+void computeTransportLayerInfo()
+{
+	//TODO
+}
+
+void printTransportLayerInfo()
+{
+	cout<<"\n\n=== Transport layer ===\n\n"; //TODO
+
+
+}
+
+
+void callback(u_char *, const struct pcap_pkthdr *header, const u_char *packet) //the first argument is NULL in our case..
+{
+	//this call back function will be called for every packet..	
+	bool ret=computeLinkLayerInfo(packet);	
+	if(ret==false) //this will happen for ipv6 packets..we just ignore them...
+	{
+		numIpv6Packets++;
+		return;
+	}
+	computeSummary(header, packet);
+}
+
+//the below method will print out the summary section..
 void printSummary()
 {
-	cout<<"\n=== Summary ===\n\n";
+	cout<<"\n=== Summary of IPv4 packets===\n\n";
 	cout<<"Number of Packets processed is "<<numPackets<<endl;
 	cout<<"Smallest Packet length is "<<smallestPacketLength<<" bytes"<<endl;
 	cout<<"Largest Packet length is "<<largestPacketLength<<" bytes"<<endl;
@@ -172,10 +294,13 @@ void printSummary()
 	cout<<"Start Time is "<<timestamp<<endl;
 	float time=(endTime.tv_sec-startTime.tv_sec)+ (endTime.tv_usec-startTime.tv_usec)/1000000;
 	cout<<"Duration is "<<time<<" seconds"<<endl;
+	
+	cout<<"Number of non IPv4 packets processed is "<<numIpv6Packets<<endl;
 }
 
 int main(int argc, char* argv[])
 {
+
 	char* fileName=parseArguments(argc, argv);
 	cout<<"Evaluating file: "<<fileName<<endl;
 
@@ -200,22 +325,7 @@ int main(int argc, char* argv[])
 	{
 		cout<<"The data provided has not been captured from Ethernet"<<endl;
 		exit(1);
-	}
-
-	//apply filter
-	const char filter[]="not ip6"; //filter out the ipv6 packets...
-	struct bpf_program fp;		/* The compiled filter */
-	if (pcap_compile(handle, &fp, filter, 0, PCAP_NETMASK_UNKNOWN) == -1) 
-	{
-		printf("Unable to parse filter %s: %s\n", filter, pcap_geterr(handle));
-		exit(1);
-	}
-	if (pcap_setfilter(handle, &fp) == -1) 
-	{
-		printf("Unable to apply filter %s: %s\n", filter, pcap_geterr(handle));
-		exit(1);
- 	}	
-	
+	}	
 
 	//call the loop back function...
 	int returnVal = pcap_loop(handle, -1, callback, NULL); //-1 here implies all the packets...
@@ -225,6 +335,8 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 	printSummary();	
+	printLinkLayerInfo();
+
 	//close the handle
 	pcap_close(handle);
 	return 0;
