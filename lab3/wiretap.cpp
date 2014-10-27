@@ -4,12 +4,17 @@
 #include <netinet/in.h>
 #include <iomanip>
 #include <ctime>
-#include<linux/if_ether.h>
-#include<netinet/ip.h>
+
 #include<netinet/ip.h>
 #include<arpa/inet.h>
 #include <inttypes.h>
-#include<netdb.h>
+
+
+#include<linux/if_ether.h> //contains ethhdr struct...
+#include<netinet/udp.h> //contains udphdr struct
+#include<netinet/tcp.h> //contains tcphdr struct
+#include <netdb.h> //for getting the protocol type tcp, udp and icmp
+
 using namespace std;
 
 #include<string.h>
@@ -152,7 +157,6 @@ char* parseArguments(int argc, char* argv[])
 	return argv[2];
 }
 
-
 //this method will compute the information required by summary
 void computeSummary(const struct pcap_pkthdr *header, const u_char *packet)
 {
@@ -178,7 +182,7 @@ void computeSummary(const struct pcap_pkthdr *header, const u_char *packet)
 bool computeLinkLayerInfo(const u_char *packet)
 {
 	struct ethhdr *e=(struct ethhdr*) packet;
-	if(ntohs(e->h_proto)!=ETH_P_IP)
+	if(ntohs(e->h_proto)==ETH_P_IPV6)  //not sure whether its correct...?
 	{
 		return false;
 	}
@@ -285,25 +289,26 @@ void computeNetworkLayerInfo(const u_char * packet )
 	struct iphdr *ip=(struct iphdr*)(packet+sizeof(struct ethhdr));
 	//to find the type of next level protocol 
 	unsigned int proto=(unsigned int)ip->protocol;
-	if(strcmp(getprotobynumber(proto)->p_name,string("icmp").c_str())==0)
+	cout<<"hello"<<getprotobynumber(proto)->p_name;
+/*	if(strcmp(getprotobynumber(proto)->p_name,"icmp")==0)
     {
       //ICMP PACKET
         NumIcmpPackets++;
     }
-    else if(strcmp(getprotobynumber(proto)->p_name,string("tcp").c_str())==0)
+    else if(strcmp(getprotobynumber(proto)->p_name,"tcp")==0)
     {
        //TCP PACKET
         NumTcpPackets++;
     }
-    else if(strcmp(getprotobynumber(proto)->p_name,string("udp").c_str())==0)
+    else if(strcmp(getprotobynumber(proto)->p_name,"udp")==0)
     {
        //UDP PACKET
         NumUdpPackets++;  
     }
     else
 		cout<< getprotobynumber(proto)->p_name<<endl;
-		
-
+	
+*/
 	unsigned int temp=0;
 	temp=~temp;
 	temp=temp>>24;

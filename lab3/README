@@ -1,3 +1,33 @@
+Project 3: Wiretap
+-----------------------
+
+Name: RAHUL PASUNURI
+email: rahupasu@indiana.edu
+
+Name: MANISH KUMAR
+email:manivutt@indiana.edu
+
+------------------------
+Introduction:
+
+
+Functionalities:
+
+
+Rules for Compiling the code:
+There is a 'makefile' written in the project's main folder. Open a comman prompt, 'cd' to the project's main folder, and then execute 'make' command. This command creates the object files and the executables in the "object/" and "bin/" directories respectively.  
+
+Usage:
+
+Usage Examples:
+
+
+Description of Project Folders and Files:
+
+Limitations of the Project:
+
 
 References:
 1) Programming with pcap, http://www.tcpdump.org/pcap.htm
+2) The Sniffer's Guide to Raw Traffic, http://yuba.stanford.edu/~casado/pcap/section1.html
+
