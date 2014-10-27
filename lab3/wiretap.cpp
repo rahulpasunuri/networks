@@ -104,7 +104,6 @@ class vAddress
 };
 
 //global variables init statements..
-int numIpv6Packets=0; //this will hold the number of ipv6 packets ignored.
 int numPackets=0;
 float sumPacketLength=0;
 int smallestPacketLength=10000; //init it to a very high value
@@ -115,6 +114,10 @@ bool isTimeInit=false;
 bool isIcmp= false;
 bool isTcp = false;
 bool isUdp= false;
+
+bool isIP=false;
+bool isARP=false;
+
 vAddress* headSrcEthernetAddress=NULL;
 vAddress* tailSrcEthernetAddress=NULL;
 vAddress* headRmtEthernetAddress=NULL;
@@ -179,13 +182,19 @@ void computeSummary(const struct pcap_pkthdr *header, const u_char *packet)
 	numPackets++;
 }
 
-bool computeLinkLayerInfo(const u_char *packet)
+void computeLinkLayerInfo(const u_char *packet)
 {
 	struct ethhdr *e=(struct ethhdr*) packet;
-	if(ntohs(e->h_proto)==ETH_P_IPV6)  //not sure whether its correct...?
+	isIP=false;
+	isARP=false;
+	if(ntohs(e->h_proto)==ETH_P_IP)  //not sure whether its correct...?
 	{
-		return false;
+		isIP=true;
 	}
+	else if(ntohs(e->h_proto)==ETH_P_ARP)
+	{
+		isARP=true;
+	}	
 	
 	if(headSrcEthernetAddress==NULL)
 	{
@@ -236,8 +245,7 @@ bool computeLinkLayerInfo(const u_char *packet)
 			tailRmtEthernetAddress=p1;
 		}
 	}
-	
-	return true;
+		
 }
 
 void printLinkLayerInfo()
@@ -282,130 +290,127 @@ void printLinkLayerInfo()
 }
 
 
-
-
 void computeNetworkLayerInfo(const u_char * packet )
 {
-	struct iphdr *ip=(struct iphdr*)(packet+sizeof(struct ethhdr));
-	//to find the type of next level protocol 
-	unsigned int proto=(unsigned int)ip->protocol;
-	unsigned int ttl = (unsigned int)ip->ttl;
-	struct protoent *protocol=getprotobynumber(proto);
-	if(protocol!=NULL)
-	{	
-		char* name=getprotobynumber(proto)->p_name;
-		if(strcmp(name,"icmp")==0 )
-		{
-			isIcmp= true;
-			isTcp= false;
-			isUdp= false;
-			transportLayerProtocols.push_back(string(getprotobynumber(proto)->p_name));	
-			timeToLive.push_back(ttl);		
-		}
-		else if(strcmp(name,"udp")==0)
-		{
-			isIcmp= false;
-			isTcp= false;
-			isUdp= true;
-			transportLayerProtocols.push_back(string(getprotobynumber(proto)->p_name));	
-			timeToLive.push_back(ttl);
-		
-		}
-		else if(strcmp(name,"tcp")==0)
-		{
-		    isIcmp= false;
-			isTcp= true;
-			isUdp= false;
-			transportLayerProtocols.push_back(string(getprotobynumber(proto)->p_name));	
-			timeToLive.push_back(ttl);
-		
-		}	
-		else
-		{	isIcmp= false;
-			isTcp= false;
-			isUdp= false;
-			transportLayerProtocols.push_back(to_string((long long int)proto));
-			timeToLive.push_back(ttl);
-		}						
-	}
-	else
-	{	
+	if(isIP)
+	{
+		struct iphdr *ip=(struct iphdr*)(packet+sizeof(struct ethhdr));
+		//to find the type of next level protocol 
+		unsigned int proto=(unsigned int)ip->protocol;
+		unsigned int ttl = (unsigned int)ip->ttl;
+		struct protoent *protocol=getprotobynumber(proto);
 		isIcmp= false;
 		isTcp= false;
 		isUdp= false;
-		transportLayerProtocols.push_back(to_string((long long int)proto));
-		timeToLive.push_back(ttl);
+		if(protocol!=NULL)
+		{	
+			char* name=getprotobynumber(proto)->p_name;
+			if(strcmp(name,"icmp")==0 )
+			{
+				isIcmp= true;
+				transportLayerProtocols.push_back(string(getprotobynumber(proto)->p_name));	
+				timeToLive.push_back(ttl);		
+			}
+			else if(strcmp(name,"udp")==0)
+			{
+				isUdp= true;
+				transportLayerProtocols.push_back(string(getprotobynumber(proto)->p_name));	
+				timeToLive.push_back(ttl);
+		
+			}
+			else if(strcmp(name,"tcp")==0)
+			{
+				isTcp= true;
+				transportLayerProtocols.push_back(string(getprotobynumber(proto)->p_name));	
+				timeToLive.push_back(ttl);
+		
+			}	
+			else
+			{	
+				transportLayerProtocols.push_back(to_string((long long int)proto));
+				timeToLive.push_back(ttl);
+			}						
+		}
+		else
+		{	
+			transportLayerProtocols.push_back(to_string((long long int)proto));
+			timeToLive.push_back(ttl);
+		}
+
+		unsigned int temp=0;
+		temp=~temp;
+		temp=temp>>24;
+
+		unsigned char byte[4];
+		byte[0]= ip->saddr>>24;
+		byte[1]= ip->saddr>>16 & temp;	
+		byte[2]= ip->saddr>>8 & temp;
+		byte[3]= ip->saddr & temp;			
+
+		unsigned char rbyte[4];
+		rbyte[0]= ip->daddr>>24;
+		rbyte[1]= ip->daddr>>16 & temp;	
+		rbyte[2]= ip->daddr>>8 & temp;
+		rbyte[3]= ip->daddr & temp;			
+
+		if(headSrcNetworkAddress==NULL)
+		{
+			headSrcNetworkAddress=new vAddress(byte,sizeof(byte));
+			headSrcNetworkAddress->nextAddress=NULL;
+			tailSrcNetworkAddress=headSrcNetworkAddress;		
+		}
+		else
+		{
+			bool ret=false;
+			vAddress* p=headSrcNetworkAddress;
+			while(p!=NULL&&!ret)
+			{
+				ret=p->updateCountIfMatch(byte,sizeof(byte));
+				p=p->nextAddress; //move p
+			}
+			if(ret==false)
+			{
+				vAddress* p1=new vAddress(byte,sizeof(byte));
+				p1->nextAddress=NULL;
+				tailSrcNetworkAddress->nextAddress=p1;
+				tailSrcNetworkAddress=p1;
+			}
+		}
+	
+		if(headRmtNetworkAddress==NULL)
+		{
+			headRmtNetworkAddress=new vAddress(rbyte,sizeof(rbyte));
+			headRmtNetworkAddress->nextAddress=NULL;
+			tailRmtNetworkAddress=headRmtNetworkAddress;		
+		}	
+		else
+		{
+			bool ret=false;
+			vAddress* p=headRmtNetworkAddress;
+			//cout<<"deadroof"<<endl;
+			while(p!=NULL && !ret)
+			{
+				ret=p->updateCountIfMatch(rbyte,sizeof(rbyte));
+				p=p->nextAddress; //move p
+				//cout<<"deadbeef"<<endl;
+			}
+			if(ret==false)
+			{		
+				vAddress* p1=new vAddress(rbyte,sizeof(rbyte));
+				p1->nextAddress=NULL;
+				tailRmtNetworkAddress->nextAddress=p1;
+				tailRmtNetworkAddress=p1;
+			}
+		}		
 	}
-
-	unsigned int temp=0;
-	temp=~temp;
-	temp=temp>>24;
-
-	unsigned char byte[4];
-	byte[0]= ip->saddr>>24;
-	byte[1]= ip->saddr>>16 & temp;	
-	byte[2]= ip->saddr>>8 & temp;
-	byte[3]= ip->saddr & temp;			
-
-	unsigned char rbyte[4];
-	rbyte[0]= ip->daddr>>24;
-	rbyte[1]= ip->daddr>>16 & temp;	
-	rbyte[2]= ip->daddr>>8 & temp;
-	rbyte[3]= ip->daddr & temp;			
-
-	if(headSrcNetworkAddress==NULL)
+	else if(isARP)
 	{
-		headSrcNetworkAddress=new vAddress(byte,sizeof(byte));
-		headSrcNetworkAddress->nextAddress=NULL;
-		tailSrcNetworkAddress=headSrcNetworkAddress;		
+		//TODO
 	}
 	else
 	{
-		bool ret=false;
-		vAddress* p=headSrcNetworkAddress;
-		while(p!=NULL&&!ret)
-		{
-			ret=p->updateCountIfMatch(byte,sizeof(byte));
-			p=p->nextAddress; //move p
-		}
-		if(ret==false)
-		{
-			vAddress* p1=new vAddress(byte,sizeof(byte));
-			p1->nextAddress=NULL;
-			tailSrcNetworkAddress->nextAddress=p1;
-			tailSrcNetworkAddress=p1;
-		}
-	}
-	
-	if(headRmtNetworkAddress==NULL)
-	{
-		headRmtNetworkAddress=new vAddress(rbyte,sizeof(rbyte));
-		headRmtNetworkAddress->nextAddress=NULL;
-		tailRmtNetworkAddress=headRmtNetworkAddress;		
-	}	
-	else
-	{
-		bool ret=false;
-		vAddress* p=headRmtNetworkAddress;
-		//cout<<"deadroof"<<endl;
-		while(p!=NULL && !ret)
-		{
-			ret=p->updateCountIfMatch(rbyte,sizeof(rbyte));
-			p=p->nextAddress; //move p
-			//cout<<"deadbeef"<<endl;
-		}
-		if(ret==false)
-		{		
-			vAddress* p1=new vAddress(rbyte,sizeof(rbyte));
-			p1->nextAddress=NULL;
-			tailRmtNetworkAddress->nextAddress=p1;
-			tailRmtNetworkAddress=p1;
-		}
-	}		
-	
-	//cout<<(unsigned long int)<<"source address";
-	//TODO
-			
+		
+	}				
 }
 
 void  printNetworkLayerInfo()
@@ -490,14 +495,9 @@ void printTransportLayerInfo()
 
 void callback(u_char *, const struct pcap_pkthdr *header, const u_char *packet) //the first argument is NULL in our case..
 {
-	//this call back function will be called for every packet..	
-	bool ret=computeLinkLayerInfo(packet);	
-	if(ret==false) //this will happen for ipv6 packets..we just ignore them...
-	{
-		numIpv6Packets++;
-		return;
-	}
+	//this call back function will be called for every packet..		
 	computeSummary(header, packet);
+	computeLinkLayerInfo(packet);		
 	computeNetworkLayerInfo(packet);
 }
 
@@ -517,7 +517,6 @@ void printSummary()
 	float time=(endTime.tv_sec-startTime.tv_sec)+ (endTime.tv_usec-startTime.tv_usec)/1000000;
 	cout<<"Duration is "<<time<<" seconds"<<endl;
 	
-	cout<<"Number of non IPv4 packets processed is "<<numIpv6Packets<<endl;
 }
 
 int main(int argc, char* argv[])
