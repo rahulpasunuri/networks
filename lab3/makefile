@@ -1,5 +1,5 @@
 all:
-	g++ -g -o wiretap wiretap.cpp -lpcap 
+	g++ -g  -std=c++0x  -o wiretap wiretap.cpp -lpcap 
 	
 clear:
 	rm -f wiretap

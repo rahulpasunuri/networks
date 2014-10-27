@@ -1,15 +1,17 @@
 #include<iostream>
+#include <stdio.h>
+#include <stdlib.h>
 #include <pcap.h> //header file required for pcap...
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <iomanip>
 #include <ctime>
-
+#include <algorithm>  
+#include <vector> 
 #include<netinet/ip.h>
 #include<arpa/inet.h>
 #include <inttypes.h>
-
-
+#include<string>
 #include<linux/if_ether.h> //contains ethhdr struct...
 #include<netinet/udp.h> //contains udphdr struct
 #include<netinet/tcp.h> //contains tcphdr struct
@@ -104,15 +106,13 @@ class vAddress
 //global variables init statements..
 int numIpv6Packets=0; //this will hold the number of ipv6 packets ignored.
 int numPackets=0;
-int NumTcpPackets=0;
-int NumUdpPackets=0;
-int NumIcmpPackets=0;
 float sumPacketLength=0;
 int smallestPacketLength=10000; //init it to a very high value
 int largestPacketLength=0; //init to a low value.
 timeval startTime;
 timeval endTime;
 bool isTimeInit=false;
+
 vAddress* headSrcEthernetAddress=NULL;
 vAddress* tailSrcEthernetAddress=NULL;
 vAddress* headRmtEthernetAddress=NULL;
@@ -121,9 +121,7 @@ vAddress* headSrcNetworkAddress=NULL;
 vAddress* tailSrcNetworkAddress=NULL;
 vAddress* headRmtNetworkAddress=NULL;
 vAddress* tailRmtNetworkAddress=NULL;
-
-
-
+vector<string> transportLayerProtocols;
 
 //this  method prints out the proper usage of this program.
 void usage()
@@ -289,27 +287,22 @@ void computeNetworkLayerInfo(const u_char * packet )
 	struct iphdr *ip=(struct iphdr*)(packet+sizeof(struct ethhdr));
 	//to find the type of next level protocol 
 	unsigned int proto=(unsigned int)ip->protocol;
-	cout<<"Proto "<<proto<<endl;
 	struct protoent *protocol=getprotobynumber(proto);
 	if(protocol!=NULL)
-	{		
-		if(strcmp(getprotobynumber(proto)->p_name,"icmp")==0)
+	{	
+		char* name=getprotobynumber(proto)->p_name;
+		if(strcmp(name,"icmp")==0 || strcmp(name,"udp")==0 || strcmp(name,"tcp")==0)
 		{
-		  //ICMP PACKET
-			NumIcmpPackets++;
-		}
-		else if(strcmp(getprotobynumber(proto)->p_name,"tcp")==0)
-		{
-		   //TCP PACKET
-			NumTcpPackets++;
-		}
-		else if(strcmp(getprotobynumber(proto)->p_name,"udp")==0)
-		{
-		   //UDP PACKET
-			NumUdpPackets++;  
+			transportLayerProtocols.push_back(string(getprotobynumber(proto)->p_name));			
 		}
 		else
-			cout<< getprotobynumber(proto)->p_name<<endl;		
+		{
+			transportLayerProtocols.push_back(to_string((long long int)proto));
+		}						
+	}
+	else
+	{
+		transportLayerProtocols.push_back(to_string((long long int)proto));
 	}
 
 	unsigned int temp=0;
@@ -421,8 +414,10 @@ void  printNetworkLayerInfo()
 		q=p->nextAddress;
 		delete p;
 		p=q;
-	}	
-	cout<<"\n";//TODO
+	}
+		
+	cout<<"\n";
+	
 }
 
 
@@ -434,8 +429,17 @@ void computeTransportLayerInfo()
 void printTransportLayerInfo()
 {
 	cout<<"\n\n=== Transport layer ===\n\n"; //TODO
+	cout<<"---Unique Transport Layer protocols---\n";	
+	sort(transportLayerProtocols.begin(),transportLayerProtocols.end());
+	vector<string> bckup=transportLayerProtocols;
+	std::vector<string>::iterator it;
+	it=unique(transportLayerProtocols.begin(),transportLayerProtocols.end());
+	transportLayerProtocols.resize(std::distance(transportLayerProtocols.begin(),it));
 
-
+	for (int i=0;i<	transportLayerProtocols.size();i++)
+    {    
+    	std::cout << transportLayerProtocols[i]<<"\t"<<count(bckup.begin(),bckup.end(),transportLayerProtocols[i])<<endl;
+	}
 }
 
 
@@ -510,6 +514,7 @@ int main(int argc, char* argv[])
 	printSummary();	
 	printLinkLayerInfo();
 	printNetworkLayerInfo();
+	printTransportLayerInfo();
 	//close the handle
 	pcap_close(handle);
 	return 0;
