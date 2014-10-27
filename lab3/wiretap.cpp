@@ -289,26 +289,29 @@ void computeNetworkLayerInfo(const u_char * packet )
 	struct iphdr *ip=(struct iphdr*)(packet+sizeof(struct ethhdr));
 	//to find the type of next level protocol 
 	unsigned int proto=(unsigned int)ip->protocol;
-	cout<<"hello"<<getprotobynumber(proto)->p_name;
-/*	if(strcmp(getprotobynumber(proto)->p_name,"icmp")==0)
-    {
-      //ICMP PACKET
-        NumIcmpPackets++;
-    }
-    else if(strcmp(getprotobynumber(proto)->p_name,"tcp")==0)
-    {
-       //TCP PACKET
-        NumTcpPackets++;
-    }
-    else if(strcmp(getprotobynumber(proto)->p_name,"udp")==0)
-    {
-       //UDP PACKET
-        NumUdpPackets++;  
-    }
-    else
-		cout<< getprotobynumber(proto)->p_name<<endl;
-	
-*/
+	cout<<"Proto "<<proto<<endl;
+	struct protoent *protocol=getprotobynumber(proto);
+	if(protocol!=NULL)
+	{		
+		if(strcmp(getprotobynumber(proto)->p_name,"icmp")==0)
+		{
+		  //ICMP PACKET
+			NumIcmpPackets++;
+		}
+		else if(strcmp(getprotobynumber(proto)->p_name,"tcp")==0)
+		{
+		   //TCP PACKET
+			NumTcpPackets++;
+		}
+		else if(strcmp(getprotobynumber(proto)->p_name,"udp")==0)
+		{
+		   //UDP PACKET
+			NumUdpPackets++;  
+		}
+		else
+			cout<< getprotobynumber(proto)->p_name<<endl;		
+	}
+
 	unsigned int temp=0;
 	temp=~temp;
 	temp=temp>>24;
