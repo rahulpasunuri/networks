@@ -127,6 +127,8 @@ vAddress* tailSrcNetworkAddress=NULL;
 vAddress* headRmtNetworkAddress=NULL;
 vAddress* tailRmtNetworkAddress=NULL;
 vector<string> transportLayerProtocols;
+vector<unsigned short> sourcePorts;
+vector<unsigned short> destinationPorts;
 vector<int> timeToLive;
 //this  method prints out the proper usage of this program.
 void usage()
@@ -292,6 +294,9 @@ void printLinkLayerInfo()
 
 void computeNetworkLayerInfo(const u_char * packet )
 {
+	isIcmp= false;
+	isTcp= false;
+	isUdp= false;
 	if(isIP)
 	{
 		struct iphdr *ip=(struct iphdr*)(packet+sizeof(struct ethhdr));
@@ -299,9 +304,6 @@ void computeNetworkLayerInfo(const u_char * packet )
 		unsigned int proto=(unsigned int)ip->protocol;
 		unsigned int ttl = (unsigned int)ip->ttl;
 		struct protoent *protocol=getprotobynumber(proto);
-		isIcmp= false;
-		isTcp= false;
-		isUdp= false;
 		if(protocol!=NULL)
 		{	
 			char* name=getprotobynumber(proto)->p_name;
@@ -454,7 +456,7 @@ void  printNetworkLayerInfo()
 		p=q;
 	}
 		
-	cout<<"\n---printing unique ttl values--- \n";
+	cout<<"\n--- Printing unique TTL values --- \n";
 	cout<<"TTL\t\tFrequency\n";
 	sort(timeToLive.begin(),timeToLive.end());
 	vector<int> bckup=timeToLive;
@@ -470,27 +472,79 @@ void  printNetworkLayerInfo()
 	
 }
 
-
-void computeTransportLayerInfo()
+int count1=0;
+void computeTransportLayerInfo(const u_char * packet)
 {
-	//TODO
+	if(isTcp)
+	{
+		//TODO
+		//source & destination ports..
+		count1++;
+		cout<<count1<<"***********\n";
+		struct tcphdr *tcpPacket = (struct tcphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
+		sourcePorts.push_back(ntohs((unsigned short)tcpPacket->th_sport));
+		destinationPorts.push_back(ntohs((unsigned short)tcpPacket->th_dport));
+	}
+	else if(isUdp)
+	{
+		//TODO
+	}
+	else if(isIcmp)
+	{
+		//TODO
+	}
+	else
+	{
+		//TODO
+	}
 }
 
 void printTransportLayerInfo()
 {
 	cout<<"\n\n=== Transport layer ===\n\n"; //TODO
-	cout<<"---Unique Transport Layer protocols---\n";
+
+	//printing unique transport layer protocols.
+	cout<<"--- Unique Transport Layer protocols ---\n";
 	cout<<"Protocol\t\tFrequency\n";	
 	sort(transportLayerProtocols.begin(),transportLayerProtocols.end());
 	vector<string> bckup=transportLayerProtocols;
 	std::vector<string>::iterator it;
 	it=unique(transportLayerProtocols.begin(),transportLayerProtocols.end());
-	transportLayerProtocols.resize(std::distance(transportLayerProtocols.begin(),it));
+	transportLayerProtocols.resize(distance(transportLayerProtocols.begin(),it));
 
 	for (int i=0;i<	transportLayerProtocols.size();i++)
     {    
-    	std::cout << transportLayerProtocols[i]<<"\t\t\t"<<count(bckup.begin(),bckup.end(),transportLayerProtocols[i])<<endl;
+    	//also output the count of each unique protocol
+    	cout << transportLayerProtocols[i]<<"\t\t\t"<<count(bckup.begin(),bckup.end(),transportLayerProtocols[i])<<endl;
 	}
+	
+	
+	cout<<"\n\n=========Transport layer: TCP=========\n\n";
+	//Printing unique source and destination ports..
+	cout<<"--- Unique Source ports ---\n";
+	sort(sourcePorts.begin(),sourcePorts.end());
+	vector<unsigned short> b1=sourcePorts;
+	std::vector<unsigned short>::iterator it1;
+	it1=unique(sourcePorts.begin(),sourcePorts.end());
+	sourcePorts.resize(distance(sourcePorts.begin(),it1));
+	for(int i=0;i<sourcePorts.size();i++)
+	{
+    	//also output the count of each unique port.
+		cout<<sourcePorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),sourcePorts[i])<<endl;
+	}
+	
+	//printing unique destination ports..
+	cout<<"\n--- Unique Destination ports ---\n";
+	sort(destinationPorts.begin(),destinationPorts.end());
+	b1=destinationPorts;
+	it1=unique(destinationPorts.begin(),destinationPorts.end());
+	destinationPorts.resize(distance(destinationPorts.begin(),it1));
+	for(int i=0;i<destinationPorts.size();i++)
+	{
+    	//also output the count of each unique port.
+		cout<<destinationPorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),destinationPorts[i])<<endl;
+	}
+	
 }
 
 
@@ -500,6 +554,7 @@ void callback(u_char *, const struct pcap_pkthdr *header, const u_char *packet) 
 	computeSummary(header, packet);
 	computeLinkLayerInfo(packet);		
 	computeNetworkLayerInfo(packet);
+	computeTransportLayerInfo(packet);
 }
 
 //the below method will print out the summary section..
