@@ -112,7 +112,9 @@ int largestPacketLength=0; //init to a low value.
 timeval startTime;
 timeval endTime;
 bool isTimeInit=false;
-
+bool isIcmp= false;
+bool isTcp = false;
+bool isUdp= false;
 vAddress* headSrcEthernetAddress=NULL;
 vAddress* tailSrcEthernetAddress=NULL;
 vAddress* headRmtEthernetAddress=NULL;
@@ -122,7 +124,7 @@ vAddress* tailSrcNetworkAddress=NULL;
 vAddress* headRmtNetworkAddress=NULL;
 vAddress* tailRmtNetworkAddress=NULL;
 vector<string> transportLayerProtocols;
-
+vector<int> timeToLive;
 //this  method prints out the proper usage of this program.
 void usage()
 {
@@ -287,22 +289,52 @@ void computeNetworkLayerInfo(const u_char * packet )
 	struct iphdr *ip=(struct iphdr*)(packet+sizeof(struct ethhdr));
 	//to find the type of next level protocol 
 	unsigned int proto=(unsigned int)ip->protocol;
+	unsigned int ttl = (unsigned int)ip->ttl;
 	struct protoent *protocol=getprotobynumber(proto);
 	if(protocol!=NULL)
 	{	
 		char* name=getprotobynumber(proto)->p_name;
-		if(strcmp(name,"icmp")==0 || strcmp(name,"udp")==0 || strcmp(name,"tcp")==0)
+		if(strcmp(name,"icmp")==0 )
 		{
-			transportLayerProtocols.push_back(string(getprotobynumber(proto)->p_name));			
+			isIcmp= true;
+			isTcp= false;
+			isUdp= false;
+			transportLayerProtocols.push_back(string(getprotobynumber(proto)->p_name));	
+			timeToLive.push_back(ttl);		
 		}
-		else
+		else if(strcmp(name,"udp")==0)
 		{
+			isIcmp= false;
+			isTcp= false;
+			isUdp= true;
+			transportLayerProtocols.push_back(string(getprotobynumber(proto)->p_name));	
+			timeToLive.push_back(ttl);
+		
+		}
+		else if(strcmp(name,"tcp")==0)
+		{
+		    isIcmp= false;
+			isTcp= true;
+			isUdp= false;
+			transportLayerProtocols.push_back(string(getprotobynumber(proto)->p_name));	
+			timeToLive.push_back(ttl);
+		
+		}	
+		else
+		{	isIcmp= false;
+			isTcp= false;
+			isUdp= false;
 			transportLayerProtocols.push_back(to_string((long long int)proto));
+			timeToLive.push_back(ttl);
 		}						
 	}
 	else
-	{
+	{	
+		isIcmp= false;
+		isTcp= false;
+		isUdp= false;
 		transportLayerProtocols.push_back(to_string((long long int)proto));
+		timeToLive.push_back(ttl);
 	}
 
 	unsigned int temp=0;
@@ -416,7 +448,19 @@ void  printNetworkLayerInfo()
 		p=q;
 	}
 		
-	cout<<"\n";
+	cout<<"\n---printing unique ttl values--- \n";
+	cout<<"TTL\t\tFrequency\n";
+	sort(timeToLive.begin(),timeToLive.end());
+	vector<int> bckup=timeToLive;
+	std::vector<int>::iterator it;
+	it=unique(timeToLive.begin(),timeToLive.end());
+	timeToLive.resize(std::distance(timeToLive.begin(),it));
+
+	for (int i=0;i<	timeToLive.size();i++)
+    {    
+        std::cout << timeToLive[i]<<"\t\t"<<count(bckup.begin(),bckup.end(),timeToLive[i])<<endl;
+	}
+	
 	
 }
 
@@ -429,7 +473,8 @@ void computeTransportLayerInfo()
 void printTransportLayerInfo()
 {
 	cout<<"\n\n=== Transport layer ===\n\n"; //TODO
-	cout<<"---Unique Transport Layer protocols---\n";	
+	cout<<"---Unique Transport Layer protocols---\n";
+	cout<<"Protocol\t\tFrequency\n";	
 	sort(transportLayerProtocols.begin(),transportLayerProtocols.end());
 	vector<string> bckup=transportLayerProtocols;
 	std::vector<string>::iterator it;
@@ -438,7 +483,7 @@ void printTransportLayerInfo()
 
 	for (int i=0;i<	transportLayerProtocols.size();i++)
     {    
-    	std::cout << transportLayerProtocols[i]<<"\t"<<count(bckup.begin(),bckup.end(),transportLayerProtocols[i])<<endl;
+    	std::cout << transportLayerProtocols[i]<<"\t\t\t"<<count(bckup.begin(),bckup.end(),transportLayerProtocols[i])<<endl;
 	}
 }
 
