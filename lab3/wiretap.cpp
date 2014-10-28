@@ -24,7 +24,7 @@ using namespace std;
 #include<string.h>
 #include<stdlib.h>
 #define NUM_TCP_FLAGS 6
-#define NETWORK_A_LEN 4 //TODO find the correct var
+#define NETWORK_A_LEN 4 
 
 
 
@@ -190,7 +190,7 @@ vAddress* tailRmtNetworkAddress=NULL;
 
 //below vector will hold transport layer protocols.
 vector<string> transportLayerProtocols;
-
+vector<int> networkLayerProtocols;
 vector<Arp> arpAddresses;
 
 //below two vectors will hold source and destination tcp ports..
@@ -268,14 +268,15 @@ void computeLinkLayerInfo(const u_char *packet)
 	struct ethhdr *e=(struct ethhdr*) packet;
 	isIP=false;
 	isARP=false;
+	networkLayerProtocols.push_back(ntohs(e->h_proto)); //append all the network layer protocols seen...
 	if(ntohs(e->h_proto)==ETH_P_IP)  //not sure whether its correct...?
 	{
-		isIP=true;
+		isIP=true;	
 	}
 	else if(ntohs(e->h_proto)==ETH_P_ARP)
 	{
 		isARP=true;
-	}	
+	}		
 	
 	if(headSrcEthernetAddress==NULL)
 	{
@@ -517,7 +518,36 @@ void  printNetworkLayerInfo()
 {
 	cout<<"\n\n=== Network layer ===\n\n";
 	
-	cout<<"--- Source IP addresses ---\n";
+	cout<<"--- Unique Network Layer Protocols ---\n\n";
+	if(networkLayerProtocols.empty())
+	{
+		cout<<"(No results)\n";
+	}
+	else
+	{
+		vector<int> b=networkLayerProtocols; //take a back up
+		sort(networkLayerProtocols.begin(),networkLayerProtocols.end());
+		vector<int>::iterator it=unique(networkLayerProtocols.begin(),networkLayerProtocols.end());
+		networkLayerProtocols.resize(distance(networkLayerProtocols.begin(),it));
+		for(int i=0;i<networkLayerProtocols.size();i++)
+		{
+			if(networkLayerProtocols[i]==ETH_P_ARP)
+			{
+				cout<<"ARP"<<"\t\t"<<count(b.begin(),b.end(),networkLayerProtocols[i])<<endl;	
+			}
+			else if(networkLayerProtocols[i]==ETH_P_IP)
+			{
+				cout<<"IP"<<"\t\t"<<count(b.begin(),b.end(),networkLayerProtocols[i])<<endl;
+			}
+			else
+			{
+				cout<<networkLayerProtocols[i]<<"  (0x"<<std::hex<<networkLayerProtocols[i]<<std::dec<<")";
+				cout<<"\t"<<count(b.begin(),b.end(),networkLayerProtocols[i])<<endl;	
+			}			
+		}		
+	}
+	
+	cout<<"\n--- Source IP addresses ---\n";
 	//print source ethernet addresses here..
 	vAddress* p=headSrcNetworkAddress;
 	while(p!=NULL)
@@ -597,28 +627,32 @@ void computeTransportLayerInfo(const u_char * packet)
 		struct tcphdr *tcpPacket = (struct tcphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
 		sourcePorts.push_back(ntohs((unsigned short)tcpPacket->th_sport));
 		destinationPorts.push_back(ntohs((unsigned short)tcpPacket->th_dport));
+		
+		//tcp flags..
 		unsigned short tempFlag=(unsigned short)tcpPacket->th_flags;
 		for(int i=0;i<NUM_TCP_FLAGS;i++)
 		{
 			if(tempFlag & (1<<i))
 				tcpFlags.push_back(pow(2,i));
 		}
+		
+		//tcp options..
+		
+		
 	}
 	else if(isUdp)
 	{
+		//udp source and destination ports.
 		struct udphdr *udpPacket=(struct udphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
 		sourceUdpPorts.push_back(ntohs((unsigned short)udpPacket->uh_sport));
 		destinationUdpPorts.push_back(ntohs((unsigned short)udpPacket->uh_dport));		
 	}
 	else if(isIcmp)
 	{
+		//icmp types and codes.
 		struct icmphdr *icmpPacket=(struct icmphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
 		icmpCodes.push_back((unsigned short)icmpPacket->code);
 		icmpTypes.push_back((unsigned short)icmpPacket->type);
-	}
-	else
-	{
-		//TODO
 	}
 }
 
