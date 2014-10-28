@@ -501,6 +501,9 @@ void computeTransportLayerInfo(const u_char * packet)
 	else if(isUdp)
 	{
 		//TODO
+		struct udphdr *udpPacket=(struct udphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
+		sourceUdpPorts.push_back(ntohs((unsigned short)udpPacket->uh_sport));
+		destinationUdpPorts.push_back(ntohs((unsigned short)udpPacket->uh_dport));		
 	}
 	else if(isIcmp)
 	{
@@ -557,6 +560,32 @@ void printTransportLayerInfo()
 	{
     	//also output the count of each unique port.
 		cout<<destinationPorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),destinationPorts[i])<<endl;
+	}
+	
+	
+	cout<<"\n\n=========Transport layer: UDP=========\n\n";
+	//Printing unique source and destination ports..
+	cout<<"--- Unique Source ports ---\n";
+	sort(sourceUdpPorts.begin(),sourceUdpPorts.end());
+	b1=sourceUdpPorts;	
+	it1=unique(sourceUdpPorts.begin(),sourceUdpPorts.end());
+	sourceUdpPorts.resize(distance(sourceUdpPorts.begin(),it1));
+	for(int i=0;i<sourceUdpPorts.size();i++)
+	{
+    	//also output the count of each unique port.
+		cout<<sourceUdpPorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),sourceUdpPorts[i])<<endl;
+	}
+	
+	//printing unique destination ports..
+	cout<<"\n--- Unique Destination ports ---\n";
+	sort(destinationUdpPorts.begin(),destinationUdpPorts.end());
+	b1=destinationUdpPorts;
+	it1=unique(destinationUdpPorts.begin(),destinationUdpPorts.end());
+	destinationUdpPorts.resize(distance(destinationUdpPorts.begin(),it1));
+	for(int i=0;i<destinationUdpPorts.size();i++)
+	{
+    	//also output the count of each unique port.
+		cout<<destinationUdpPorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),destinationUdpPorts[i])<<endl;
 	}
 	
 }
