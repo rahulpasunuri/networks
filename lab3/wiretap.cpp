@@ -1,4 +1,4 @@
-#include<iostream>
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pcap.h> //header file required for pcap...
@@ -8,15 +8,15 @@
 #include <ctime>
 #include <algorithm>  
 #include <vector> 
-#include<netinet/ip.h>
-#include<arpa/inet.h>
+#include <netinet/ip.h>
+#include <arpa/inet.h>
 #include <inttypes.h>
-#include<string>
-#include<linux/if_ether.h> //contains ethhdr struct...
-#include<netinet/udp.h> //contains udphdr struct
-#include<netinet/tcp.h> //contains tcphdr struct
+#include <string>
+#include <linux/if_ether.h> //contains ethhdr struct...
+#include <netinet/udp.h> //contains udphdr struct
+#include <netinet/tcp.h> //contains tcphdr struct
 #include <netdb.h> //for getting the protocol type tcp, udp and icmp
-#include<net/if_arp.h> //header file for arp header and arp constants.
+
 using namespace std;
 
 #include<string.h>
@@ -103,6 +103,44 @@ class vAddress
 	    vAddress* nextAddress;
 };
 
+/* structure for storing arp header data*/
+typedef struct arphdr { 
+    u_int16_t htype;    /* Hardware Type           */ 
+    u_int16_t ptype;    /* Protocol Type           */ 
+    u_char hlen;        /* Hardware Address Length */ 
+    u_char plen;        /* Protocol Address Length */ 
+             
+    u_char shrd[ETH_ALEN];      /* Sender hardware address */ 
+    u_char spad[NETWORK_A_LEN];      /* Sender IP address       */ 
+    u_char dhrd[ETH_ALEN];      /* Target hardware address */ 
+    u_char dpad[NETWORK_A_LEN];      /* Target IP address       */ 
+}arphdr_t; 
+
+class Arp
+{
+	public:
+	u_char ethrd[ETH_ALEN] ;   
+	u_char iprd[NETWORK_A_LEN];
+	
+	Arp(u_char *ethrd, u_char *iprd)
+	{		
+		memcpy(this->ethrd,ethrd,ETH_ALEN);
+		memcpy(this->iprd,iprd,NETWORK_A_LEN);
+	}	
+	
+	void printReadableArpAddress()
+	{		
+		int i=0;
+		for(;i<ETH_ALEN-1;i++)
+		{
+			printf("%02x:",ethrd[i]);
+		}
+		printf("%02x / ",ethrd[i]);	
+		cout<<(short)iprd[3]<<"."<<(short)iprd[2]<<"."<<(short)iprd[1]<<"."<<(short)iprd[0];			
+	}
+		
+};
+
 //global variables init statements..
 int numPackets=0;
 float sumPacketLength=0;
@@ -118,6 +156,26 @@ bool isUdp= false;
 bool isIP=false;
 bool isARP=false;
 
+bool sortVectors(const Arp obj1,const Arp obj2)
+{
+  if(strcmp((char*)obj1.ethrd,(char*)obj2.ethrd)<0)
+  	return true;
+  else if(strcmp((char*)obj1.ethrd,(char*)obj2.ethrd)>0)
+  	return false;
+  else if(strcmp((char*)obj1.iprd,(char*)obj2.iprd)<0)
+  	return true;
+  else 
+  	return false;
+}
+
+bool equalVectors(const Arp obj1,const Arp obj2)
+{
+	if((strcmp((char*)obj1.ethrd,(char*)obj2.ethrd)==0)&&(strcmp((char*)obj1.iprd,(char*)obj2.iprd)==0))
+		return true;
+	else 
+		return false;
+}
+
 vAddress* headSrcEthernetAddress=NULL;
 vAddress* tailSrcEthernetAddress=NULL;
 vAddress* headRmtEthernetAddress=NULL;
@@ -127,7 +185,13 @@ vAddress* tailSrcNetworkAddress=NULL;
 vAddress* headRmtNetworkAddress=NULL;
 vAddress* tailRmtNetworkAddress=NULL;
 vector<string> transportLayerProtocols;
+
+vector<Arp> arpAddresses;
+
 vector<int> timeToLive;
+
+
+
 //this  method prints out the proper usage of this program.
 void usage()
 {
@@ -342,7 +406,7 @@ void computeNetworkLayerInfo(const u_char * packet )
 		temp=temp>>24;
 
 		unsigned char byte[4];
-		byte[0]= ip->saddr>>24;
+		byte[0]= ip->saddr>>24;                 // to use ntohs here ...???
 		byte[1]= ip->saddr>>16 & temp;	
 		byte[2]= ip->saddr>>8 & temp;
 		byte[3]= ip->saddr & temp;			
@@ -405,6 +469,21 @@ void computeNetworkLayerInfo(const u_char * packet )
 	}
 	else if(isARP)
 	{
+		arphdr_t *ap=(arphdr_t*)(packet+sizeof(struct ethhdr));
+		if(ap!=NULL)
+		{
+			 //printf("Protocol type: %s\n", (ntohs(ap->ptype) == 0x0800) ? "IPv4" : "Unknown");
+			if (ntohs(ap->htype) == 1 && ntohs(ap->ptype) == 0x0800)
+			{ 
+				 
+				//  MAC Addresses
+				arpAddresses.push_back(Arp(ap->shrd,ap->spad));
+				arpAddresses.push_back(Arp(ap->dhrd,ap->dpad));						
+			}		 
+				 			  
+		}
+		
+		
 		//TODO
 		
 	}
@@ -460,14 +539,32 @@ void  printNetworkLayerInfo()
 	vector<int> bckup=timeToLive;
 	std::vector<int>::iterator it;
 	it=unique(timeToLive.begin(),timeToLive.end());
-	timeToLive.resize(std::distance(timeToLive.begin(),it));
-
+	timeToLive.resize(std::distance(timeToLive.begin(),it));	
+	
 	for (int i=0;i<	timeToLive.size();i++)
     {    
         std::cout << timeToLive[i]<<"\t\t"<<count(bckup.begin(),bckup.end(),timeToLive[i])<<endl;
 	}
-	
-	
+	cout<<"\n\n.... unique arp participants....\n\n";
+	vector<Arp>::iterator it1;
+		
+	vector<Arp> backup1 = arpAddresses;
+	//sort(arpAddresses.begin(), arpAddresses.end(),sortVectors);	
+	//it1= unique(arpAddresses.begin(),arpAddresses.end(),equalVectors);
+
+	for(int i=0;i<arpAddresses.size();i++)   //printing arpAddresses
+	{
+		arpAddresses[i].printReadableArpAddress();
+		int count=0;
+		for(int j=0;j<arpAddresses.size();j++)
+		{
+			if(i!=j && equalVectors(arpAddresses[i],arpAddresses[j]))
+			{
+				count++;
+			}
+		}
+		cout<<"\t\t"<<count<<"\n";			
+	}
 }
 
 
