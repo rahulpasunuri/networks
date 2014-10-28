@@ -16,12 +16,14 @@
 #include <netinet/udp.h> //contains udphdr struct
 #include <netinet/tcp.h> //contains tcphdr struct
 #include <netdb.h> //for getting the protocol type tcp, udp and icmp
+//#include<net/if_arp.h> //header file for arp header and arp constants.
+#include<netinet/ip_icmp.h> //header file for icmp header.
 
 using namespace std;
 
 #include<string.h>
 #include<stdlib.h>
-
+#define NUM_TCP_FLAGS 6
 #define NETWORK_A_LEN 4 //TODO find the correct var
 
 
@@ -156,6 +158,7 @@ bool isUdp= false;
 bool isIP=false;
 bool isARP=false;
 
+
 bool sortVectors(const Arp obj1,const Arp obj2)
 {
   if(strcmp((char*)obj1.ethrd,(char*)obj2.ethrd)<0)
@@ -184,10 +187,22 @@ vAddress* headSrcNetworkAddress=NULL;
 vAddress* tailSrcNetworkAddress=NULL;
 vAddress* headRmtNetworkAddress=NULL;
 vAddress* tailRmtNetworkAddress=NULL;
+
+//below vector will hold transport layer protocols.
 vector<string> transportLayerProtocols;
 
 vector<Arp> arpAddresses;
 
+//below two vectors will hold source and destination tcp ports..
+vector<unsigned short> sourcePorts;
+vector<unsigned short> destinationPorts;
+
+//below two vectors will hold source and destination udp ports.
+vector<unsigned short> sourceUdpPorts;
+vector<unsigned short> destinationUdpPorts;
+
+vector<unsigned short> tcpFlags;
+//below vector will hold TTL of IP packets.
 vector<int> timeToLive;
 
 
@@ -246,6 +261,7 @@ void computeSummary(const struct pcap_pkthdr *header, const u_char *packet)
 	numPackets++;
 }
 
+//below method is used to decode link layer information.
 void computeLinkLayerInfo(const u_char *packet)
 {
 	struct ethhdr *e=(struct ethhdr*) packet;
@@ -299,7 +315,6 @@ void computeLinkLayerInfo(const u_char *packet)
 		{
 			ret=p->updateCountIfMatch(e->h_dest);
 			p=p->nextAddress; //move p
-			//cout<<"deadbeef"<<endl;
 		}
 		if(ret==false)
 		{		
@@ -312,6 +327,8 @@ void computeLinkLayerInfo(const u_char *packet)
 		
 }
 
+
+//below method is used to print out the statistics of link layer.
 void printLinkLayerInfo()
 {
 	cout<<"\n\n=== Link layer ===\n\n";
@@ -353,9 +370,12 @@ void printLinkLayerInfo()
 	cout<<"\n";
 }
 
-
+//compute network layer statistics.
 void computeNetworkLayerInfo(const u_char * packet )
 {
+	isIcmp= false;
+	isTcp= false;
+	isUdp= false;
 	if(isIP)
 	{
 		struct iphdr *ip=(struct iphdr*)(packet+sizeof(struct ethhdr));
@@ -363,9 +383,6 @@ void computeNetworkLayerInfo(const u_char * packet )
 		unsigned int proto=(unsigned int)ip->protocol;
 		unsigned int ttl = (unsigned int)ip->ttl;
 		struct protoent *protocol=getprotobynumber(proto);
-		isIcmp= false;
-		isTcp= false;
-		isUdp= false;
 		if(protocol!=NULL)
 		{	
 			char* name=getprotobynumber(proto)->p_name;
@@ -493,6 +510,8 @@ void computeNetworkLayerInfo(const u_char * packet )
 	}				
 }
 
+
+//print network layer statistics..
 void  printNetworkLayerInfo()
 {
 	cout<<"\n\n=== Network layer ===\n\n";
@@ -533,7 +552,7 @@ void  printNetworkLayerInfo()
 		p=q;
 	}
 		
-	cout<<"\n---printing unique ttl values--- \n";
+	cout<<"\n--- Printing unique TTL values --- \n";
 	cout<<"TTL\t\tFrequency\n";
 	sort(timeToLive.begin(),timeToLive.end());
 	vector<int> bckup=timeToLive;
@@ -567,27 +586,196 @@ void  printNetworkLayerInfo()
 	}
 }
 
-
-void computeTransportLayerInfo()
+//compute transport layer statistics...
+void computeTransportLayerInfo(const u_char * packet)
 {
-	//TODO
+	if(isTcp)
+	{
+		//TODO
+		//source & destination ports..
+		struct tcphdr *tcpPacket = (struct tcphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
+		sourcePorts.push_back(ntohs((unsigned short)tcpPacket->th_sport));
+		destinationPorts.push_back(ntohs((unsigned short)tcpPacket->th_dport));
+		unsigned short tempFlag=(unsigned short)tcpPacket->th_flags;
+		for(int i=0;i<NUM_TCP_FLAGS;i++)
+		{
+			if(tempFlag & (1<<i))
+				tcpFlags.push_back(pow(2,i));
+		}
+	}
+	else if(isUdp)
+	{
+		//TODO
+		struct udphdr *udpPacket=(struct udphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
+		sourceUdpPorts.push_back(ntohs((unsigned short)udpPacket->uh_sport));
+		destinationUdpPorts.push_back(ntohs((unsigned short)udpPacket->uh_dport));		
+	}
+	else if(isIcmp)
+	{
+		//TODO
+	}
+	else
+	{
+		//TODO
+	}
 }
 
+const char* getTCPFlagName(unsigned short flag)
+{
+	if(flag==TH_FIN)
+	{
+		return "FIN";
+	}
+	else if(flag==TH_SYN)
+	{
+		return "SYN";
+	}
+	else if(flag==TH_RST)
+	{
+		return "RST";
+	}
+	else if(flag==TH_PUSH)
+	{
+		return "PSH";
+	}
+	else if(flag==TH_ACK)
+	{
+		return "ACK";
+	}
+	else if(flag==TH_URG)
+	{
+		return "URG";
+	}
+	return to_string((long long)flag).c_str();
+}
+
+//print transport layer statistics...
 void printTransportLayerInfo()
 {
-	cout<<"\n\n=== Transport layer ===\n\n"; //TODO
-	cout<<"---Unique Transport Layer protocols---\n";
-	cout<<"Protocol\t\tFrequency\n";	
-	sort(transportLayerProtocols.begin(),transportLayerProtocols.end());
-	vector<string> bckup=transportLayerProtocols;
-	std::vector<string>::iterator it;
-	it=unique(transportLayerProtocols.begin(),transportLayerProtocols.end());
-	transportLayerProtocols.resize(std::distance(transportLayerProtocols.begin(),it));
+	cout<<"\n\n=== Transport layer ===\n\n";
 
-	for (int i=0;i<	transportLayerProtocols.size();i++)
-    {    
-    	std::cout << transportLayerProtocols[i]<<"\t\t\t"<<count(bckup.begin(),bckup.end(),transportLayerProtocols[i])<<endl;
+	//printing unique transport layer protocols.
+	cout<<"--- Unique Transport Layer protocols ---\n";
+	if(transportLayerProtocols.empty())
+	{
+		cout<<"(no results)\n";		
 	}
+	else
+	{
+		cout<<"Protocol\t\tFrequency\n";	
+		sort(transportLayerProtocols.begin(),transportLayerProtocols.end());
+		vector<string> bckup=transportLayerProtocols;
+		std::vector<string>::iterator it;
+		it=unique(transportLayerProtocols.begin(),transportLayerProtocols.end());
+		transportLayerProtocols.resize(distance(transportLayerProtocols.begin(),it));
+
+		for (int i=0;i<	transportLayerProtocols.size();i++)
+		{    
+			//also output the count of each unique protocol
+			cout << transportLayerProtocols[i]<<"\t\t\t"<<count(bckup.begin(),bckup.end(),transportLayerProtocols[i])<<endl;
+		}
+	}
+	
+	cout<<"\n\n=========Transport layer: TCP=========\n\n";
+	//Printing unique source and destination ports..
+	cout<<"--- Unique Source ports ---\n";
+
+	if(sourcePorts.empty())
+	{
+		cout<<"(no results)\n";	
+	}
+	else
+	{
+		sort(sourcePorts.begin(),sourcePorts.end());
+		vector<unsigned short> b1=sourcePorts;
+		std::vector<unsigned short>::iterator it1=unique(sourcePorts.begin(),sourcePorts.end());
+		sourcePorts.resize(distance(sourcePorts.begin(),it1));
+		for(int i=0;i<sourcePorts.size();i++)
+		{
+			//also output the count of each unique port.
+			cout<<sourcePorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),sourcePorts[i])<<endl;
+		}
+	}	
+	//printing unique destination ports..
+	cout<<"\n--- Unique Destination ports ---\n";
+	if(destinationPorts.empty())
+	{
+		cout<<"(no results)\n";	
+	}
+	else
+	{
+		sort(destinationPorts.begin(),destinationPorts.end());
+		vector<unsigned short> b1=destinationPorts;
+		std::vector<unsigned short>::iterator it1=unique(destinationPorts.begin(),destinationPorts.end());
+		destinationPorts.resize(distance(destinationPorts.begin(),it1));
+		for(int i=0;i<destinationPorts.size();i++)
+		{
+			//also output the count of each unique port.
+			cout<<destinationPorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),destinationPorts[i])<<endl;
+		}
+	}
+	
+	//printing unique tcp flags...
+	cout<<"\n--- TCP flags ---\n\n";
+	if(tcpFlags.empty())
+	{
+		cout<<"(no results)\n";	
+	}
+	else
+	{
+		for(int i=0;i<NUM_TCP_FLAGS;i++)
+		{
+			short temp=pow(2,i);
+			//also output the count of each unique port.
+			cout<<getTCPFlagName(temp)<<"\t\t"<<count(tcpFlags.begin(),tcpFlags.end(),temp)<<endl;
+		}
+	}
+	
+	//printing UDP info
+	cout<<"\n\n=========Transport layer: UDP=========\n\n";
+	//Printing unique source and destination ports..
+	cout<<"--- Unique Source ports ---\n";
+	if(sourceUdpPorts.empty())
+	{
+		cout<<"(no results)\n";	
+	}
+	else
+	{
+		sort(sourceUdpPorts.begin(),sourceUdpPorts.end());
+		vector<unsigned short> b1=sourceUdpPorts;	
+		std::vector<unsigned short>::iterator it1=unique(sourceUdpPorts.begin(),sourceUdpPorts.end());
+		sourceUdpPorts.resize(distance(sourceUdpPorts.begin(),it1));
+		for(int i=0;i<sourceUdpPorts.size();i++)
+		{
+			//also output the count of each unique port.
+			cout<<sourceUdpPorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),sourceUdpPorts[i])<<endl;
+		}
+	}	
+
+	//printing unique destination ports..
+	cout<<"\n--- Unique Destination ports ---\n";
+	if(destinationUdpPorts.empty())
+	{
+		cout<<"(no results)\n";
+	}
+	else
+	{
+		sort(destinationUdpPorts.begin(),destinationUdpPorts.end());
+		vector<unsigned short> b1=destinationUdpPorts;
+		vector<unsigned short>::iterator it1=unique(destinationUdpPorts.begin(),destinationUdpPorts.end());
+		destinationUdpPorts.resize(distance(destinationUdpPorts.begin(),it1));
+		for(int i=0;i<destinationUdpPorts.size();i++)
+		{
+			//also output the count of each unique port.
+			cout<<destinationUdpPorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),destinationUdpPorts[i])<<endl;
+		}
+	}	
+	//printing ICMP info..
+	cout<<"\n\n=========Transport layer: ICMP=========\n\n";
+	cout<<"---------ICMP types---------\n\n";
+	//TODO...
+	cout<<"---------ICMP codes---------\n\n";
+	//TODO...
 }
 
 
@@ -597,6 +785,7 @@ void callback(u_char *, const struct pcap_pkthdr *header, const u_char *packet) 
 	computeSummary(header, packet);
 	computeLinkLayerInfo(packet);		
 	computeNetworkLayerInfo(packet);
+	computeTransportLayerInfo(packet);
 }
 
 //the below method will print out the summary section..
