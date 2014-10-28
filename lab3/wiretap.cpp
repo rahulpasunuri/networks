@@ -21,7 +21,7 @@ using namespace std;
 
 #include<string.h>
 #include<stdlib.h>
-
+#define NUM_TCP_FLAGS 6
 #define NETWORK_A_LEN 4 //TODO find the correct var
 
 
@@ -139,6 +139,7 @@ vector<unsigned short> destinationPorts;
 vector<unsigned short> sourceUdpPorts;
 vector<unsigned short> destinationUdpPorts;
 
+vector<unsigned short> tcpFlags;
 //below vector will hold TTL of IP packets.
 vector<int> timeToLive;
 //this  method prints out the proper usage of this program.
@@ -497,6 +498,12 @@ void computeTransportLayerInfo(const u_char * packet)
 		struct tcphdr *tcpPacket = (struct tcphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
 		sourcePorts.push_back(ntohs((unsigned short)tcpPacket->th_sport));
 		destinationPorts.push_back(ntohs((unsigned short)tcpPacket->th_dport));
+		unsigned short tempFlag=(unsigned short)tcpPacket->th_flags;
+		for(int i=0;i<NUM_TCP_FLAGS;i++)
+		{
+			if(tempFlag & (1<<i))
+				tcpFlags.push_back(pow(2,i));
+		}
 	}
 	else if(isUdp)
 	{
@@ -513,6 +520,35 @@ void computeTransportLayerInfo(const u_char * packet)
 	{
 		//TODO
 	}
+}
+
+const char* getTCPFlagName(unsigned short flag)
+{
+	if(flag==TH_FIN)
+	{
+		return "FIN";
+	}
+	else if(flag==TH_SYN)
+	{
+		return "SYN";
+	}
+	else if(flag==TH_RST)
+	{
+		return "RST";
+	}
+	else if(flag==TH_PUSH)
+	{
+		return "PSH";
+	}
+	else if(flag==TH_ACK)
+	{
+		return "ACK";
+	}
+	else if(flag==TH_URG)
+	{
+		return "URG";
+	}
+	return to_string((long long)flag).c_str();
 }
 
 //print transport layer statistics...
@@ -578,6 +614,22 @@ void printTransportLayerInfo()
 		{
 			//also output the count of each unique port.
 			cout<<destinationPorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),destinationPorts[i])<<endl;
+		}
+	}
+	
+	//printing unique tcp flags...
+	cout<<"\n--- TCP flags ---\n\n";
+	if(tcpFlags.empty())
+	{
+		cout<<"(no results)\n";	
+	}
+	else
+	{
+		for(int i=0;i<NUM_TCP_FLAGS;i++)
+		{
+			short temp=pow(2,i);
+			//also output the count of each unique port.
+			cout<<getTCPFlagName(temp)<<"\t\t"<<count(tcpFlags.begin(),tcpFlags.end(),temp)<<endl;
 		}
 	}
 	
