@@ -204,7 +204,8 @@ vector<unsigned short> destinationUdpPorts;
 vector<unsigned short> tcpFlags;
 //below vector will hold TTL of IP packets.
 vector<int> timeToLive;
-
+vector<unsigned short> icmpCodes;
+vector<unsigned short> icmpTypes;
 
 
 //this  method prints out the proper usage of this program.
@@ -605,14 +606,15 @@ void computeTransportLayerInfo(const u_char * packet)
 	}
 	else if(isUdp)
 	{
-		//TODO
 		struct udphdr *udpPacket=(struct udphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
 		sourceUdpPorts.push_back(ntohs((unsigned short)udpPacket->uh_sport));
 		destinationUdpPorts.push_back(ntohs((unsigned short)udpPacket->uh_dport));		
 	}
 	else if(isIcmp)
 	{
-		//TODO
+		struct icmphdr *icmpPacket=(struct icmphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
+		icmpCodes.push_back(ntohs((unsigned short)icmpPacket->code));
+		icmpTypes.push_back(ntohs((unsigned short)icmpPacket->type));
 	}
 	else
 	{
@@ -773,9 +775,39 @@ void printTransportLayerInfo()
 	//printing ICMP info..
 	cout<<"\n\n=========Transport layer: ICMP=========\n\n";
 	cout<<"---------ICMP types---------\n\n";
-	//TODO...
-	cout<<"---------ICMP codes---------\n\n";
-	//TODO...
+	if(icmpTypes.empty())
+	{
+		cout<<"(no results)\n";
+	}
+	else
+	{
+		sort(icmpTypes.begin(),icmpTypes.end());
+		vector<unsigned short> b1=icmpTypes;
+		vector<unsigned short>::iterator it1=unique(icmpTypes.begin(),icmpTypes.end());
+		icmpTypes.resize(distance(icmpTypes.begin(),it1));
+		for(int i=0;i<icmpTypes.size();i++)
+		{
+			//also output the count of each unique port.
+			cout<<icmpTypes[i]<<"\t\t"<<count(b1.begin(),b1.end(),icmpTypes[i])<<endl;
+		}		
+	}
+	cout<<"\n---------ICMP codes---------\n\n";
+	if(icmpCodes.empty())
+	{
+		cout<<"(no results)\n";
+	}
+	else
+	{
+		sort(icmpCodes.begin(),icmpCodes.end());
+		vector<unsigned short> b1=icmpCodes;
+		vector<unsigned short>::iterator it1=unique(icmpCodes.begin(),icmpCodes.end());
+		icmpCodes.resize(distance(icmpCodes.begin(),it1));
+		for(int i=0;i<icmpCodes.size();i++)
+		{
+			//also output the count of each unique port.
+			cout<<icmpCodes[i]<<"\t\t"<<count(b1.begin(),b1.end(),icmpCodes[i])<<endl;
+		}			
+	}
 }
 
 
@@ -842,9 +874,9 @@ int main(int argc, char* argv[])
 		printf("Error occurred in pcap_loop %s\n",pcap_geterr(handle));
 		exit(1);
 	}
-	printSummary();	
-	printLinkLayerInfo();
-	printNetworkLayerInfo();
+	//printSummary();	
+	//printLinkLayerInfo();
+	//printNetworkLayerInfo();
 	printTransportLayerInfo();
 	//close the handle
 	pcap_close(handle);
