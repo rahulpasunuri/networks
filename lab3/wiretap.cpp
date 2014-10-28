@@ -613,8 +613,8 @@ void computeTransportLayerInfo(const u_char * packet)
 	else if(isIcmp)
 	{
 		struct icmphdr *icmpPacket=(struct icmphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
-		icmpCodes.push_back(ntohs((unsigned short)icmpPacket->code));
-		icmpTypes.push_back(ntohs((unsigned short)icmpPacket->type));
+		icmpCodes.push_back((unsigned short)icmpPacket->code);
+		icmpTypes.push_back((unsigned short)icmpPacket->type);
 	}
 	else
 	{
