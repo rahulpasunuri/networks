@@ -874,9 +874,9 @@ int main(int argc, char* argv[])
 		printf("Error occurred in pcap_loop %s\n",pcap_geterr(handle));
 		exit(1);
 	}
-	//printSummary();	
-	//printLinkLayerInfo();
-	//printNetworkLayerInfo();
+	printSummary();	
+	printLinkLayerInfo();
+	printNetworkLayerInfo();
 	printTransportLayerInfo();
 	//close the handle
 	pcap_close(handle);
