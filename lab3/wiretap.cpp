@@ -518,76 +518,114 @@ void computeTransportLayerInfo(const u_char * packet)
 //print transport layer statistics...
 void printTransportLayerInfo()
 {
-	cout<<"\n\n=== Transport layer ===\n\n"; //TODO
+	cout<<"\n\n=== Transport layer ===\n\n";
 
 	//printing unique transport layer protocols.
 	cout<<"--- Unique Transport Layer protocols ---\n";
-	cout<<"Protocol\t\tFrequency\n";	
-	sort(transportLayerProtocols.begin(),transportLayerProtocols.end());
-	vector<string> bckup=transportLayerProtocols;
-	std::vector<string>::iterator it;
-	it=unique(transportLayerProtocols.begin(),transportLayerProtocols.end());
-	transportLayerProtocols.resize(distance(transportLayerProtocols.begin(),it));
-
-	for (int i=0;i<	transportLayerProtocols.size();i++)
-    {    
-    	//also output the count of each unique protocol
-    	cout << transportLayerProtocols[i]<<"\t\t\t"<<count(bckup.begin(),bckup.end(),transportLayerProtocols[i])<<endl;
+	if(transportLayerProtocols.empty())
+	{
+		cout<<"(no results)\n";		
 	}
-	
+	else
+	{
+		cout<<"Protocol\t\tFrequency\n";	
+		sort(transportLayerProtocols.begin(),transportLayerProtocols.end());
+		vector<string> bckup=transportLayerProtocols;
+		std::vector<string>::iterator it;
+		it=unique(transportLayerProtocols.begin(),transportLayerProtocols.end());
+		transportLayerProtocols.resize(distance(transportLayerProtocols.begin(),it));
+
+		for (int i=0;i<	transportLayerProtocols.size();i++)
+		{    
+			//also output the count of each unique protocol
+			cout << transportLayerProtocols[i]<<"\t\t\t"<<count(bckup.begin(),bckup.end(),transportLayerProtocols[i])<<endl;
+		}
+	}
 	
 	cout<<"\n\n=========Transport layer: TCP=========\n\n";
 	//Printing unique source and destination ports..
 	cout<<"--- Unique Source ports ---\n";
-	sort(sourcePorts.begin(),sourcePorts.end());
-	vector<unsigned short> b1=sourcePorts;
-	std::vector<unsigned short>::iterator it1;
-	it1=unique(sourcePorts.begin(),sourcePorts.end());
-	sourcePorts.resize(distance(sourcePorts.begin(),it1));
-	for(int i=0;i<sourcePorts.size();i++)
+
+	if(sourcePorts.empty())
 	{
-    	//also output the count of each unique port.
-		cout<<sourcePorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),sourcePorts[i])<<endl;
+		cout<<"(no results)\n";	
 	}
-	
+	else
+	{
+		sort(sourcePorts.begin(),sourcePorts.end());
+		vector<unsigned short> b1=sourcePorts;
+		std::vector<unsigned short>::iterator it1=unique(sourcePorts.begin(),sourcePorts.end());
+		sourcePorts.resize(distance(sourcePorts.begin(),it1));
+		for(int i=0;i<sourcePorts.size();i++)
+		{
+			//also output the count of each unique port.
+			cout<<sourcePorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),sourcePorts[i])<<endl;
+		}
+	}	
 	//printing unique destination ports..
 	cout<<"\n--- Unique Destination ports ---\n";
-	sort(destinationPorts.begin(),destinationPorts.end());
-	b1=destinationPorts;
-	it1=unique(destinationPorts.begin(),destinationPorts.end());
-	destinationPorts.resize(distance(destinationPorts.begin(),it1));
-	for(int i=0;i<destinationPorts.size();i++)
+	if(destinationPorts.empty())
 	{
-    	//also output the count of each unique port.
-		cout<<destinationPorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),destinationPorts[i])<<endl;
+		cout<<"(no results)\n";	
+	}
+	else
+	{
+		sort(destinationPorts.begin(),destinationPorts.end());
+		vector<unsigned short> b1=destinationPorts;
+		std::vector<unsigned short>::iterator it1=unique(destinationPorts.begin(),destinationPorts.end());
+		destinationPorts.resize(distance(destinationPorts.begin(),it1));
+		for(int i=0;i<destinationPorts.size();i++)
+		{
+			//also output the count of each unique port.
+			cout<<destinationPorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),destinationPorts[i])<<endl;
+		}
 	}
 	
-	
+	//printing UDP info
 	cout<<"\n\n=========Transport layer: UDP=========\n\n";
 	//Printing unique source and destination ports..
 	cout<<"--- Unique Source ports ---\n";
-	sort(sourceUdpPorts.begin(),sourceUdpPorts.end());
-	b1=sourceUdpPorts;	
-	it1=unique(sourceUdpPorts.begin(),sourceUdpPorts.end());
-	sourceUdpPorts.resize(distance(sourceUdpPorts.begin(),it1));
-	for(int i=0;i<sourceUdpPorts.size();i++)
+	if(sourceUdpPorts.empty())
 	{
-    	//also output the count of each unique port.
-		cout<<sourceUdpPorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),sourceUdpPorts[i])<<endl;
+		cout<<"(no results)\n";	
 	}
-	
+	else
+	{
+		sort(sourceUdpPorts.begin(),sourceUdpPorts.end());
+		vector<unsigned short> b1=sourceUdpPorts;	
+		std::vector<unsigned short>::iterator it1=unique(sourceUdpPorts.begin(),sourceUdpPorts.end());
+		sourceUdpPorts.resize(distance(sourceUdpPorts.begin(),it1));
+		for(int i=0;i<sourceUdpPorts.size();i++)
+		{
+			//also output the count of each unique port.
+			cout<<sourceUdpPorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),sourceUdpPorts[i])<<endl;
+		}
+	}	
+
 	//printing unique destination ports..
 	cout<<"\n--- Unique Destination ports ---\n";
-	sort(destinationUdpPorts.begin(),destinationUdpPorts.end());
-	b1=destinationUdpPorts;
-	it1=unique(destinationUdpPorts.begin(),destinationUdpPorts.end());
-	destinationUdpPorts.resize(distance(destinationUdpPorts.begin(),it1));
-	for(int i=0;i<destinationUdpPorts.size();i++)
+	if(destinationUdpPorts.empty())
 	{
-    	//also output the count of each unique port.
-		cout<<destinationUdpPorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),destinationUdpPorts[i])<<endl;
+		cout<<"(no results)\n";
 	}
-	
+	else
+	{
+		sort(destinationUdpPorts.begin(),destinationUdpPorts.end());
+		vector<unsigned short> b1=destinationUdpPorts;
+		vector<unsigned short>::iterator it1=unique(destinationUdpPorts.begin(),destinationUdpPorts.end());
+		destinationUdpPorts.resize(distance(destinationUdpPorts.begin(),it1));
+		for(int i=0;i<destinationUdpPorts.size();i++)
+		{
+			//also output the count of each unique port.
+			cout<<destinationUdpPorts[i]<<"\t\t"<<count(b1.begin(),b1.end(),destinationUdpPorts[i])<<endl;
+		}
+	}	
+	//printing ICMP info..
+	cout<<"\n\n=========Transport layer: ICMP=========\n\n";
+	cout<<"---------ICMP types---------\n\n";
+	//TODO...
+	cout<<"---------ICMP codes---------\n\n";
+	//TODO...
 }
 
 
