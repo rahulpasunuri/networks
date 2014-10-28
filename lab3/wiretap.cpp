@@ -118,6 +118,7 @@ bool isUdp= false;
 bool isIP=false;
 bool isARP=false;
 
+
 vAddress* headSrcEthernetAddress=NULL;
 vAddress* tailSrcEthernetAddress=NULL;
 vAddress* headRmtEthernetAddress=NULL;
@@ -126,9 +127,19 @@ vAddress* headSrcNetworkAddress=NULL;
 vAddress* tailSrcNetworkAddress=NULL;
 vAddress* headRmtNetworkAddress=NULL;
 vAddress* tailRmtNetworkAddress=NULL;
+
+//below vector will hold transport layer protocols.
 vector<string> transportLayerProtocols;
+
+//below two vectors will hold source and destination tcp ports..
 vector<unsigned short> sourcePorts;
 vector<unsigned short> destinationPorts;
+
+//below two vectors will hold source and destination udp ports.
+vector<unsigned short> sourceUdpPorts;
+vector<unsigned short> destinationUdpPorts;
+
+//below vector will hold TTL of IP packets.
 vector<int> timeToLive;
 //this  method prints out the proper usage of this program.
 void usage()
@@ -184,6 +195,7 @@ void computeSummary(const struct pcap_pkthdr *header, const u_char *packet)
 	numPackets++;
 }
 
+//below method is used to decode link layer information.
 void computeLinkLayerInfo(const u_char *packet)
 {
 	struct ethhdr *e=(struct ethhdr*) packet;
@@ -237,7 +249,6 @@ void computeLinkLayerInfo(const u_char *packet)
 		{
 			ret=p->updateCountIfMatch(e->h_dest);
 			p=p->nextAddress; //move p
-			//cout<<"deadbeef"<<endl;
 		}
 		if(ret==false)
 		{		
@@ -250,6 +261,8 @@ void computeLinkLayerInfo(const u_char *packet)
 		
 }
 
+
+//below method is used to print out the statistics of link layer.
 void printLinkLayerInfo()
 {
 	cout<<"\n\n=== Link layer ===\n\n";
@@ -291,7 +304,7 @@ void printLinkLayerInfo()
 	cout<<"\n";
 }
 
-
+//compute network layer statistics.
 void computeNetworkLayerInfo(const u_char * packet )
 {
 	isIcmp= false;
@@ -416,6 +429,8 @@ void computeNetworkLayerInfo(const u_char * packet )
 	}				
 }
 
+
+//print network layer statistics..
 void  printNetworkLayerInfo()
 {
 	cout<<"\n\n=== Network layer ===\n\n";
@@ -472,15 +487,13 @@ void  printNetworkLayerInfo()
 	
 }
 
-int count1=0;
+//compute transport layer statistics...
 void computeTransportLayerInfo(const u_char * packet)
 {
 	if(isTcp)
 	{
 		//TODO
 		//source & destination ports..
-		count1++;
-		cout<<count1<<"***********\n";
 		struct tcphdr *tcpPacket = (struct tcphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
 		sourcePorts.push_back(ntohs((unsigned short)tcpPacket->th_sport));
 		destinationPorts.push_back(ntohs((unsigned short)tcpPacket->th_dport));
@@ -499,6 +512,7 @@ void computeTransportLayerInfo(const u_char * packet)
 	}
 }
 
+//print transport layer statistics...
 void printTransportLayerInfo()
 {
 	cout<<"\n\n=== Transport layer ===\n\n"; //TODO
