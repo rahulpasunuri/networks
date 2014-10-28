@@ -17,6 +17,7 @@
 #include<netinet/tcp.h> //contains tcphdr struct
 #include <netdb.h> //for getting the protocol type tcp, udp and icmp
 #include<net/if_arp.h> //header file for arp header and arp constants.
+#include<netinet/ip_icmp.h> //header file for icmp header.
 using namespace std;
 
 #include<string.h>
