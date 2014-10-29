@@ -25,8 +25,8 @@ using namespace std;
 #include<stdlib.h>
 #define NUM_TCP_FLAGS 6
 #define NETWORK_A_LEN 4 
-
-
+#define WORD_SIZE 4
+#define MIN_TCP_HEADER_SIZE 5
 
 class vAddress
 {
@@ -201,9 +201,12 @@ vector<unsigned short> destinationPorts;
 vector<unsigned short> sourceUdpPorts;
 vector<unsigned short> destinationUdpPorts;
 
-vector<unsigned short> tcpFlags;
+vector<unsigned short> tcpFlags; //has all the tcp flags
+vector<unsigned short> tcpOptions; //has all the tcp options.
 //below vector will hold TTL of IP packets.
 vector<int> timeToLive;
+
+//below two will hold icmp codes and types respectively...
 vector<unsigned short> icmpCodes;
 vector<unsigned short> icmpTypes;
 
@@ -500,10 +503,7 @@ void computeNetworkLayerInfo(const u_char * packet )
 				arpAddresses.push_back(Arp(ap->dhrd,ap->dpad));						
 			}		 
 				 			  
-		}
-		
-		
-		//TODO
+		}			
 		
 	}
 	else
@@ -616,7 +616,7 @@ void  printNetworkLayerInfo()
 		cout<<"\t\t"<<count<<"\n";			
 	}
 }
-
+int tempCount=0;
 //compute transport layer statistics...
 void computeTransportLayerInfo(const u_char * packet)
 {
@@ -624,7 +624,7 @@ void computeTransportLayerInfo(const u_char * packet)
 	{
 		//TODO
 		//source & destination ports..
-		struct tcphdr *tcpPacket = (struct tcphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
+		struct tcphdr *tcpPacket = (struct tcphdr *)(packet+sizeof(struct ethhdr)+sizeof(struct iphdr));
 		sourcePorts.push_back(ntohs((unsigned short)tcpPacket->th_sport));
 		destinationPorts.push_back(ntohs((unsigned short)tcpPacket->th_dport));
 		
@@ -637,8 +637,44 @@ void computeTransportLayerInfo(const u_char * packet)
 		}
 		
 		//tcp options..
+		//cout<<"**** is "<<(unsigned short)tcpPacket->th_off<<endl;
+		unsigned short dataOffset=((unsigned short)tcpPacket->th_off)*WORD_SIZE+sizeof(struct ethhdr)+sizeof(struct iphdr);
+		short int start=sizeof(struct ethhdr)+sizeof(struct iphdr)+MIN_TCP_HEADER_SIZE*WORD_SIZE;		
+		const u_char* opt=packet+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr);
+		bool isOneSeen=false;
 		
-		
+		while(start<dataOffset)
+		{			
+			unsigned short numBytes=0;
+			unsigned short kind=opt[0];
+			tcpOptions.push_back(kind);		
+			opt++;
+			numBytes++;
+			if(kind==0)
+			{
+				break;
+			}
+			if(kind==1 && isOneSeen==false)
+			{
+				isOneSeen=true;
+			}
+			else if(kind==1 && isOneSeen==true)
+			{
+				tcpOptions.pop_back();
+			}
+			if(kind!=1)
+			{
+				unsigned short lengthOptions=*(opt);			//read the length field.
+				opt=opt+lengthOptions-1;
+				numBytes+=(lengthOptions-1);
+				if(lengthOptions<2)
+				{				
+					cout<<"Some error occurred in reading TCP options"<<endl;
+					exit(1);
+				}
+			}
+			start+=numBytes;
+		}			
 	}
 	else if(isUdp)
 	{
@@ -687,7 +723,7 @@ const char* getTCPFlagName(unsigned short flag)
 
 //print transport layer statistics...
 void printTransportLayerInfo()
-{
+{	
 	cout<<"\n\n=== Transport layer ===\n\n";
 
 	//printing unique transport layer protocols.
@@ -764,6 +800,24 @@ void printTransportLayerInfo()
 			short temp=pow(2,i);
 			//also output the count of each unique port.
 			cout<<getTCPFlagName(temp)<<"\t\t"<<count(tcpFlags.begin(),tcpFlags.end(),temp)<<endl;
+		}
+	}
+	
+	cout<<"\n--- TCP Options ---\n\n";
+	if(tcpOptions.empty())
+	{
+		cout<<"(no results)\n";	
+	}
+	else
+	{
+		sort(tcpOptions.begin(),tcpOptions.end());
+		vector<unsigned short> b1=tcpOptions;
+		std::vector<unsigned short>::iterator it1=unique(tcpOptions.begin(),tcpOptions.end());
+		tcpOptions.resize(distance(tcpOptions.begin(),it1));
+		for(int i=0;i<tcpOptions.size();i++)
+		{
+			//also output the count of each unique port.
+			cout<<tcpOptions[i]<<"\t\t"<<count(b1.begin(),b1.end(),tcpOptions[i])<<endl;
 		}
 	}
 	
