@@ -28,6 +28,14 @@ using namespace std;
 #define WORD_SIZE 4
 #define MIN_TCP_HEADER_SIZE 5
 
+//tcp flags
+#  define TH_FIN        0x01
+#  define TH_SYN        0x02
+#  define TH_RST        0x04
+#  define TH_PUSH       0x08
+#  define TH_ACK        0x10
+#  define TH_URG        0x20
+
 class vAddress
 {
 	private:
