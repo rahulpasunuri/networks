@@ -156,7 +156,7 @@ vector<unsigned short> destinationPorts;
 vector<unsigned short> sourceUdpPorts;
 vector<unsigned short> destinationUdpPorts;
 
-vector<unsigned short> tcpFlags; //has all the tcp flags
+vector<string> tcpFlags; //has all the tcp flags
 vector<unsigned short> tcpOptions; //has all the tcp options.
 //below vector will hold TTL of IP packets.
 vector<int> timeToLive;
@@ -613,20 +613,25 @@ void computeTransportLayerInfo(const u_char * packet)
 		//TODO
 		//source & destination ports..
 		struct tcphdr *tcpPacket = (struct tcphdr *)(packet+sizeof(struct ethhdr)+sizeof(struct iphdr));
-		sourcePorts.push_back(ntohs((unsigned short)tcpPacket->th_sport));
-		destinationPorts.push_back(ntohs((unsigned short)tcpPacket->th_dport));
+		sourcePorts.push_back(ntohs((unsigned short)tcpPacket->source));
+		destinationPorts.push_back(ntohs((unsigned short)tcpPacket->dest));
 		
 		//tcp flags..
-		unsigned short tempFlag=(unsigned short)tcpPacket->th_flags;
-		for(int i=0;i<NUM_TCP_FLAGS;i++)
-		{
-			if(tempFlag & (1<<i))
-				tcpFlags.push_back(pow(2,i));
-		}
-		
+		if((unsigned short)tcpPacket->urg & 1)
+			tcpFlags.push_back("URG");		
+		if((unsigned short)tcpPacket->ack & 1)
+			tcpFlags.push_back("ack");		
+		if((unsigned short)tcpPacket->psh & 1)
+			tcpFlags.push_back("psh");		
+		if((unsigned short)tcpPacket->rst & 1)
+			tcpFlags.push_back("rst");		
+		if((unsigned short)tcpPacket->syn & 1)
+			tcpFlags.push_back("syn");					
+		if((unsigned short)tcpPacket->fin & 1)
+			tcpFlags.push_back("fin");					
 		//tcp options..
 		//cout<<"**** is "<<(unsigned short)tcpPacket->th_off<<endl;
-		unsigned short dataOffset=((unsigned short)tcpPacket->th_off)*WORD_SIZE+sizeof(struct ethhdr)+sizeof(struct iphdr);
+		unsigned short dataOffset=((unsigned short)tcpPacket->doff)*WORD_SIZE+sizeof(struct ethhdr)+sizeof(struct iphdr);
 		short int start=sizeof(struct ethhdr)+sizeof(struct iphdr)+MIN_TCP_HEADER_SIZE*WORD_SIZE;		
 		const u_char* opt=packet+sizeof(struct ethhdr)+sizeof(struct iphdr)+sizeof(struct tcphdr);
 		bool isOneSeen=false;
@@ -668,8 +673,8 @@ void computeTransportLayerInfo(const u_char * packet)
 	{
 		//udp source and destination ports.
 		struct udphdr *udpPacket=(struct udphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
-		sourceUdpPorts.push_back(ntohs((unsigned short)udpPacket->uh_sport));
-		destinationUdpPorts.push_back(ntohs((unsigned short)udpPacket->uh_dport));		
+		sourceUdpPorts.push_back(ntohs((unsigned short)udpPacket->source));
+		destinationUdpPorts.push_back(ntohs((unsigned short)udpPacket->dest));		
 	}
 	else if(isIcmp)
 	{
@@ -678,35 +683,6 @@ void computeTransportLayerInfo(const u_char * packet)
 		icmpCodes.push_back((unsigned short)icmpPacket->code);
 		icmpTypes.push_back((unsigned short)icmpPacket->type);
 	}
-}
-
-const char* getTCPFlagName(unsigned short flag)
-{
-	if(flag==TH_FIN)
-	{
-		return "FIN";
-	}
-	else if(flag==TH_SYN)
-	{
-		return "SYN";
-	}
-	else if(flag==TH_RST)
-	{
-		return "RST";
-	}
-	else if(flag==TH_PUSH)
-	{
-		return "PSH";
-	}
-	else if(flag==TH_ACK)
-	{
-		return "ACK";
-	}
-	else if(flag==TH_URG)
-	{
-		return "URG";
-	}
-	return to_string((long long)flag).c_str();
 }
 
 //print transport layer statistics...
@@ -783,12 +759,15 @@ void printTransportLayerInfo()
 	}
 	else
 	{
-		for(int i=0;i<NUM_TCP_FLAGS;i++)
+		sort(tcpFlags.begin(),tcpFlags.end());
+		vector<string> b1=tcpFlags;
+		std::vector<string>::iterator it1=unique(tcpFlags.begin(),tcpFlags.end());
+		tcpFlags.resize(distance(tcpFlags.begin(),it1));
+		for(int i=0;i<tcpFlags.size();i++)
 		{
-			short temp=pow(2,i);
 			//also output the count of each unique port.
-			cout<<getTCPFlagName(temp)<<"\t\t"<<count(tcpFlags.begin(),tcpFlags.end(),temp)<<endl;
-		}
+			cout<<tcpFlags[i]<<"\t\t"<<count(b1.begin(),b1.end(),tcpFlags[i])<<endl;
+		}	
 	}
 	
 	cout<<"\n--- TCP Options ---\n\n";
