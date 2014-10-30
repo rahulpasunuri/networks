@@ -633,8 +633,8 @@ void computeTransportLayerInfo(const u_char * packet)
 		//TODO
 		//source & destination ports..
 		struct tcphdr *tcpPacket = (struct tcphdr *)(packet+sizeof(struct ethhdr)+sizeof(struct iphdr));
-		sourcePorts.push_back(ntohs((unsigned short)tcpPacket->th_sport));
-		destinationPorts.push_back(ntohs((unsigned short)tcpPacket->th_dport));
+		sourcePorts.push_back(ntohs((unsigned short)tcpPacket->source));
+		destinationPorts.push_back(ntohs((unsigned short)tcpPacket->dest));
 		
 		//tcp flags..
 		unsigned short tempFlag=(unsigned short)tcpPacket->th_flags;
