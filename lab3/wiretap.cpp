@@ -118,30 +118,6 @@ typedef struct arphdr {
     u_char dpad[NETWORK_A_LEN];      /* Target IP address       */ 
 }arphdr_t; 
 
-class Arp
-{
-	public:
-	u_char ethrd[ETH_ALEN] ;   
-	u_char iprd[NETWORK_A_LEN];
-	
-	Arp(u_char *ethrd, u_char *iprd)
-	{		
-		memcpy(this->ethrd,ethrd,ETH_ALEN);
-		memcpy(this->iprd,iprd,NETWORK_A_LEN);
-	}	
-	
-	void printReadableArpAddress()
-	{		
-		int i=0;
-		for(;i<ETH_ALEN-1;i++)
-		{
-			printf("%02x:",ethrd[i]);
-		}
-		printf("%02x / ",ethrd[i]);	
-		cout<<(short)iprd[3]<<"."<<(short)iprd[2]<<"."<<(short)iprd[1]<<"."<<(short)iprd[0];			
-	}
-		
-};
 
 //global variables init statements..
 int numPackets=0;
@@ -158,27 +134,6 @@ bool isUdp= false;
 bool isIP=false;
 bool isARP=false;
 
-
-bool sortVectors(const Arp obj1,const Arp obj2)
-{
-  if(strcmp((char*)obj1.ethrd,(char*)obj2.ethrd)<0)
-  	return true;
-  else if(strcmp((char*)obj1.ethrd,(char*)obj2.ethrd)>0)
-  	return false;
-  else if(strcmp((char*)obj1.iprd,(char*)obj2.iprd)<0)
-  	return true;
-  else 
-  	return false;
-}
-
-bool equalVectors(const Arp obj1,const Arp obj2)
-{
-	if((strcmp((char*)obj1.ethrd,(char*)obj2.ethrd)==0)&&(strcmp((char*)obj1.iprd,(char*)obj2.iprd)==0))
-		return true;
-	else 
-		return false;
-}
-
 vAddress* headSrcEthernetAddress=NULL;
 vAddress* tailSrcEthernetAddress=NULL;
 vAddress* headRmtEthernetAddress=NULL;
@@ -191,7 +146,7 @@ vAddress* tailRmtNetworkAddress=NULL;
 //below vector will hold transport layer protocols.
 vector<string> transportLayerProtocols;
 vector<int> networkLayerProtocols;
-vector<Arp> arpAddresses;
+vector<string> arpAddresses;
 
 //below two vectors will hold source and destination tcp ports..
 vector<unsigned short> sourcePorts;
@@ -499,8 +454,43 @@ void computeNetworkLayerInfo(const u_char * packet )
 			{ 
 				 
 				//  MAC Addresses
-				arpAddresses.push_back(Arp(ap->shrd,ap->spad));
-				arpAddresses.push_back(Arp(ap->dhrd,ap->dpad));						
+				string s1;
+				char buf[10]; int i=0;
+				for(;i<ETH_ALEN-1;i++)
+				{
+					sprintf(buf,"%02x:",ap->shrd[i]);
+					s1.append(buf);
+				}
+				sprintf(buf,"%02x",ap->shrd[i]);
+				s1.append(buf);
+				uint32_t num = (uint32_t)ap->spad[0] << 24 |(uint32_t)ap->spad[1] << 16|(uint32_t)ap->spad[2] << 8|(uint32_t)ap->spad[3]; 
+	
+				num = ntohl(num);		
+				struct in_addr N;
+				N.s_addr = num;
+				char* m = inet_ntoa(N);
+				string s2(m);
+				string s3 = s1+string("/")+s2;
+				arpAddresses.push_back(s3);
+				string s4; char buf1[10];
+				int k=0;
+				for(;k<ETH_ALEN-1;k++)
+				{
+					sprintf(buf1,"%02x:",ap->dhrd[k]);
+					s4.append(buf1);
+				}
+				sprintf(buf1,"%02x",ap->dhrd[k]);
+				s4.append(buf1);
+				uint32_t num1 = (uint32_t)ap->dpad[0] << 24 |(uint32_t)ap->dpad[1] << 16|(uint32_t)ap->dpad[2] << 8|(uint32_t)ap->dpad[3]; 
+				num1 = ntohl(num1);
+				struct in_addr M;		
+				M.s_addr = num1;
+				char* m1 = inet_ntoa(M);
+				string s5(m1);
+				
+				string s6 = s4+string("/")+s5;
+				arpAddresses.push_back(s6);
+						
 			}		 
 				 			  
 		}			
@@ -596,26 +586,24 @@ void  printNetworkLayerInfo()
         std::cout << timeToLive[i]<<"\t\t"<<count(bckup.begin(),bckup.end(),timeToLive[i])<<endl;
 	}
 	cout<<"\n\n.... unique arp participants....\n\n";
-	vector<Arp>::iterator it1;
 		
-	vector<Arp> backup1 = arpAddresses;
-	//sort(arpAddresses.begin(), arpAddresses.end(),sortVectors);	
-	//it1= unique(arpAddresses.begin(),arpAddresses.end(),equalVectors);
+		sort(arpAddresses.begin(),arpAddresses.end());
+		vector<string> bckup1=arpAddresses;
+		std::vector<string>::iterator it1;
+		it1=unique(arpAddresses.begin(),arpAddresses.end());
+		arpAddresses.resize(distance(arpAddresses.begin(),it1));
 
-	for(int i=0;i<arpAddresses.size();i++)   //printing arpAddresses
-	{
-		arpAddresses[i].printReadableArpAddress();
-		int count=0;
-		for(int j=0;j<arpAddresses.size();j++)
-		{
-			if(i!=j && equalVectors(arpAddresses[i],arpAddresses[j]))
-			{
-				count++;
-			}
+		for (int h=0;h<	arpAddresses.size();h++)
+		{    
+			//also output the count of each unique protocol
+			cout << arpAddresses[h]<<"\t\t\t\t"<<count(bckup1.begin(),bckup1.end(),arpAddresses[h])<<endl;
 		}
-		cout<<"\t\t"<<count<<"\n";			
-	}
+
+	
 }
+
+
+
 int tempCount=0;
 //compute transport layer statistics...
 void computeTransportLayerInfo(const u_char * packet)
