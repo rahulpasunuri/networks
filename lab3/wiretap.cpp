@@ -685,8 +685,8 @@ void computeTransportLayerInfo(const u_char * packet)
 	{
 		//udp source and destination ports.
 		struct udphdr *udpPacket=(struct udphdr *)(packet+sizeof(struct ethhdr)+sizeof(iphdr));
-		sourceUdpPorts.push_back(ntohs((unsigned short)udpPacket->uh_sport));
-		destinationUdpPorts.push_back(ntohs((unsigned short)udpPacket->uh_dport));		
+		sourceUdpPorts.push_back(ntohs((unsigned short)udpPacket->source));
+		destinationUdpPorts.push_back(ntohs((unsigned short)udpPacket->dest));		
 	}
 	else if(isIcmp)
 	{
