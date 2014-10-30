@@ -472,24 +472,7 @@ void computeNetworkLayerInfo(const u_char * packet )
 				string s2(m);
 				string s3 = s1+string("/")+s2;
 				arpAddresses.push_back(s3);
-				string s4; char buf1[10];
-				int k=0;
-				for(;k<ETH_ALEN-1;k++)
-				{
-					sprintf(buf1,"%02x:",ap->dhrd[k]);
-					s4.append(buf1);
-				}
-				sprintf(buf1,"%02x",ap->dhrd[k]);
-				s4.append(buf1);
-				uint32_t num1 = (uint32_t)ap->dpad[0] << 24 |(uint32_t)ap->dpad[1] << 16|(uint32_t)ap->dpad[2] << 8|(uint32_t)ap->dpad[3]; 
-				num1 = ntohl(num1);
-				struct in_addr M;		
-				M.s_addr = num1;
-				char* m1 = inet_ntoa(M);
-				string s5(m1);
 				
-				string s6 = s4+string("/")+s5;
-				arpAddresses.push_back(s6);
 						
 			}		 
 				 			  
