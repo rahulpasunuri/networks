@@ -12,7 +12,12 @@ vAddress* headSrcNetworkAddress=NULL;
 vAddress* tailSrcNetworkAddress=NULL;
 vAddress* headRmtNetworkAddress=NULL;
 vAddress* tailRmtNetworkAddress=NULL;
-
+bool isTcpUrgSeen=false;
+bool isTcpAckSeen=false;
+bool isTcpPshSeen=false;
+bool isTcpRstSeen=false;
+bool isTcpFinSeen=false;
+bool isTcpSynSeen=false;
 
 bool vAddress::isAddressMatch(unsigned char* a,int size=ETH_ALEN)
 {
@@ -515,17 +520,35 @@ void computeTransportLayerInfo(const u_char * packet)
 		
 		//tcp flags..
 		if((unsigned short)tcpPacket->urg & 1)
-			tcpFlags.push_back("URG");		
+		{
+			isTcpUrgSeen= true;
+			tcpFlags.push_back("URG");
+		}			
 		if((unsigned short)tcpPacket->ack & 1)
-			tcpFlags.push_back("ack");		
+		{
+			isTcpAckSeen= true;
+			tcpFlags.push_back("ACK");
+		}			
 		if((unsigned short)tcpPacket->psh & 1)
-			tcpFlags.push_back("psh");		
+		{
+			isTcpPshSeen= true;
+			tcpFlags.push_back("PSH");
+		}			
 		if((unsigned short)tcpPacket->rst & 1)
-			tcpFlags.push_back("rst");		
+		{
+			isTcpRstSeen= true;
+			tcpFlags.push_back("RST");
+		}			
 		if((unsigned short)tcpPacket->syn & 1)
-			tcpFlags.push_back("syn");					
+		{
+			isTcpSynSeen= true;
+			tcpFlags.push_back("SYN");
+		}					
 		if((unsigned short)tcpPacket->fin & 1)
-			tcpFlags.push_back("fin");					
+		{
+			isTcpFinSeen= true;
+			tcpFlags.push_back("FIN");
+		}						
 		//tcp options..
 		//cout<<"**** is "<<(unsigned short)tcpPacket->th_off<<endl;
 		unsigned short dataOffset=((unsigned short)tcpPacket->doff)*WORD_SIZE+sizeof(struct ethhdr)+sizeof(struct iphdr);
@@ -664,6 +687,31 @@ void printTransportLayerInfo()
 		{
 			//also output the count of each unique port.
 			cout<<tcpFlags[i]<<"\t\t"<<count(b1.begin(),b1.end(),tcpFlags[i])<<endl;
+			
+		}
+		if(!isTcpUrgSeen)
+		{
+			cout<<"URG"<<"\t\t"<<"0"<<endl;
+		}			
+		if(!isTcpAckSeen)
+		{
+			cout<<"ACK"<<"\t\t"<<"0"<<endl;
+		}			
+		if(!isTcpPshSeen)
+		{
+			cout<<"PSH"<<"\t\t"<<"0"<<endl;
+		}			
+		if(!isTcpRstSeen)
+		{
+			cout<<"RST"<<"\t\t"<<"0"<<endl;
+		}			
+		if(!isTcpFinSeen)
+		{
+			cout<<"FIN"<<"\t\t"<<"0"<<endl;
+		}					
+		if(!isTcpSynSeen)
+		{
+			cout<<"SYN"<<"\t\t"<<"0"<<endl;
 		}	
 	}
 	
