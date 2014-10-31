@@ -25,6 +25,97 @@
 #include "../include/Core.h"
 using namespace std;
 
+
+// Checksum function
+uint16_t checksum (uint16_t *addr, int len)
+{
+  int nleft = len;
+  int sum = 0;
+  uint16_t *w = addr;
+  uint16_t answer = 0;
+
+  while (nleft > 1) {
+    sum += *w++;
+    nleft -= sizeof (uint16_t);
+  }
+
+  if (nleft == 1) {
+    *(uint8_t *) (&answer) = *(uint8_t *) w;
+    sum += answer;
+  }
+
+  sum = (sum >> 16) + (sum & 0xFFFF);
+  sum += (sum >> 16);
+  answer = ~sum;
+  return (answer);
+}
+
+//working check sum method...
+uint16_t computeIpHeaderCheckSum(iphdr ip)
+{
+	ip.check=0; //init 
+	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
+	unsigned int numWords = sizeof(struct iphdr)/2; // 16 bits is 2 bytes...
+	uint16_t* words = new uint16_t[numWords];
+	memcpy(words,&ip,sizeof(struct iphdr));
+	
+	uint32_t temp=0;
+	uint32_t sumWords = 0;
+	
+	temp=~temp; //temp is all 1's now..
+	uint16_t highEnd = temp << 16; //high end 16 bits are 1...
+	uint16_t lowEnd = temp>>16; //low end 16 bits are 1..
+	uint16_t wordRight;
+	uint16_t wordLeft;
+	for(unsigned int i=0;i<numWords;i++)
+	{
+		sumWords += words[i];
+		wordLeft = sumWords >>16; //get the left break up of sum/			
+		while(wordLeft!=0)
+		{
+			sumWords = sumWords & lowEnd;
+			sumWords += wordLeft;
+			wordLeft = sumWords>>16; //get the left break up of sum/
+		}
+	}	
+	return ~(sumWords&lowEnd);	
+}
+
+void play()
+{
+	string myIp="127.0.0.1";
+	int port = 9999; //TODO
+	int sock=socket(AF_INET, SOCK_RAW, IPPROTO_RAW); //ip header is not included in this combination atleast in linux..
+	if (sock < 0)
+	{
+		cout<<"Socket Creation Failed!!\n";
+		cout<<"Stopping the thread"<<endl;
+		exit(1); //exit from thread
+	}
+	//how to un-set  IP_HDRINCL???
+	struct iphdr ip;
+	struct tcphdr tcp;		
+	
+	//fill the iphdr info...
+	ip.ihl = sizeof(struct iphdr)/sizeof (uint32_t); //# words in ip header.
+	ip.version = 4; //IPV4
+
+
+
+
+	ip.ip_tos = 0; //tos stands for type of service (0 : Best Effort)
+	ip.tot_len = htons(sizeof(iphdr) + sizeof(tcphdr));
+	ip.ip_id = htons (0); //can we use this in a intelligent way ??? it is unused...
+	ip.frag_off=
+	ip.ttl = 0;
+	ip.ttl = ~ip.ttl; //set it to all 1's
+	ip.protocol = IPPROTO_TCP; //as transport layer protocol is tcp..
+    ip.check;
+    ip.saddr;
+    ip.daddr;
+}
+
+
 void printArguments(args_t args)
 {
 	cout<<"\n----------------------------"<<endl;	
@@ -375,5 +466,6 @@ int main(int argc, char** argv)
 {
 	args_t args=parseArguments(argc,argv);
 	printArguments(args);
+	play();
 	return 0;
 }
