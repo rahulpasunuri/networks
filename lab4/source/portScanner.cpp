@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include<fstream>
 #include "../include/HelperClass.h"
+#include "../include/Core.h"
 using namespace std;
 
 void printArguments(args_t args)
