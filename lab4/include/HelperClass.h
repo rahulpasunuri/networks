@@ -44,4 +44,5 @@ class HelperClass
 		static bool isValidIpAddress(string ip);
 		static bool isNumber(string s);
 		static const char* getScanTypeName(scanTypes_t inp);
+		static scanTypes_t getScanTypeId(string s);
 };

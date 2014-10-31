@@ -225,6 +225,42 @@ args_t parseArguments(int argc, char** argv)
 					usage();
 					HelperClass::TerminateApplication("Scan Types not specified");
 				}
+				else
+				{
+					int i=0;
+					for(;i<argc;i++)
+					{
+						if(strcmp(argv[i],"--scan")==0)
+						{
+							break;							
+						}
+					}
+					i++;
+					int j=i;
+					while(j<argc)
+					{						
+						if(argv[j][0] == '-')
+						{
+							break;
+						}
+						j++;
+					}
+					vector<string> scanTypes;
+					for(int k=i;k<j;k++)
+					{
+						scanTypes.push_back(argv[k]);
+					}
+
+					vector<string>::iterator it = scanTypes.begin();
+					while(it!=scanTypes.end())
+					{
+						if((*it)!="")
+						{
+							args.scanTypes.push_back(HelperClass::getScanTypeId(*it));	
+						}
+						it++;
+					}
+				}
 				break;
 			  
 			case 'f':

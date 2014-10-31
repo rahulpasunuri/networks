@@ -97,6 +97,33 @@ bool HelperClass::isValidIpAddress(string ip)
 	return false;
 }
 
+scanTypes_t HelperClass::getScanTypeId(string s)
+{
+	if(s=="SYN")
+	{
+		return TCP_SYN;
+	}
+	if(s=="NULL")
+	{
+		return TCP_NULL;
+	}
+	if(s=="FIN")
+	{
+		return TCP_FIN;
+	}
+	if(s=="XMAS")
+	{
+		return TCP_XMAS;
+	}
+	if(s=="ACK")
+	{
+		return TCP_ACK;
+	}
+	if(s=="UPD")
+	 return UDP;
+	HelperClass::TerminateApplication("Unknown scan Type"+ s);
+	return UDP;//to make the compiler happy
+}
 
 bool HelperClass::CheckIfFileExists(const char* fileName)
 {
