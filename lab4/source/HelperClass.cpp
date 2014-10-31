@@ -49,7 +49,6 @@ const char* HelperClass::getScanTypeName(scanTypes_t inp)
 		return "UDP";
 	}
 	return "MISC";
-
 }
 
 bool HelperClass::isValidPortNumber(int portNum)
@@ -89,8 +88,13 @@ bool HelperClass::isNumber(string s)
 
 bool HelperClass::isValidIpAddress(string ip)
 {
-	//TODO
-	return true;
+	struct sockaddr_in sa;
+	int retVal=inet_pton(AF_INET, ip.c_str(), &(sa.sin_addr));
+	if(retVal>0)
+	{
+		return true;
+	}
+	return false;
 }
 
 

@@ -129,13 +129,52 @@ args_t parseArguments(int argc, char** argv)
 				break;
 
 			case 'b':
+			{
 				if(optarg==NULL)
 				{
-					HelperClass::TerminateApplication("IP prefix is not specified");
 					usage();
+					HelperClass::TerminateApplication("IP prefix is not specified");
 				}
-				printf("prefix is ");
-				cout<<optarg<<endl;
+				string t=optarg;
+				unsigned int index=t.find('/');
+				if(index==string::npos)
+				{
+					HelperClass::TerminateApplication("No mask specified in ip prefix");
+				}
+				string baseIp=t.substr(0,index);
+				string mask=t.substr(index+1);
+				if(!HelperClass::isNumber(mask))				
+				{
+					HelperClass::TerminateApplication("Specified mask is not valid");
+				}
+				if(!HelperClass::isValidIpAddress(baseIp))
+				{
+					HelperClass::TerminateApplication("Base IP address mentioned in prefix is not a valid IP");
+				}
+				//let ip be in a.b.c.d format..
+				struct sockaddr_in sa;
+				inet_pton(AF_INET, baseIp.c_str(), &(sa.sin_addr));
+				unsigned int maskLen = atoi(mask.c_str());
+				unsigned int maskInt = 0;
+				maskInt = ~maskInt;
+				maskInt=maskInt>>(32-maskLen);
+				maskInt=maskInt<<(32-maskLen);
+				char s1[INET_ADDRSTRLEN];
+				unsigned int baseIpInt=ntohl(sa.sin_addr.s_addr);
+				baseIpInt=baseIpInt & maskInt;
+
+				unsigned int maxTail= 0;
+				maxTail = ~maxTail;
+				maxTail = maxTail>>maskLen;				
+				
+				unsigned int start=0;
+				for(;start<=maxTail;start++)
+				{				
+					sa.sin_addr.s_addr=htonl(baseIpInt+start);
+					inet_ntop(AF_INET, &(sa.sin_addr), s1, INET_ADDRSTRLEN);
+					args.ipAddresses.push_back(s1);
+				}			
+			}
 				break;
 
 			case 'c':
