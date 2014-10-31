@@ -9,23 +9,39 @@ email:manivutt@indiana.edu
 
 ------------------------
 Introduction:
-
+The project 'Wiretap' is a IPV4 packet parser.
 
 Functionalities:
-
+1. Parses the IPV4 packets captured from the ethernet.
+2. Gives information about the no. of IPV6 packets present in the captured data.
+3. Extracts and displays the link layer, network layer and transport layer information of all the packets captured.  
 
 Rules for Compiling the code:
-There is a 'makefile' written in the project's main folder. Open a comman prompt, 'cd' to the project's main folder, and then execute 'make' command. This command creates the object files and the executables in the "object/" and "bin/" directories respectively.  
+1.  There is a 'makefile' written in the project's main folder. Open a command prompt, 'cd' to the project's main folder, and then execute "make" or "make all"  command. This     command creates the object files and the executables in the "object/" and "bin/" directories respectively.  
+2.  Execute "make clear" to clear the object and bin directories.
 
 Usage:
-
+./bin/Wiretap --open <.pcap file path>
 Usage Examples:
 
+./bin/Wiretap --open ./sampletestfiles/wget.pcap
+
+./bin/Wiretap --help
 
 Description of Project Folders and Files:
 
-Limitations of the Project:
+object(Folder):    Contains the object files created for the .cpp files present in the source folder
+include(Folder):   Contains the necessary custom header file "Wiretap.h" for the source code 
+source(Folder):    Contains the source file "Wiretap.cpp" 
+bin(Folder):       Contains the executable "Wiretap" which is created after running the makefile
+sampletestfiles:   Conatins sample test files for project.
+sampleoutputfiles: Contains sample out put files for the project.
+makefile:          Contains rules for compilation of the files need to generate the executable.
+run.sh(shell script file): A shell script file is provided with the code so that it would be easy to run and test the project source code.
 
+Limitations of the Project:
+1. project only handles the parsing of IPV4 pcakets, though it keeps count of the no. of IPV6 packets present in the captured data.
+2. Parsing logic wriiten in project is only applicable for the data captured from ethernet.  
 
 References:
 1) Programming with pcap, http://www.tcpdump.org/pcap.htm
