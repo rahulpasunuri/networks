@@ -64,13 +64,14 @@ bool isValidIpAddress(string ip)
 	return true;
 }
 
-
 bool isValidPortNumber(int portNum)
 {
-	//TODO
-	return true;
+	if(portNum>65535)
+	{		
+		return false;
+	}
+	else return true;
 }
-
 
 const char* getScanTypeName(scanTypes_t inp)
 {
