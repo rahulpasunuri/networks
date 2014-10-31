@@ -32,6 +32,32 @@ enum scanTypes_t
 	UDP
 };
 
+bool isNumber(string s)
+{
+	if(s.empty())
+	{
+		return false;
+	} 
+	string::iterator it = s.begin();
+	
+	//skip starting white spaces;
+	while(isspace(*it))
+	{
+		it++;
+	}
+
+	while(it!=s.end())
+	{
+		//if a non digit is encountered then return false.
+		if(!isdigit(*it))
+		{
+			return false;
+		}
+		it++;
+	}
+	return true;	
+}
+
 bool isValidIpAddress(string ip)
 {
 	//TODO
@@ -39,7 +65,7 @@ bool isValidIpAddress(string ip)
 }
 
 
-bool isValidPortNumber()
+bool isValidPortNumber(int portNum)
 {
 	//TODO
 	return true;
@@ -226,14 +252,72 @@ args_t parseArguments(int argc, char** argv)
 				break;
 			  
 			case 'f':
+			{
 				if(optarg==NULL)
 				{
 					cout<<"Port Numbers not specified"<<endl;
 					usage();
 					exit(1);
 				}
-				//if(isValidPortNumber()) TODO
-				cout<<"Ports is "<<optarg<<endl;
+				
+				vector<string> ranges;
+				
+				//port numbers are specified in a range or comma-separated.				
+				string temp1=optarg;
+				
+				while(temp1.find(',')!=string::npos)
+				{
+					int index=temp1.find(',');
+					ranges.push_back(temp1.substr(0,index));
+					temp1=temp1.substr(index+1);;
+				}
+				ranges.push_back(temp1); //push the last range into the list...
+
+				vector<string>::iterator it=ranges.begin();
+				while(it!=ranges.end())
+				{
+					if((*it).find('-')!=string::npos)
+					{				
+						int index=(*it).find('-');
+						string start=(*it).substr(0,index);
+						string end=(*it).substr(index+1);
+						if(!isNumber(start) || !isNumber(end))
+						{
+							cout<<"syntax of range in ports is wrong"<<endl;
+							exit(1);
+						}
+						else
+						{
+							int startIndex=atoi(start.c_str());
+							int endIndex=atoi(end.c_str());
+							for(int i=startIndex;i<=endIndex;i++)
+							{
+								args.portNumbers.push_back(i);
+							}
+						}
+					}
+					else if(isNumber(*it))
+					{
+						//this happens when a single port number is mentioned
+						if(isValidPortNumber(atoi(optarg)))
+						{
+							args.portNumbers.push_back(atoi(optarg));
+						}
+						else
+						{
+							cout<<"Invalid port number specified"<<endl;
+							exit(1);
+						}
+					}
+					else
+					{
+						cout<<"syntax of range in ports is wrong"<<endl;
+						exit(1);
+					}
+					it++;
+						
+				}								
+			}
 				break;
 
 			case 'g':
