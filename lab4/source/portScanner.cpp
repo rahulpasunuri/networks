@@ -20,113 +20,30 @@
 //#include<net/if_arp.h> //header file for arp header and arp constants.
 #include<netinet/ip_icmp.h> //header file for icmp header.
 #include <unistd.h>
+#include<fstream>
+#include "../include/HelperClass.h"
 using namespace std;
-
-enum scanTypes_t
-{
-	TCP_SYN,
-	TCP_NULL,
-	TCP_FIN,
-	TCP_XMAS,
-	TCP_ACK,
-	UDP
-};
-
-bool isNumber(string s)
-{
-	if(s.empty())
-	{
-		return false;
-	} 
-	string::iterator it = s.begin();
-	
-	//skip starting white spaces;
-	while(isspace(*it))
-	{
-		it++;
-	}
-
-	while(it!=s.end())
-	{
-		//if a non digit is encountered then return false.
-		if(!isdigit(*it))
-		{
-			return false;
-		}
-		it++;
-	}
-	return true;	
-}
-
-bool isValidIpAddress(string ip)
-{
-	//TODO
-	return true;
-}
-
-bool isValidPortNumber(int portNum)
-{
-	if(portNum>65535)
-	{		
-		return false;
-	}
-	else return true;
-}
-
-const char* getScanTypeName(scanTypes_t inp)
-{
-	if(inp==TCP_SYN)
-	{
-		return "SYN";
-	}
-	if(inp==TCP_NULL)
-	{
-		return "NULL";
-	}
-	if(inp==TCP_FIN)
-	{
-		return "FIN";
-	}
-	if(inp==TCP_XMAS)
-	{
-		return "XMAS";
-	}
-	if(inp==TCP_ACK)
-	{
-		return "ACK";
-	}
-	if(inp==UDP)
-	{
-		return "UDP";
-	}
-	return "MISC";
-
-}
-
-struct args_t
-{
-	vector<int> portNumbers;
-	vector<string> ipAddresses;
-	bool verboseMode;
-	int numThreads;
-	vector<scanTypes_t> scanTypes;
-};
 
 void printArguments(args_t args)
 {
+	cout<<"\n----------------------------"<<endl;	
+	cout<<"Printing Arguments"<<endl;
+	cout<<"----------------------------"<<endl;	
 	cout<<"Num threads is "<<args.numThreads<<endl;
 	cout<<"verbose Mode is "<<args.verboseMode<<endl;
-	
+	cout<<"\n----------------------------"<<endl;	
 	cout<<"Printing Scan types"<<endl;
+	cout<<"----------------------------"<<endl;	
 	vector<scanTypes_t>::iterator it=args.scanTypes.begin();
 	while(it!=args.scanTypes.end())
 	{
-		cout<<getScanTypeName(*it)<<endl;
+		cout<<HelperClass::getScanTypeName(*it)<<endl;
 		it++;
 	}
 	cout<<endl;
-	
+	cout<<"----------------------------"<<endl;	
 	cout<<"Printing ip addresses"<<endl;
+	cout<<"----------------------------"<<endl;	
 	vector<string>::iterator it1=args.ipAddresses.begin();
 	while(it1!=args.ipAddresses.end())
 	{
@@ -135,7 +52,9 @@ void printArguments(args_t args)
 	}
 	cout<<endl;	
 	
+	cout<<"----------------------------"<<endl;	
 	cout<<"Printing port numbers"<<endl;
+	cout<<"----------------------------"<<endl;		
 	vector<int>::iterator it2=args.portNumbers.begin();
 	while(it2!=args.portNumbers.end())
 	{
@@ -196,27 +115,24 @@ args_t parseArguments(int argc, char** argv)
 			case 'a':
 				if(optarg==NULL)
 				{
-					cout<<"IP address is not specified"<<endl;
 					usage();
-					exit(1);
+					HelperClass::TerminateApplication("IP address is not specified");
 				}
-				if(isValidIpAddress(optarg))
+				if(HelperClass::isValidIpAddress(optarg))
 				{
 					args.ipAddresses.push_back(optarg);
 				}
 				else
 				{
-					cout<<"Ip address mentioned is not a valid ip address"<<endl;
-					exit(1);
+					HelperClass::TerminateApplication("Ip address mentioned is not a valid ip address");
 				}				
 				break;
 
 			case 'b':
 				if(optarg==NULL)
 				{
-					cout<<"IP prefix is not specified"<<endl;
+					HelperClass::TerminateApplication("IP prefix is not specified");
 					usage();
-					exit(1);
 				}
 				printf("prefix is ");
 				cout<<optarg<<endl;
@@ -225,40 +141,59 @@ args_t parseArguments(int argc, char** argv)
 			case 'c':
 				if(optarg==NULL)
 				{
-					cout<<"Number of threads is not specified"<<endl;
 					usage();
-					exit(1);
+					HelperClass::TerminateApplication("Number of threads is not specified");
 				}
 				args.numThreads=atoi(optarg);
 				break;
 
 			case 'd':
+			{
 				if(optarg==NULL)
 				{
-					cout<<"File name of ip addressed is not specified"<<endl;
 					usage();
-					exit(1);
+					HelperClass::TerminateApplication("File name of ip addressed is not specified");
 				}
-				cout<<"Filename to scan is "<<optarg;
+				if(!HelperClass::CheckIfFileExists(optarg))
+				{
+					HelperClass::TerminateApplication("File containing ip addresses does not exist");
+				}
+				fstream f;
+				f.open(optarg,ios::in);
+				string ip;
+				while(!f.eof()) 
+				{
+					ip.clear();
+					f>>ip;
+					if(ip!="")
+					{
+						if(HelperClass::isValidIpAddress(ip))
+						{
+							args.ipAddresses.push_back(ip);
+						}
+						else
+						{
+							HelperClass::TerminateApplication("Some Ip addresses in file are not valid");
+						}
+					}
+				}				
+			}
 				break;
 
 			case 'e':
 				if(optarg==NULL)
 				{
-					cout<<"Scan Types not specified"<<endl;
 					usage();
-					exit(1);
+					HelperClass::TerminateApplication("Scan Types not specified");
 				}
-				cout<<"Scan Types is "<<optarg;
 				break;
 			  
 			case 'f':
 			{
 				if(optarg==NULL)
 				{
-					cout<<"Port Numbers not specified"<<endl;
 					usage();
-					exit(1);
+					HelperClass::TerminateApplication("Port Numbers not specified");
 				}
 				
 				vector<string> ranges;
@@ -278,17 +213,18 @@ args_t parseArguments(int argc, char** argv)
 				while(it!=ranges.end())
 				{
 					if((*it).find('-')!=string::npos)
-					{				
+					{			
+						//split the ranges	
 						int index=(*it).find('-');
 						string start=(*it).substr(0,index);
 						string end=(*it).substr(index+1);
-						if(!isNumber(start) || !isNumber(end))
+						if(!HelperClass::isNumber(start) || !HelperClass::isNumber(end))
 						{
-							cout<<"syntax of range in ports is wrong"<<endl;
-							exit(1);
+							HelperClass::TerminateApplication("syntax of range in ports is wrong");
 						}
 						else
 						{
+							// add all the ports derived from range...
 							int startIndex=atoi(start.c_str());
 							int endIndex=atoi(end.c_str());
 							for(int i=startIndex;i<=endIndex;i++)
@@ -297,23 +233,21 @@ args_t parseArguments(int argc, char** argv)
 							}
 						}
 					}
-					else if(isNumber(*it))
+					else if(HelperClass::isNumber(*it))
 					{
 						//this happens when a single port number is mentioned
-						if(isValidPortNumber(atoi(optarg)))
+						if(HelperClass::isValidPortNumber(atoi(optarg)))
 						{
 							args.portNumbers.push_back(atoi(optarg));
 						}
 						else
 						{
-							cout<<"Invalid port number specified"<<endl;
-							exit(1);
+							HelperClass::TerminateApplication("Invalid port number specified");
 						}
 					}
 					else
 					{
-						cout<<"syntax of range in ports is wrong"<<endl;
-						exit(1);
+						HelperClass::TerminateApplication("syntax of range in ports is wrong");
 					}
 					it++;
 						
@@ -327,7 +261,7 @@ args_t parseArguments(int argc, char** argv)
 			  
 			default:
 			  usage();
-			  exit(1);
+    		  HelperClass::TerminateApplication("Arguments are not specified in the right syntax");
 		}
 	}
 	//assign default values for port numbers.
@@ -353,9 +287,8 @@ args_t parseArguments(int argc, char** argv)
 	//check for the presence of atleast one ip address..	
 	if(args.ipAddresses.empty())
 	{
-		cout<<"IP Address not specified"<<endl;
 		usage();
-		exit(1);
+		HelperClass::TerminateApplication("IP Address not specified");	
 	}
 	
 	return args;
