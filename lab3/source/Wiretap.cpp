@@ -1,5 +1,3 @@
-
-
 #include "../include/Wiretap.h"
 
 using namespace std;
@@ -842,7 +840,19 @@ int main(int argc, char* argv[])
 {
 
 	char* fileName=parseArguments(argc, argv);
-	cout<<"Evaluating file: "<<fileName<<endl;
+	string S(fileName);
+	int Tag=S.find_last_of("/");
+   	string NoSlash=S.substr(Tag+1);
+	cout<<"Evaluating file: "<<NoSlash<<endl;
+	
+	if(CheckIfFileExists((const char*)fileName))
+	{
+		cout<<"file: "<<NoSlash<<" exists"<<endl;
+	}
+	else
+	{
+		cout<<"file: "<<NoSlash<<" does not exist"<<endl;
+	}	
 
 	char errbuf[PCAP_ERRBUF_SIZE]; //will hold the error messages..
 	

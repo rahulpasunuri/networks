@@ -19,6 +19,7 @@
 #include <netinet/tcp.h> //contains tcphdr struct
 #include <netdb.h> //for getting the protocol type tcp, udp and icmp
 #include<netinet/ip_icmp.h> //header file for icmp header.
+#include<fstream>
 using namespace std;
 
 #include<string.h>
@@ -99,4 +100,19 @@ char* parseArguments(int argc, char* argv[]);
 void computeSummary(const struct pcap_pkthdr *header, const u_char *packet);
 void computeTransportLayerInfo(const u_char * packet);
 void computeNetworkLayerInfo(const u_char * packet );
-
+bool CheckIfFileExists(const char* fileName)
+{
+	ifstream f(fileName);
+	if (f.good()) 
+	{
+		//file exists...
+		f.close();
+		return true;
+	} 
+	else 
+	{
+		//file doesnt exist...
+		f.close();
+		return false;
+	}
+}
