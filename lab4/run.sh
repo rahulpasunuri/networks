@@ -1,3 +1,3 @@
 make
-./bin/portScanner --ip 8.8.8.8 --prefix 127.0.0.1/24 --speedup 2 --file ipAddresses.txt --scan FIN ACK --verbose --ports 6000,6111-6115	  
+sudo nice ./bin/portScanner --ip 8.8.8.8 --prefix 127.90.101.1/30 --speedup 2 --scan FIN ACK --file ipAddresses.txt --verbose --ports 6000,6111-6115 
 
