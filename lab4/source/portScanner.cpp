@@ -21,9 +21,149 @@
 #include<netinet/ip_icmp.h> //header file for icmp header.
 #include <unistd.h>
 #include<fstream>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <errno.h>
+#include <string.h>
+
 #include "../include/HelperClass.h"
 #include "../include/Core.h"
 using namespace std;
+
+#define WORD_SIZE 4
+
+
+//working check sum method...
+uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size)
+{	 
+	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
+	unsigned int numWords = size/2; // 16 bits is 2 bytes...
+	uint32_t temp=0;
+	uint32_t sumWords = 0;
+	
+	temp=~temp; //temp is all 1's now..
+	uint16_t lowEnd = temp>>16; //low end 16 bits are 1..
+	uint16_t wordLeft;
+	for(unsigned int i=0;i<numWords;i++)
+	{
+		sumWords += words[i];
+		wordLeft = sumWords >>16; //get the left break up of sum/			
+		while(wordLeft!=0)
+		{
+			sumWords = sumWords & lowEnd;
+			sumWords += wordLeft;
+			wordLeft = sumWords>>16; //get the left break up of sum/
+		}
+	}	
+	return ~(sumWords&lowEnd);	
+}
+
+void play(string dstIp="127.0.0.1", unsigned int srcPort = 22, unsigned int dstPort= 9999)
+{	
+
+	int sock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
+	if (sock < 0)  //create a raw socket
+	{
+		HelperClass::TerminateApplication("socket() failed ");
+	}
+
+	struct ifreq ifr;
+	memset (&ifr, 0, sizeof (ifr));
+	//char interfaceName[]="eth0";
+	char interfaceName[]=	"wlan0"; //TODO
+	size_t if_name_len=strlen(interfaceName);
+	
+	if (if_name_len-1<sizeof(ifr.ifr_name)) 
+	{
+		memcpy(ifr.ifr_name,interfaceName,if_name_len);
+		ifr.ifr_name[if_name_len]='\0'; // terminate the string with a null character...
+	} 
+	else 
+	{
+		HelperClass::TerminateApplication("Name of interface exceeds the limit!!!");
+	}
+	if (ioctl(sock,SIOCGIFADDR,&ifr)==-1) 
+	{
+		close(sock);
+		HelperClass::TerminateApplication("ioctl() failed!!!");	
+	}
+
+	struct sockaddr_in* ipaddr = (struct sockaddr_in*)&ifr.ifr_addr;
+	string srcIp = inet_ntoa(ipaddr->sin_addr);
+	struct iphdr ip;
+	
+	//fill the iphdr info...
+	ip.ihl = sizeof(struct iphdr)/sizeof (uint32_t); //# words in ip header.
+	ip.version = 4; //IPV4
+
+	ip.tos = 0; //tos stands for type of service (0 : Best Effort)
+	ip.tot_len = htons(sizeof(iphdr) + sizeof(tcphdr));  //as we dont have any application data..size here is size of tcp + ip.
+	ip.id = htons (0); //can we use this in a intelligent way ??? it is unused...
+	ip.frag_off=0; // alll flags are 0, and the fragment offset is 0 for the first packet.
+	ip.ttl = 0;
+	ip.ttl = ~ip.ttl; //set it to all 1's
+	ip.protocol = IPPROTO_TCP; //as transport layer protocol is tcp..
+    
+	  // Source IPv4 address (32 bits)
+	if (inet_pton (AF_INET, srcIp.c_str(), &(ip.saddr)) != 1 || inet_pton (AF_INET, dstIp.c_str(), &(ip.daddr)) != 1) 
+	{
+		HelperClass::TerminateApplication("inet_pton() failed!!");
+	}
+	ip.check=0; //init
+    ip.check=computeHeaderCheckSum((uint16_t *) & ip, sizeof(struct iphdr)); //this is the last step..
+    
+    //lets create a tcp packet now..
+	struct tcphdr tcp;		
+	tcp.source = htons(srcPort);
+	tcp.dest = htons(dstPort);
+	tcp.seq = htonl(0); // note that its a 32 bit integer...could be a random number...
+	tcp.ack_seq = htonl(0);		
+	tcp.res1 = 0;// reserved and unused bits..
+	tcp.res2 = 0;
+	tcp.fin = 0;
+	tcp.syn = 1; //set only the syn flag..
+	tcp.rst = 0;
+	tcp.psh = 0;
+	tcp.ack = 0;
+	tcp.urg = 0;
+	tcp.window = ~0; //set all bits to 1 => max size..
+	tcp.doff = sizeof(struct tcphdr)/WORD_SIZE; //so no options..	
+	tcp.urg_ptr= 0; 	
+	tcp.check = 0;
+	tcp.check = computeHeaderCheckSum((uint16_t*) &tcp, sizeof(struct tcphdr));	 //this works for now, as we have no payload and no options..TODO
+	
+	//lets build the packet..
+	u_char* packet = new u_char[sizeof(struct iphdr)+sizeof(struct tcphdr)]; //this works because we have no tcp options and no tcp payload //TODO
+	memcpy(packet, &ip, sizeof(iphdr));
+	memcpy(packet+sizeof(iphdr), &tcp, sizeof(struct tcphdr));
+	
+	struct sockaddr_in sin;
+	memset (&sin, 0, sizeof (struct sockaddr_in));
+	sin.sin_family = AF_INET;
+	sin.sin_addr.s_addr = ip.daddr; //set the destination address here..
+
+	int flag = 1;
+	// IP_HDRINCL setting this flag, as we are adding our own ip header..though it is set in most machines.
+	if (setsockopt (sock, IPPROTO_IP, IP_HDRINCL, (char *) &flag, sizeof(int)) < 0) 
+	{
+		HelperClass::TerminateApplication("send() failed!!");
+	}
+
+	// Bind socket to interface index.
+	if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof (ifr)) < 0) 
+	{
+		HelperClass::TerminateApplication("bind() failed!!");
+	}
+
+	// Send packet.
+	if (sendto (sock, packet, sizeof(iphdr) + sizeof(tcphdr), 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  
+	{
+		HelperClass::TerminateApplication("send() failed!!");
+	}
+
+	close (sock);// closing the socket.
+}
+
 
 void printArguments(args_t args)
 {
@@ -375,5 +515,8 @@ int main(int argc, char** argv)
 {
 	args_t args=parseArguments(argc,argv);
 	printArguments(args);
+	play();
+
+	
 	return 0;
 }
