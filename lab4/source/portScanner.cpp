@@ -26,39 +26,13 @@
 using namespace std;
 
 
-// Checksum function
-uint16_t checksum (uint16_t *addr, int len)
-{
-  int nleft = len;
-  int sum = 0;
-  uint16_t *w = addr;
-  uint16_t answer = 0;
-
-  while (nleft > 1) {
-    sum += *w++;
-    nleft -= sizeof (uint16_t);
-  }
-
-  if (nleft == 1) {
-    *(uint8_t *) (&answer) = *(uint8_t *) w;
-    sum += answer;
-  }
-
-  sum = (sum >> 16) + (sum & 0xFFFF);
-  sum += (sum >> 16);
-  answer = ~sum;
-  return (answer);
-}
-
 //working check sum method...
 uint16_t computeIpHeaderCheckSum(iphdr ip)
 {
 	ip.check=0; //init 
 	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
 	unsigned int numWords = sizeof(struct iphdr)/2; // 16 bits is 2 bytes...
-	uint16_t* words = new uint16_t[numWords];
-	memcpy(words,&ip,sizeof(struct iphdr));
-	
+	uint16_t* words = (uint16_t *) & ip;
 	uint32_t temp=0;
 	uint32_t sumWords = 0;
 	
