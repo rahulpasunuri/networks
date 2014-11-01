@@ -22,7 +22,7 @@ Rules for Compiling the code:
 
 Usage:
 1.  help: When Wiretap is invoked with this option, it shows a short program description as well as displays all options available to the user.
-2.  open: When Wiretap is invoked with this option, it should open the specified file. If it is a valid tcpdump file, your program should parse it and display the output on the screen.
+2.  open: When Wiretap is invoked with this option, it opens the specified file. If it is a valid tcpdump file, program parses it and displays the output on the screen.
 
 Usage Examples:
 
@@ -42,7 +42,7 @@ makefile:          Contains rules for compilation of the files need to generate 
 run.sh(shell script file): A shell script file is provided with the code so that it would be easy to run and test the project source code.
 
 Limitations of the Project:
-1. project only handles the parsing of IPV4 pcakets, though it keeps count of the no. of IPV6 packets present in the captured data.
+1. project only handles the parsing of IPV4 packets, though it keeps count of the no. of IPV6 packets present in the captured data.
 2. Parsing logic wriiten in project is only applicable for the data captured from ethernet.  
 
 References:

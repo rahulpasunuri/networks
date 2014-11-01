@@ -115,7 +115,14 @@ char* parseArguments(int argc, char* argv[])
 	{
 		usage();
 	}
-	return argv[2];
+	else
+	{
+		if(argv[2]!=NULL)
+			return argv[2];
+		else
+			usage();
+	}
+	
 }
 
 //this method will compute the information required by summary
