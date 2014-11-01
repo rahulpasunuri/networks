@@ -37,9 +37,7 @@ uint16_t computeIpHeaderCheckSum(iphdr ip)
 	uint32_t sumWords = 0;
 	
 	temp=~temp; //temp is all 1's now..
-	uint16_t highEnd = temp << 16; //high end 16 bits are 1...
 	uint16_t lowEnd = temp>>16; //low end 16 bits are 1..
-	uint16_t wordRight;
 	uint16_t wordLeft;
 	for(unsigned int i=0;i<numWords;i++)
 	{
@@ -55,10 +53,8 @@ uint16_t computeIpHeaderCheckSum(iphdr ip)
 	return ~(sumWords&lowEnd);	
 }
 
-void play()
+void play(string srcIp="127.0.0.1", string dstIp="127.0.0.1", int port= 9999)
 {
-	string myIp="127.0.0.1";
-	int port = 9999; //TODO
 	int sock=socket(AF_INET, SOCK_RAW, IPPROTO_RAW); //ip header is not included in this combination atleast in linux..
 	if (sock < 0)
 	{
@@ -68,25 +64,30 @@ void play()
 	}
 	//how to un-set  IP_HDRINCL???
 	struct iphdr ip;
-	struct tcphdr tcp;		
+	//struct tcphdr tcp;		
 	
 	//fill the iphdr info...
 	ip.ihl = sizeof(struct iphdr)/sizeof (uint32_t); //# words in ip header.
 	ip.version = 4; //IPV4
 
-
-
-
-	ip.ip_tos = 0; //tos stands for type of service (0 : Best Effort)
-	ip.tot_len = htons(sizeof(iphdr) + sizeof(tcphdr));
-	ip.ip_id = htons (0); //can we use this in a intelligent way ??? it is unused...
-	ip.frag_off=
+	ip.tos = 0; //tos stands for type of service (0 : Best Effort)
+	ip.tot_len = htons(sizeof(iphdr) + sizeof(tcphdr));  //as we dont have any application data..size here is size of tcp + ip.
+	ip.id = htons (0); //can we use this in a intelligent way ??? it is unused...
+	ip.frag_off=0; // alll flags are 0, and the fragment offset is 0 for the first packet.
 	ip.ttl = 0;
 	ip.ttl = ~ip.ttl; //set it to all 1's
 	ip.protocol = IPPROTO_TCP; //as transport layer protocol is tcp..
-    ip.check;
-    ip.saddr;
-    ip.daddr;
+    
+	  // Source IPv4 address (32 bits)
+	if (inet_pton (AF_INET, srcIp.c_str(), &(ip.saddr)) != 1 || inet_pton (AF_INET, dstIp.c_str(), &(ip.daddr)) != 1) 
+	{
+		HelperClass::TerminateApplication("inet_pton() failed!!");
+	}
+
+    ip.check=computeIpHeaderCheckSum(ip); //this is the last step..
+    
+    
+
 }
 
 
