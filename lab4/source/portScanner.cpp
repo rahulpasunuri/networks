@@ -715,8 +715,16 @@ int main(int argc, char** argv)
 	{
 		interfaceName="eth0";
 	}
-	dstIp="74.125.225.19";
-	play(12124,80);	
+	srand (time(NULL)); 
+	//dstIp="74.125.225.19";
+	unsigned short srcPort=0;
+
+	while(srcPort<10000)
+	{
+		srcPort=rand()%64000;
+	}
+
+	play(srcPort,22);	
 	
 	return 0;
 }
