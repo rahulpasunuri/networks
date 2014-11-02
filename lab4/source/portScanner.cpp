@@ -41,31 +41,6 @@ bool isBlondie=false;
 string interfaceName="eth0";
 //string interfaceName="wlan0";
 
-//working check sum method...
-uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size)
-{	 
-	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
-	unsigned int numWords = size/2; // 16 bits is 2 bytes...
-	uint32_t temp=0;
-	uint32_t sumWords = 0;
-	
-	temp=~temp; //temp is all 1's now..
-	uint16_t lowEnd = temp>>16; //low end 16 bits are 1..
-	uint16_t wordLeft;
-	for(unsigned int i=0;i<numWords;i++)
-	{
-		sumWords += words[i];
-		wordLeft = sumWords >>16; //get the left break up of sum/			
-		while(wordLeft!=0)
-		{
-			sumWords = sumWords & lowEnd;
-			sumWords += wordLeft;
-			wordLeft = sumWords>>16; //get the left break up of sum/
-		}
-	}	
-	return ~(sumWords&lowEnd);	
-}
-
 void readPacketOnPort(int port)
 {
 	char errbuf[PCAP_ERRBUF_SIZE];
@@ -137,25 +112,13 @@ void readPacketOnPort(int port)
 	//return pkt_data; //TODO
 }
 
-uint16_t computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp)
+//working check sum method...
+uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size)
 {	 
-	unsigned int size=12;
-	unsigned short segSize= sizeof(tcphdr);
-	u_char* t=new u_char[size+segSize];
-	memcpy(t, &ip.saddr, 4);
-	memcpy(t+4, &ip.daddr, 4);
-	t[8]=0;
-	t[9]=IPPROTO_TCP;
-
-	unsigned short segmentSize=htons(segSize);
-
-	memcpy(t+10, &segmentSize, 2);
-	memcpy(t+size, &tcp,segSize);
 	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
-	unsigned int numWords = (size+segSize)/2; // 16 bits is 2 bytes...
+	unsigned int numWords = size/2; // 16 bits is 2 bytes...
 	uint32_t temp=0;
 	uint32_t sumWords = 0;
-	uint16_t *words = (uint16_t*) t;
 	
 	temp=~temp; //temp is all 1's now..
 	uint16_t lowEnd = temp>>16; //low end 16 bits are 1..
@@ -172,6 +135,31 @@ uint16_t computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp)
 		}
 	}	
 	return ~(sumWords&lowEnd);	
+}
+
+uint16_t computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp, u_char* options=NULL, unsigned int optSize=0)
+{	 
+	unsigned int size=12;
+	unsigned int tcpHdrSize= sizeof(tcphdr);
+	unsigned int segSize= tcpHdrSize + optSize;
+	u_char* t=new u_char[size+segSize];
+	memcpy(t, &ip.saddr, 4);
+	memcpy(t+4, &ip.daddr, 4);
+	t[8]=0;
+	t[9]=IPPROTO_TCP;
+
+	unsigned int segmentSize=htons(segSize);
+
+	memcpy(t+10, &segmentSize, 2);
+	memcpy(t+size, &tcp,tcpHdrSize);
+	if(options!=NULL)
+	{
+		memcpy(t+size+tcpHdrSize, options, optSize);
+	}
+	
+	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
+	
+	return computeHeaderCheckSum((uint16_t*)t, size+segSize);
 }
 
 void play(unsigned int srcPort = 99999, unsigned int dstPort= 22)
@@ -226,6 +214,7 @@ void play(unsigned int srcPort = 99999, unsigned int dstPort= 22)
 	}
 	ip.check=0; //init
     ip.check=computeHeaderCheckSum((uint16_t *) & ip, sizeof(struct iphdr)); //this is the last step..
+    //ip.check=~0;
     //lets create a tcp packet now..
 	struct tcphdr tcp;		
 	tcp.source = htons(srcPort);
