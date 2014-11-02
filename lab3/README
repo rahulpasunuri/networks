@@ -9,10 +9,10 @@ email:manivutt@indiana.edu
 
 ------------------------
 Introduction:
-The project 'Wiretap' is a IPV4 packet parser.
+The project 'Wiretap' is a IPV4 packet parser used for analysis of packets being transmitted or received over a LAN.It takes a file containing tcpdump data as its input and output the statistics of the packet data present in it.
 
 Functionalities:
-1. Parses the IPV4 packets captured from the ethernet.
+1. Parses the IPV4 packets captured from LAN.
 2. Gives information about the no. of IPV6 packets present in the captured data.
 3. Extracts and displays the link layer, network layer and transport layer information of all the packets captured.  
 
@@ -21,7 +21,9 @@ Rules for Compiling the code:
 2.  Execute "make clear" to clear the object and bin directories.
 
 Usage:
-./bin/Wiretap --open <.pcap file path>
+1.  help: When Wiretap is invoked with this option, it shows a short program description as well as displays all options available to the user.
+2.  open: When Wiretap is invoked with this option, it opens the specified file. If it is a valid tcpdump file, program parses it and displays the output on the screen.
+
 Usage Examples:
 
 ./bin/Wiretap --open ./sampletestfiles/wget.pcap
@@ -40,7 +42,7 @@ makefile:          Contains rules for compilation of the files need to generate 
 run.sh(shell script file): A shell script file is provided with the code so that it would be easy to run and test the project source code.
 
 Limitations of the Project:
-1. project only handles the parsing of IPV4 pcakets, though it keeps count of the no. of IPV6 packets present in the captured data.
+1. project only handles the parsing of IPV4 packets, though it keeps count of the no. of IPV6 packets present in the captured data.
 2. Parsing logic wriiten in project is only applicable for the data captured from ethernet.  
 
 References:
