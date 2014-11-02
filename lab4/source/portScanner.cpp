@@ -25,13 +25,21 @@
 #include <net/if.h>
 #include <errno.h>
 #include <string.h>
-
+#include <pcap.h>
+#include<sstream>
 #include "../include/HelperClass.h"
 #include "../include/Core.h"
 using namespace std;
 
 #define WORD_SIZE 4
 
+string dstIp="129.79.247.87"; //ip address of dagwood.soic.indiana.edu
+//string dstIp="127.0.0.1"; //local ip address
+
+bool isBlondie=false;
+
+string interfaceName="eth0";
+//string interfaceName="wlan0";
 
 //working check sum method...
 uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size)
@@ -58,9 +66,116 @@ uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size)
 	return ~(sumWords&lowEnd);	
 }
 
-void play(string dstIp="127.0.0.1", unsigned int srcPort = 22, unsigned int dstPort= 9999)
-{	
+void readPacketOnPort(int port)
+{
+	char errbuf[PCAP_ERRBUF_SIZE];
+	std::ostringstream o;
+	o << "port " << port; //create the filter expression...
+	string filter = o.str();	
+	//filter=""; //TODO
+	
+	pcap_t *handle;			/* Session handle */
+	struct bpf_program fp;		/* The compiled filter */
+	bpf_u_int32 mask;		/* Our netmask */
+	bpf_u_int32 net;		/* Our IP */
+	const u_char *packet;		/* The actual packet */
 
+	/* Find the properties for the device */
+	if (pcap_lookupnet(interfaceName.c_str(), &net, &mask, errbuf) == -1) 
+	{
+		fprintf(stderr, "Couldn't get netmask for device %s: %s\n", interfaceName.c_str(), errbuf);
+		net = 0;
+		mask = 0;
+	}
+	/* Open the session in promiscuous mode */
+	handle = pcap_open_live(interfaceName.c_str(), BUFSIZ, 1, 1000, errbuf);
+	if (handle == NULL) 
+	{
+		fprintf(stderr, "Couldn't open device %s: %s\n", interfaceName.c_str(), errbuf);
+	}
+	/* Compile and apply the filter */
+	if (pcap_compile(handle, &fp, filter.c_str(), 0, net) == -1) 
+	{
+		fprintf(stderr, "Couldn't parse filter %s: %s\n", filter.c_str(), pcap_geterr(handle));
+	}
+	if (pcap_setfilter(handle, &fp) == -1) 
+	{
+		fprintf(stderr, "Couldn't install filter %s: %s\n", filter.c_str(), pcap_geterr(handle));
+	}
+	struct pcap_pkthdr *hdr;
+	
+    /* Retrieve the packets */
+    int res;
+    while((res = pcap_next_ex(handle, &hdr, &packet)) >= 0)
+    {
+        if(res == 0)
+        {
+            continue;            
+        }
+        cout<<"recieved a packet"<<endl;
+        break;
+        /* convert the timestamp to readable format */
+        //local_tv_sec = header->ts.tv_sec;
+        //ltime=localtime(&local_tv_sec);
+        //strftime( timestr, sizeof timestr, "%H:%M:%S", ltime);        
+        //printf("%s,%.6d len:%d\n", timestr, header->ts.tv_usec, header->len);
+    }
+    
+    if(res == -1)
+    {
+        printf("Error reading the packets: %s\n", pcap_geterr(handle));
+    }
+    
+	
+	/* Grab a packet */
+	//packet = pcap_next(handle, &header);
+	/* Print its length */
+	printf("Jacked a packet with length of [%d]\n", hdr->len);
+	/* And close the session */
+	pcap_close(handle);
+
+	//return pkt_data; //TODO
+}
+
+uint16_t computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp)
+{	 
+	unsigned int size=12;
+	unsigned short segSize= sizeof(tcphdr);
+	u_char* t=new u_char[size+segSize];
+	memcpy(t, &ip.saddr, 4);
+	memcpy(t+4, &ip.daddr, 4);
+	t[8]=0;
+	t[9]=IPPROTO_TCP;
+
+	unsigned short segmentSize=htons(segSize);
+
+	memcpy(t+10, &segmentSize, 2);
+	memcpy(t+size, &tcp,segSize);
+	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
+	unsigned int numWords = (size+segSize)/2; // 16 bits is 2 bytes...
+	uint32_t temp=0;
+	uint32_t sumWords = 0;
+	uint16_t *words = (uint16_t*) t;
+	
+	temp=~temp; //temp is all 1's now..
+	uint16_t lowEnd = temp>>16; //low end 16 bits are 1..
+	uint16_t wordLeft;
+	for(unsigned int i=0;i<numWords;i++)
+	{
+		sumWords += words[i];
+		wordLeft = sumWords >>16; //get the left break up of sum/			
+		while(wordLeft!=0)
+		{
+			sumWords = sumWords & lowEnd;
+			sumWords += wordLeft;
+			wordLeft = sumWords>>16; //get the left break up of sum/
+		}
+	}	
+	return ~(sumWords&lowEnd);	
+}
+
+void play(unsigned int srcPort = 99999, unsigned int dstPort= 22)
+{	
 	int sock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
 	if (sock < 0)  //create a raw socket
 	{
@@ -70,12 +185,11 @@ void play(string dstIp="127.0.0.1", unsigned int srcPort = 22, unsigned int dstP
 	struct ifreq ifr;
 	memset (&ifr, 0, sizeof (ifr));
 	//char interfaceName[]="eth0";
-	char interfaceName[]=	"wlan0"; //TODO
-	size_t if_name_len=strlen(interfaceName);
+	size_t if_name_len=strlen(interfaceName.c_str());
 	
 	if (if_name_len-1<sizeof(ifr.ifr_name)) 
 	{
-		memcpy(ifr.ifr_name,interfaceName,if_name_len);
+		memcpy(ifr.ifr_name,interfaceName.c_str(),if_name_len);
 		ifr.ifr_name[if_name_len]='\0'; // terminate the string with a null character...
 	} 
 	else 
@@ -91,10 +205,11 @@ void play(string dstIp="127.0.0.1", unsigned int srcPort = 22, unsigned int dstP
 	struct sockaddr_in* ipaddr = (struct sockaddr_in*)&ifr.ifr_addr;
 	string srcIp = inet_ntoa(ipaddr->sin_addr);
 	struct iphdr ip;
-	
+	memset (&ip, 0, sizeof (struct iphdr));	
 	//fill the iphdr info...
 	ip.ihl = sizeof(struct iphdr)/sizeof (uint32_t); //# words in ip header.
 	ip.version = 4; //IPV4
+
 
 	ip.tos = 0; //tos stands for type of service (0 : Best Effort)
 	ip.tot_len = htons(sizeof(iphdr) + sizeof(tcphdr));  //as we dont have any application data..size here is size of tcp + ip.
@@ -111,7 +226,6 @@ void play(string dstIp="127.0.0.1", unsigned int srcPort = 22, unsigned int dstP
 	}
 	ip.check=0; //init
     ip.check=computeHeaderCheckSum((uint16_t *) & ip, sizeof(struct iphdr)); //this is the last step..
-    
     //lets create a tcp packet now..
 	struct tcphdr tcp;		
 	tcp.source = htons(srcPort);
@@ -126,16 +240,91 @@ void play(string dstIp="127.0.0.1", unsigned int srcPort = 22, unsigned int dstP
 	tcp.psh = 0;
 	tcp.ack = 0;
 	tcp.urg = 0;
-	tcp.window = ~0; //set all bits to 1 => max size..
-	tcp.doff = sizeof(struct tcphdr)/WORD_SIZE; //so no options..	
+	tcp.window = ntohs(29200); //setcomputeTCPHeaderCheckSum all bits to 1 => max size..TODO
+	unsigned int optSize=0;
+	tcp.doff = (sizeof(struct tcphdr)+optSize)/WORD_SIZE; //so no options..	
 	tcp.urg_ptr= 0; 	
-	tcp.check = 0;
-	tcp.check = computeHeaderCheckSum((uint16_t*) &tcp, sizeof(struct tcphdr));	 //this works for now, as we have no payload and no options..TODO
 	
+	//*******************************************************
+	/*
+	u_char* opt=new u_char[optSize]; //TODO..
+	u_char* backup=opt;
+	memset(opt,0,optSize);
+	
+	//window scale
+	*opt=2;	
+	opt++;
+	
+	*opt=4;	
+	opt++;
+
+	*opt=5;	
+	opt++;
+
+	*opt=180;
+	opt++;
+	
+	*opt=4;
+	opt++;
+
+	*opt=2;
+	opt++;
+
+	*opt=8;
+	opt++;
+
+	*opt=10;
+	opt++;	
+
+	*opt=0;
+	opt++;			
+
+	*opt=120;
+	opt++;
+
+	*opt=209;
+	opt++;
+
+	*opt=237;
+	opt++;	
+
+	*opt=0;
+	opt++;
+
+	*opt=0;
+	opt++;
+
+	*opt=0;
+	opt++;
+
+	*opt=0;
+	opt++;
+
+	*opt=1;
+	opt++;	
+
+	*opt=3;
+	opt++;
+
+	*opt=3;
+	opt++;	
+
+	*opt=7;
+	opt++;
+	*/
+	u_char* temp=new u_char[sizeof(tcphdr) + optSize]; //TODO 20 for options.
+	memcpy(temp, &tcp, sizeof(tcphdr));
+	//memcpy(temp+sizeof(tcphdr),backup,optSize);
+	
+	tcp.check = 0;
+	//tcp.check = computeHeaderCheckSum((uint16_t*) &tcp, sizeof(struct tcphdr));	 //this works for now, as we have no payload and no options..TODO
+	//tcp.check = computeHeaderCheckSum((uint16_t*)&temp, sizeof(struct tcphdr)+optSize);	 //this works for now, as we have no payload and no options..TODO
+	tcp.check=computeTCPHeaderCheckSum(ip,tcp);
 	//lets build the packet..
-	u_char* packet = new u_char[sizeof(struct iphdr)+sizeof(struct tcphdr)]; //this works because we have no tcp options and no tcp payload //TODO
+	u_char* packet = new u_char[sizeof(struct iphdr)+sizeof(struct tcphdr)+optSize]; //this works because we have no tcp options and no tcp payload //TODO
 	memcpy(packet, &ip, sizeof(iphdr));
 	memcpy(packet+sizeof(iphdr), &tcp, sizeof(struct tcphdr));
+	//memcpy(packet+sizeof(iphdr)+sizeof(tcphdr),backup,optSize);
 	
 	struct sockaddr_in sin;
 	memset (&sin, 0, sizeof (struct sockaddr_in));
@@ -154,13 +343,16 @@ void play(string dstIp="127.0.0.1", unsigned int srcPort = 22, unsigned int dstP
 	{
 		HelperClass::TerminateApplication("bind() failed!!");
 	}
-
+	
 	// Send packet.
-	if (sendto (sock, packet, sizeof(iphdr) + sizeof(tcphdr), 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  
+	if (sendto (sock, packet, sizeof(iphdr) + sizeof(tcphdr)+optSize, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)   //TODO 20 for options
 	{
 		HelperClass::TerminateApplication("send() failed!!");
 	}
-
+	
+	//receive reply now..
+	readPacketOnPort(srcPort);
+	
 	close (sock);// closing the socket.
 }
 
@@ -515,8 +707,16 @@ int main(int argc, char** argv)
 {
 	args_t args=parseArguments(argc,argv);
 	printArguments(args);
-	play();
-
+	if(!isBlondie) //TODO
+	{
+		interfaceName="wlan0";
+	}
+	else
+	{
+		interfaceName="eth0";
+	}
+	dstIp="74.125.225.19";
+	play(12124,80);	
 	
 	return 0;
 }
