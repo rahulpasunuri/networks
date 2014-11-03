@@ -31,7 +31,7 @@
 #include "../include/Core.h"
 using namespace std;
 
-#define WORD_SIZE 4
+
 
 string dstIp="129.79.247.87"; //ip address of dagwood.soic.indiana.edu
 //string dstIp="127.0.0.1"; //local ip address
@@ -107,55 +107,6 @@ const u_char* readPacketOnPort(int port)
 	return packet; //TODO
 }
 
-//working check sum method...
-uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size)
-{	 
-	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
-	unsigned int numWords = size/2; // 16 bits is 2 bytes...
-	uint32_t temp=0;
-	uint32_t sumWords = 0;
-	
-	temp=~temp; //temp is all 1's now..
-	uint16_t lowEnd = temp>>16; //low end 16 bits are 1..
-	uint16_t wordLeft;
-	for(unsigned int i=0;i<numWords;i++)
-	{
-		sumWords += words[i];
-		wordLeft = sumWords >>16; //get the left break up of sum/			
-		while(wordLeft!=0)
-		{
-			sumWords = sumWords & lowEnd;
-			sumWords += wordLeft;
-			wordLeft = sumWords>>16; //get the left break up of sum/
-		}
-	}	
-	return ~(sumWords&lowEnd);	
-}
-
-uint16_t computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp, u_char* options=NULL, unsigned int optSize=0)
-{	 
-	unsigned int size=12;
-	unsigned int tcpHdrSize= sizeof(tcphdr);
-	unsigned int segSize= tcpHdrSize + optSize;
-	u_char* t=new u_char[size+segSize];
-	memcpy(t, &ip.saddr, 4);
-	memcpy(t+4, &ip.daddr, 4);
-	t[8]=0;
-	t[9]=IPPROTO_TCP;
-
-	unsigned int segmentSize=htons(segSize);
-
-	memcpy(t+10, &segmentSize, 2);
-	memcpy(t+size, &tcp,tcpHdrSize);
-	if(options!=NULL)
-	{
-		memcpy(t+size+tcpHdrSize, options, optSize);
-	}
-	
-	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
-	delete[] t;
-	return computeHeaderCheckSum((uint16_t*)t, size+segSize);
-}
 
 
 
@@ -519,16 +470,10 @@ int main(int argc, char** argv)
 	}
 	srand (time(NULL)); 
 	//dstIp="74.125.225.19";
-	unsigned short srcPort=0;
-
-	while(srcPort<10000)
-	{
-		srcPort=rand()%64000;
-	}
 	
 	for(int i=1;i<65500;i++)
 	{
-		play(srcPort,i);	
+		//play(srcPort,i);	
 	}
 	
 	return 0;

@@ -1,13 +1,47 @@
 #include "../include/Core.h"
 
+class Mutex
+{
+	private:
+		pthread_mutex_t m;
+	public:
+		Mutex()
+		{
+			pthread_mutex_init(&m, NULL); //init the mutex
+		}
+		void lock()
+		{
+			pthread_mutex_lock(&m);
+		}
+		void unlock()
+		{
+			pthread_mutex_unlock(&m);
+		}
+};
+
+/*
+class Thread
+{
+TODO	
+}
+*/
+
 //constructor of core..
-Core::Core(args_t)
+Core::Core(args_t args,string interfaceName)
 {
 	this->args=args;
+	this->interfaceName=interfaceName;
 }	
 
-void Core::SendSinPacket(unsigned int dstPort= 22)
+void Core::SendSinPacket(string dstIp, unsigned int dstPort)
 {	
+
+	unsigned short srcPort = 0;
+	while(srcPort<10000)
+	{
+		srcPort=rand()%64000;
+	}
+	
 	int sock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
 	if (sock < 0)  //create a raw socket
 	{
@@ -123,11 +157,11 @@ void Core::SendSinPacket(unsigned int dstPort= 22)
 	close (sock);// closing the socket.
 }
 
-void Core::PerformSynScan(string dstIp, port dstPort)
+void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 {
+	/*
 	//receive reply now..
 	const u_char *rcvdPacket;
-
 	rcvdPacket = readPacketOnPort(srcPort);
 	struct tcphdr *rcvdTcp = (struct tcphdr *)(rcvdPacket+sizeof(ethhdr)+sizeof(iphdr));
 	
@@ -143,6 +177,58 @@ void Core::PerformSynScan(string dstIp, port dstPort)
 	{
 		cout<<"Port "<<dstPort<<" is filtered"<<endl;
 	}	
-	
+	*/
 }
+
+//working check sum method...
+uint16_t Core::computeHeaderCheckSum(uint16_t* words, unsigned int size)
+{	 
+	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
+	unsigned int numWords = size/2; // 16 bits is 2 bytes...
+	uint32_t temp=0;
+	uint32_t sumWords = 0;
+	
+	temp=~temp; //temp is all 1's now..
+	uint16_t lowEnd = temp>>16; //low end 16 bits are 1..
+	uint16_t wordLeft;
+	for(unsigned int i=0;i<numWords;i++)
+	{
+		sumWords += words[i];
+		wordLeft = sumWords >>16; //get the left break up of sum/			
+		while(wordLeft!=0)
+		{
+			sumWords = sumWords & lowEnd;
+			sumWords += wordLeft;
+			wordLeft = sumWords>>16; //get the left break up of sum/
+		}
+	}	
+	return ~(sumWords&lowEnd);	
+}
+
+uint16_t Core::computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp, u_char* options, unsigned int optSize)
+{	 
+	unsigned int size=12;
+	unsigned int tcpHdrSize= sizeof(tcphdr);
+	unsigned int segSize= tcpHdrSize + optSize;
+	u_char* t=new u_char[size+segSize];
+	memcpy(t, &ip.saddr, 4);
+	memcpy(t+4, &ip.daddr, 4);
+	t[8]=0;
+	t[9]=IPPROTO_TCP;
+
+	unsigned int segmentSize=htons(segSize);
+
+	memcpy(t+10, &segmentSize, 2);
+	memcpy(t+size, &tcp,tcpHdrSize);
+	if(options!=NULL)
+	{
+		memcpy(t+size+tcpHdrSize, options, optSize);
+	}
+	
+	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
+	delete[] t;
+	return computeHeaderCheckSum((uint16_t*)t, size+segSize);
+}
+
+
 

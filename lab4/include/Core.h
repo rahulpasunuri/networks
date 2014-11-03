@@ -27,8 +27,13 @@ class Core
 {
 	private:
 		args_t args;
-		void SendSinPacket(unsigned int dstPort= 22)
+		string interfaceName;
+		void SendSinPacket(string dstIp, unsigned int dstPort);
+		void PerformSynScan(string dstIp, unsigned short dstPort);
+		uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size);
+		uint16_t computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp, u_char* options=NULL, unsigned int optSize=0);
+		
 	public:
-		Core(args_t);
+		Core(args_t,string);
 };
 
