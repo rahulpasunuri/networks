@@ -15,6 +15,8 @@
 
 using namespace std;
 
+#define MAX_RETRANSMISSIONS 3
+
 enum scanTypes_t
 {
 	TCP_SYN,
@@ -24,6 +26,15 @@ enum scanTypes_t
 	TCP_ACK,
 	UDP
 };
+
+enum portState
+{
+	OPEN,
+	CLOSED,
+	FILTERED,
+	UNFILTERED,
+	OPEN_OR_FILTERED		
+}
 
 struct args_t
 {

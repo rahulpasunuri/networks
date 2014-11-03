@@ -27,6 +27,7 @@ class Core
 {
 	private:
 		args_t args;
+		void SendSinPacket(unsigned int dstPort= 22)
 	public:
 		Core(args_t);
 };
