@@ -228,23 +228,35 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	const u_char *rcvdPacket;
 	rcvdPacket = readPacketOnPort(srcPort);
 	struct tcphdr *rcvdTcp = (struct tcphdr *)(rcvdPacket+sizeof(ethhdr)+sizeof(iphdr));
-	cout<<"Port "<<dstPort<<" ";
+	cout<<endl;
+	cout<<"------------------------------------------------------------\n";
+	cout<<"Port\t";
+	cout<<"Service Name\t";
+	cout<<"Scan Type\t";
+	cout<<"Status"<<endl;
+	cout<<"------------------------------------------------------------\n";
+	cout<<dstPort<<"\t";
 	const char* serviceName=HelperClass::GetPortName(dstPort);
 	if(serviceName!=NULL)
 	{
-		cout<<"["<<serviceName<<"] ";
-	}
-	if(rcvdTcp->rst==1)
-	{
-		cout<<"is closed"<<endl;		
-	}
-	else if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
-	{
-		cout<<" is open"<<endl;
+		cout<<serviceName<<"\t\t";
 	}
 	else
 	{
-		cout<<" is filtered"<<endl;
+		cout<<"Unassigned\t\t";
+	}
+	cout<<"TCP-SYN-SCAN\t";
+	if(rcvdTcp->rst==1)
+	{
+		cout<<"closed"<<endl;		
+	}
+	else if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
+	{
+		cout<<"open"<<endl;
+	}
+	else
+	{
+		cout<<"filtered"<<endl; //TODO
 	}		
 }
 
