@@ -36,7 +36,7 @@ const u_char* Core::readPacketOnPort(int port)
 {
 	char errbuf[PCAP_ERRBUF_SIZE];
 	std::ostringstream o;
-	o << "port " << port; //create the filter expression...
+	o << "dst port " << port; //create the filter expression...
 	string filter = o.str();	
 	
 	pcap_t *handle;			/* Session handle */
@@ -52,8 +52,9 @@ const u_char* Core::readPacketOnPort(int port)
 		net = 0;
 		mask = 0;
 	}
-	/* Open the session in promiscuous mode */
-	handle = pcap_open_live(interfaceName.c_str(), BUFSIZ, 1, 1000, errbuf);
+	
+	//open pcap in non promiscous mode.
+	handle = pcap_open_live(interfaceName.c_str(), BUFSIZ, 0, 1000, errbuf);
 	if (handle == NULL) 
 	{
 		fprintf(stderr, "Couldn't open device %s: %s\n", interfaceName.c_str(), errbuf);
@@ -75,6 +76,7 @@ const u_char* Core::readPacketOnPort(int port)
     {
         if(res == 0)
         {
+        	//time out for reading a packet...
             continue;            
         }
         break;
@@ -262,9 +264,9 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 
 void Core::Start()
 {
-	//string dstIp="129.79.247.87"; //ip address of dagwood.soic.indiana.edu
-	string dstIp="8.8.8.8"; //ip address of dagwood.soic.indiana.edu
-	PerformSynScan(dstIp,52);
+	string dstIp="129.79.247.87"; //ip address of dagwood.soic.indiana.edu
+	//string dstIp="8.8.8.8"; //ip address of dagwood.soic.indiana.edu
+	PerformSynScan(dstIp,22);
 }
 
 //working check sum method...
