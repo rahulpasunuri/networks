@@ -28,12 +28,14 @@ class Core
 	private:
 		args_t args;
 		string interfaceName;
-		void SendSinPacket(string dstIp, unsigned int dstPort);
+		void SendSinPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
 		void PerformSynScan(string dstIp, unsigned short dstPort);
 		uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size);
-		uint16_t computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp, u_char* options=NULL, unsigned int optSize=0);
+		uint16_t computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp);
+		const u_char* readPacketOnPort(int port);
 		
 	public:
 		Core(args_t,string);
+		void Start();
 };
 

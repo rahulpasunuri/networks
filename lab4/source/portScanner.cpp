@@ -31,85 +31,6 @@
 #include "../include/Core.h"
 using namespace std;
 
-
-
-string dstIp="129.79.247.87"; //ip address of dagwood.soic.indiana.edu
-//string dstIp="127.0.0.1"; //local ip address
-
-bool isBlondie=false;
-
-string interfaceName="eth0";
-//string interfaceName="wlan0";
-
-const u_char* readPacketOnPort(int port)
-{
-	char errbuf[PCAP_ERRBUF_SIZE];
-	std::ostringstream o;
-	o << "port " << port; //create the filter expression...
-	string filter = o.str();	
-	//filter=""; //TODO
-	
-	pcap_t *handle;			/* Session handle */
-	struct bpf_program fp;		/* The compiled filter */
-	bpf_u_int32 mask;		/* Our netmask */
-	bpf_u_int32 net;		/* Our IP */
-	const u_char *packet;		/* The actual packet */
-
-	/* Find the properties for the device */
-	if (pcap_lookupnet(interfaceName.c_str(), &net, &mask, errbuf) == -1) 
-	{
-		fprintf(stderr, "Couldn't get netmask for device %s: %s\n", interfaceName.c_str(), errbuf);
-		net = 0;
-		mask = 0;
-	}
-	/* Open the session in promiscuous mode */
-	handle = pcap_open_live(interfaceName.c_str(), BUFSIZ, 1, 1000, errbuf);
-	if (handle == NULL) 
-	{
-		fprintf(stderr, "Couldn't open device %s: %s\n", interfaceName.c_str(), errbuf);
-	}
-	/* Compile and apply the filter */
-	if (pcap_compile(handle, &fp, filter.c_str(), 0, net) == -1) 
-	{
-		fprintf(stderr, "Couldn't parse filter %s: %s\n", filter.c_str(), pcap_geterr(handle));
-	}
-	if (pcap_setfilter(handle, &fp) == -1) 
-	{
-		fprintf(stderr, "Couldn't install filter %s: %s\n", filter.c_str(), pcap_geterr(handle));
-	}
-	struct pcap_pkthdr *hdr;
-	
-    /* Retrieve the packets */
-    int res;
-    while((res = pcap_next_ex(handle, &hdr, &packet)) >= 0)
-    {
-        if(res == 0)
-        {
-            continue;            
-        }
-        cout<<"recieved a packet"<<endl;
-        break;
-        /* convert the timestamp to readable format */
-        //local_tv_sec = header->ts.tv_sec;
-        //ltime=localtime(&local_tv_sec);
-        //strftime( timestr, sizeof timestr, "%H:%M:%S", ltime);        
-        //printf("%s,%.6d len:%d\n", timestr, header->ts.tv_usec, header->len);
-    }
-    
-    if(res == -1)
-    {
-        printf("Error reading the packets: %s\n", pcap_geterr(handle));
-    }
-    	
-	/* And close the session */
-	pcap_close(handle);
-
-	return packet; //TODO
-}
-
-
-
-
 void printArguments(args_t args)
 {
 	cout<<"\n----------------------------"<<endl;	
@@ -458,6 +379,11 @@ args_t parseArguments(int argc, char** argv)
 //the main method...
 int main(int argc, char** argv)
 {
+	bool isBlondie=false;
+
+	string interfaceName="eth0";
+	//string interfaceName="wlan0";
+
 	args_t args=parseArguments(argc,argv);
 	printArguments(args);
 	if(!isBlondie) //TODO
@@ -469,12 +395,9 @@ int main(int argc, char** argv)
 		interfaceName="eth0";
 	}
 	srand (time(NULL)); 
-	//dstIp="74.125.225.19";
+	Core c(args, interfaceName);
 	
-	for(int i=1;i<65500;i++)
-	{
-		//play(srcPort,i);	
-	}
-	
+	//c.PerformSynScan(dstIp,22);
+	c.Start();
 	return 0;
 }

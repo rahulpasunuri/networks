@@ -1,5 +1,6 @@
 #include "../include/Core.h"
 
+
 class Mutex
 {
 	private:
@@ -22,9 +23,69 @@ class Mutex
 /*
 class Thread
 {
-TODO	
+	TODO	
 }
 */
+
+const u_char* Core::readPacketOnPort(int port)
+{
+	char errbuf[PCAP_ERRBUF_SIZE];
+	std::ostringstream o;
+	o << "port " << port; //create the filter expression...
+	string filter = o.str();	
+	
+	pcap_t *handle;			/* Session handle */
+	struct bpf_program fp;		/* The compiled filter */
+	bpf_u_int32 mask;		/* Our netmask */
+	bpf_u_int32 net;		/* Our IP */
+	const u_char *packet;		/* The actual packet */
+
+	/* Find the properties for the device */
+	if (pcap_lookupnet(interfaceName.c_str(), &net, &mask, errbuf) == -1) 
+	{
+		fprintf(stderr, "Couldn't get netmask for device %s: %s\n", interfaceName.c_str(), errbuf);
+		net = 0;
+		mask = 0;
+	}
+	/* Open the session in promiscuous mode */
+	handle = pcap_open_live(interfaceName.c_str(), BUFSIZ, 1, 1000, errbuf);
+	if (handle == NULL) 
+	{
+		fprintf(stderr, "Couldn't open device %s: %s\n", interfaceName.c_str(), errbuf);
+	}
+	/* Compile and apply the filter */
+	if (pcap_compile(handle, &fp, filter.c_str(), 0, net) == -1) 
+	{
+		fprintf(stderr, "Couldn't parse filter %s: %s\n", filter.c_str(), pcap_geterr(handle));
+	}
+	if (pcap_setfilter(handle, &fp) == -1) 
+	{
+		fprintf(stderr, "Couldn't install filter %s: %s\n", filter.c_str(), pcap_geterr(handle));
+	}
+	struct pcap_pkthdr *hdr;
+	
+    /* Retrieve the packets */
+    int res;
+    while((res = pcap_next_ex(handle, &hdr, &packet)) >= 0)
+    {
+        if(res == 0)
+        {
+            continue;            
+        }
+        break;
+    }
+    
+    if(res == -1)
+    {
+        printf("Error reading the packets: %s\n", pcap_geterr(handle));
+    }
+    	
+	/* And close the session */
+	pcap_close(handle);
+
+	return packet; //TODO
+}
+
 
 //constructor of core..
 Core::Core(args_t args,string interfaceName)
@@ -33,14 +94,8 @@ Core::Core(args_t args,string interfaceName)
 	this->interfaceName=interfaceName;
 }	
 
-void Core::SendSinPacket(string dstIp, unsigned int dstPort)
+void Core::SendSinPacket(unsigned short srcPort, string dstIp, unsigned short dstPort)
 {	
-
-	unsigned short srcPort = 0;
-	while(srcPort<10000)
-	{
-		srcPort=rand()%64000;
-	}
 	
 	int sock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
 	if (sock < 0)  //create a raw socket
@@ -50,7 +105,6 @@ void Core::SendSinPacket(string dstIp, unsigned int dstPort)
 
 	struct ifreq ifr;
 	memset (&ifr, 0, sizeof (ifr));
-	//char interfaceName[]="eth0";
 	size_t if_name_len=strlen(interfaceName.c_str());
 	
 	if (if_name_len-1<sizeof(ifr.ifr_name)) 
@@ -92,7 +146,6 @@ void Core::SendSinPacket(string dstIp, unsigned int dstPort)
 	}
 	ip.check=0; //init
     ip.check=computeHeaderCheckSum((uint16_t *) & ip, sizeof(struct iphdr)); //this is the last step..
-    //ip.check=~0;
     //lets create a tcp packet now..
 	struct tcphdr tcp;		
 	tcp.source = htons(srcPort);
@@ -107,7 +160,8 @@ void Core::SendSinPacket(string dstIp, unsigned int dstPort)
 	tcp.psh = 0;
 	tcp.ack = 0;
 	tcp.urg = 0;
-	tcp.window = ntohs(29200); //setcomputeTCPHeaderCheckSum all bits to 1 => max size..TODO
+	tcp.window = ntohs(29200); //set all bits to 1 => max size..TODO
+	//tcp.window = ~0;
 	unsigned int optSize=0;
 	tcp.doff = (sizeof(struct tcphdr)+optSize)/WORD_SIZE; //so no options..	
 	tcp.urg_ptr= 0; 	
@@ -117,14 +171,11 @@ void Core::SendSinPacket(string dstIp, unsigned int dstPort)
 	//memcpy(temp+sizeof(tcphdr),backup,optSize);
 	
 	tcp.check = 0;
-	//tcp.check = computeHeaderCheckSum((uint16_t*) &tcp, sizeof(struct tcphdr));	 //this works for now, as we have no payload and no options..TODO
-	//tcp.check = computeHeaderCheckSum((uint16_t*)&temp, sizeof(struct tcphdr)+optSize);	 //this works for now, as we have no payload and no options..TODO
 	tcp.check=computeTCPHeaderCheckSum(ip,tcp);
 	//lets build the packet..
-	u_char* packet = new u_char[sizeof(struct iphdr)+sizeof(struct tcphdr)+optSize]; //this works because we have no tcp options and no tcp payload //TODO
+	u_char* packet = new u_char[sizeof(struct iphdr)+sizeof(struct tcphdr)+optSize]; //this works because we have no tcp options and no tcp payload
 	memcpy(packet, &ip, sizeof(iphdr));
 	memcpy(packet+sizeof(iphdr), &tcp, sizeof(struct tcphdr));
-	//memcpy(packet+sizeof(iphdr)+sizeof(tcphdr),backup,optSize);
 	
 	struct sockaddr_in sin;
 	memset (&sin, 0, sizeof (struct sockaddr_in));
@@ -138,14 +189,14 @@ void Core::SendSinPacket(string dstIp, unsigned int dstPort)
 		HelperClass::TerminateApplication("send() failed!!");
 	}
 
-	// Bind socket to interface index.
+	// bind the socket.
 	if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof (ifr)) < 0) 
 	{
 		HelperClass::TerminateApplication("bind() failed!!");
 	}
 	
 	// Send packet.
-	if (sendto (sock, packet, sizeof(iphdr) + sizeof(tcphdr)+optSize, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)   //TODO 20 for options
+	if (sendto (sock, packet, sizeof(iphdr) + sizeof(tcphdr)+optSize, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)
 	{
 		HelperClass::TerminateApplication("send() failed!!");
 	}	
@@ -159,7 +210,15 @@ void Core::SendSinPacket(string dstIp, unsigned int dstPort)
 
 void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 {
-	/*
+	unsigned short srcPort = 0;
+	while(srcPort<10000)
+	{
+		srcPort=rand()%64000;
+	}
+
+	//send a syn packet.
+	SendSinPacket(srcPort, dstIp, dstPort);
+	
 	//receive reply now..
 	const u_char *rcvdPacket;
 	rcvdPacket = readPacketOnPort(srcPort);
@@ -169,15 +228,20 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	{
 		cout<<"Port "<<dstPort<<" is closed"<<endl;		
 	}
-	else if(rcvdTcp->ack==1 || rcvdTcp->sin==1)
+	else if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
 	{
 		cout<<"Port "<<dstPort<<" is open"<<endl;
 	}
 	else
 	{
 		cout<<"Port "<<dstPort<<" is filtered"<<endl;
-	}	
-	*/
+	}		
+}
+
+void Core::Start()
+{
+	string dstIp="129.79.247.87"; //ip address of dagwood.soic.indiana.edu
+	PerformSynScan(dstIp,22);
 }
 
 //working check sum method...
@@ -205,30 +269,29 @@ uint16_t Core::computeHeaderCheckSum(uint16_t* words, unsigned int size)
 	return ~(sumWords&lowEnd);	
 }
 
-uint16_t Core::computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp, u_char* options, unsigned int optSize)
+
+uint16_t Core::computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp)
 {	 
 	unsigned int size=12;
 	unsigned int tcpHdrSize= sizeof(tcphdr);
-	unsigned int segSize= tcpHdrSize + optSize;
+	unsigned int segSize= tcpHdrSize;
 	u_char* t=new u_char[size+segSize];
 	memcpy(t, &ip.saddr, 4);
 	memcpy(t+4, &ip.daddr, 4);
 	t[8]=0;
 	t[9]=IPPROTO_TCP;
 
-	unsigned int segmentSize=htons(segSize);
+	unsigned short segmentSize=htons(segSize);
 
 	memcpy(t+10, &segmentSize, 2);
 	memcpy(t+size, &tcp,tcpHdrSize);
-	if(options!=NULL)
-	{
-		memcpy(t+size+tcpHdrSize, options, optSize);
-	}
 	
 	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
-	delete[] t;
-	return computeHeaderCheckSum((uint16_t*)t, size+segSize);
+	uint16_t checkSum = computeHeaderCheckSum((uint16_t*)t, size+segSize);
+	delete[] t; //free memory..
+	return checkSum;
 }
+
 
 
 
