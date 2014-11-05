@@ -84,7 +84,7 @@ const u_char* Core::readPacketOnPort(int port)
     {
         printf("Error reading the packets: %s\n", pcap_geterr(handle));
     }
-    	
+    cout<<hdr->len<<"-------------"<<endl;
 	/* And close the session */
 	pcap_close(handle);
 
@@ -246,14 +246,14 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 		cout<<"Unassigned\t\t";
 	}
 	cout<<"TCP-SYN-SCAN\t";
-	if(rcvdTcp->rst==1)
-	{
-		cout<<"closed"<<endl;		
-	}
-	else if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
+	if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
 	{
 		cout<<"open"<<endl;
 	}
+	else if(rcvdTcp->rst==1)
+	{
+		cout<<"closed"<<endl;		
+	}	
 	else
 	{
 		cout<<"filtered"<<endl; //TODO
@@ -262,8 +262,9 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 
 void Core::Start()
 {
-	string dstIp="129.79.247.87"; //ip address of dagwood.soic.indiana.edu
-	PerformSynScan(dstIp,22);
+	//string dstIp="129.79.247.87"; //ip address of dagwood.soic.indiana.edu
+	string dstIp="8.8.8.8"; //ip address of dagwood.soic.indiana.edu
+	PerformSynScan(dstIp,52);
 }
 
 //working check sum method...
