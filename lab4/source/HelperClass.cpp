@@ -141,3 +141,42 @@ bool HelperClass::CheckIfFileExists(const char* fileName)
 		return false;
 	}
 }
+
+const char* HelperClass::GetPortName(unsigned short port)
+{
+	if(port<1 || port>1024) //we search for port numbers only in this range...
+	{
+		return NULL;
+	}
+	const char* fileName="resources/service-names-port-numbers.csv";
+	if(!CheckIfFileExists(fileName))
+	{
+		HelperClass::TerminateApplication("The port numbers file in resources doesnt exist");
+	}
+	ifstream file (fileName); 
+	string value;	
+	getline(file, value); //ignore the first line..(has headers in them)
+	while (getline(file, value))
+	{
+		int index=value.find(',');
+		if(index<0)
+		{
+			return NULL;
+		}
+		string serviceName=value.substr(0,index);
+		value=value.substr(index+1);
+		index=value.find(',');
+		if(index<0)
+		{
+			return NULL;
+		}
+		string portChar=value.substr(0,index);
+		unsigned short portNum = atoi(portChar.c_str());
+		if(portNum==port)
+		{
+			return serviceName.c_str();
+		}
+	}	
+	return NULL;
+}
+

@@ -1,5 +1,10 @@
 #include "../include/Core.h"
 
+struct remote
+{
+	string ip;
+	unsigned short port;
+};
 
 class Mutex
 {
@@ -20,12 +25,12 @@ class Mutex
 		}
 };
 
-/*
+
 class Thread
 {
-	TODO	
-}
-*/
+	//TODO
+};
+
 
 const u_char* Core::readPacketOnPort(int port)
 {
@@ -223,18 +228,23 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	const u_char *rcvdPacket;
 	rcvdPacket = readPacketOnPort(srcPort);
 	struct tcphdr *rcvdTcp = (struct tcphdr *)(rcvdPacket+sizeof(ethhdr)+sizeof(iphdr));
-	
+	cout<<"Port "<<dstPort<<" ";
+	const char* serviceName=HelperClass::GetPortName(dstPort);
+	if(serviceName!=NULL)
+	{
+		cout<<"["<<serviceName<<"] ";
+	}
 	if(rcvdTcp->rst==1)
 	{
-		cout<<"Port "<<dstPort<<" is closed"<<endl;		
+		cout<<"is closed"<<endl;		
 	}
 	else if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
 	{
-		cout<<"Port "<<dstPort<<" is open"<<endl;
+		cout<<" is open"<<endl;
 	}
 	else
 	{
-		cout<<"Port "<<dstPort<<" is filtered"<<endl;
+		cout<<" is filtered"<<endl;
 	}		
 }
 

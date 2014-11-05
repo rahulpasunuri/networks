@@ -23,6 +23,16 @@
 #include<fstream>
 #include "HelperClass.h"
 
+enum StandardService
+{
+	SSH=22,
+	SMTP=25, //TODO try other ports 24, 25, and 587
+	WHOIS=43,
+	HTTP=80,
+	IMAP=143, //
+	POP //which version of POP must be used TODO
+};
+
 class Core
 {
 	private:
