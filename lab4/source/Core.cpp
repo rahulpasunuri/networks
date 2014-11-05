@@ -230,7 +230,17 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	const u_char *rcvdPacket;
 	rcvdPacket = readPacketOnPort(srcPort);
 	struct tcphdr *rcvdTcp = (struct tcphdr *)(rcvdPacket+sizeof(ethhdr)+sizeof(iphdr));
+	struct iphdr *rcvdIp = (struct iphdr *)(rcvdPacket+sizeof(ethhdr));
 	cout<<endl;
+	
+	struct sockaddr_in sa;
+	memset(&sa, 0, sizeof(sockaddr));
+	//memset();
+	memcpy(&sa.sin_addr.s_addr, &rcvdIp->daddr, sizeof(rcvdIp->daddr)); //4 bytes for ip address.
+	char rcvdSrcIp[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &(sa.sin_addr), rcvdSrcIp, INET_ADDRSTRLEN);;	
+	cout<<rcvdSrcIp<<endl;	
+	
 	cout<<"------------------------------------------------------------\n";
 	cout<<"Port\t";
 	cout<<"Service Name\t";
