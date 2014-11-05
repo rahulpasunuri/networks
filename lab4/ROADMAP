@@ -1,0 +1,12 @@
+Tasks Accomplished:
+1) Parsing the command line arguments and error checking on command line arguments.
+2) Getting the service names for the standard ports (1-1024). (The mapping of port number and service names is kept in a csv file).
+3) Computation of TCP checksum and UDP checksum.
+
+
+Tasks Ahead:
+1) UDP scan on the ports.
+2) 
+
+Folder Structure:
+
