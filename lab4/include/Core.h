@@ -36,6 +36,7 @@ enum StandardServices
 class Core
 {
 	private:
+		Mutex lPortMutex;
 		args_t args;
 		string interfaceName;
 		void SendSinPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);

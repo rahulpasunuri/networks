@@ -6,24 +6,8 @@ struct remote
 	unsigned short port;
 };
 
-class Mutex
-{
-	private:
-		pthread_mutex_t m;
-	public:
-		Mutex()
-		{
-			pthread_mutex_init(&m, NULL); //init the mutex
-		}
-		void lock()
-		{
-			pthread_mutex_lock(&m);
-		}
-		void unlock()
-		{
-			pthread_mutex_unlock(&m);
-		}
-};
+
+
 
 
 class Thread
@@ -35,12 +19,8 @@ class Thread
 const u_char* Core::readPacketOnPort(int port)
 {
 	char errbuf[PCAP_ERRBUF_SIZE];
-	std::ostringstream o;
-	o << "dst port " << port; //create the filter expression...
-	string filter = o.str();	
 	
 	pcap_t *handle;			/* Session handle */
-	struct bpf_program fp;		/* The compiled filter */
 	bpf_u_int32 mask;		/* Our netmask */
 	bpf_u_int32 net;		/* Our IP */
 	const u_char *packet;		/* The actual packet */
@@ -58,15 +38,6 @@ const u_char* Core::readPacketOnPort(int port)
 	if (handle == NULL) 
 	{
 		fprintf(stderr, "Couldn't open device %s: %s\n", interfaceName.c_str(), errbuf);
-	}
-	/* Compile and apply the filter */
-	if (pcap_compile(handle, &fp, filter.c_str(), 0, net) == -1) 
-	{
-		fprintf(stderr, "Couldn't parse filter %s: %s\n", filter.c_str(), pcap_geterr(handle));
-	}
-	if (pcap_setfilter(handle, &fp) == -1) 
-	{
-		fprintf(stderr, "Couldn't install filter %s: %s\n", filter.c_str(), pcap_geterr(handle));
 	}
 	struct pcap_pkthdr *hdr;
 	

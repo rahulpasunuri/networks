@@ -180,3 +180,17 @@ const char* HelperClass::GetPortName(unsigned short port)
 	return NULL;
 }
 
+Mutex::Mutex()
+{
+	pthread_mutex_init(&m, NULL); //init the mutex
+}
+void Mutex::lock()
+{
+	pthread_mutex_lock(&m);
+}
+void Mutex::unlock()
+{
+	pthread_mutex_unlock(&m);
+}
+
+

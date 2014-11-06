@@ -76,6 +76,16 @@ struct args_t
        vector<scanTypes_t> scanTypes;
 };
 
+class Mutex
+{
+	private:
+		pthread_mutex_t m;
+	public:
+		Mutex();
+		void lock();
+		void unlock();
+};
+
 
 class HelperClass
 {	
