@@ -12,6 +12,8 @@
 #include<fstream>
 #include<string>
 #include "../include/HelperClass.h"
+#include<map>
+
 using namespace std;
 
 void HelperClass::TerminateApplication(string text)

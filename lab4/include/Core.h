@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include<fstream>
 #include "HelperClass.h"
-
+#include<map>
 enum StandardServices
 {
 	SSH=22,
@@ -33,10 +33,21 @@ enum StandardServices
 	IMAP=143
 };
 
+struct packet
+{
+	u_char* pointer;
+	unsigned short length;		
+};
+
 class Core
 {
 	private:
 		Mutex lPortMutex;
+		std::map<unsigned short, vector<struct packet> > portMap;
+		//vector<unsigned short> lPorts;
+		
+		bool addPortToList(unsigned short port);		
+		void removePortFromList(unsigned short port);
 		args_t args;
 		string interfaceName;
 		void SendSinPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);

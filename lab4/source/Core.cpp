@@ -7,7 +7,28 @@ struct remote
 };
 
 
+bool Core::addPortToList(unsigned short port)
+{
+	lPortMutex.lock();
+	for (std::map<unsigned short,vector<packet> >::iterator it=portMap.begin(); it!=portMap.end(); ++it)
+	{
+		if(it->first==port)
+		{
+			lPortMutex.unlock();
+			return false;
+		}
+	}
+	vector<packet> newVector;
+	portMap.insert ( std::pair<unsigned short,vector<packet> >(port,newVector));
+	//portMap.push_back(port,newVector);
+	lPortMutex.unlock();
+	return true;
+}
 
+void Core::removePortFromList(unsigned short port)
+{
+	//TODO
+}
 
 
 class Thread
@@ -189,7 +210,7 @@ void Core::SendSinPacket(unsigned short srcPort, string dstIp, unsigned short ds
 void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 {
 	unsigned short srcPort = 0;
-	while(srcPort<10000)
+	while(srcPort<10000 && !addPortToList(srcPort)) //ensures that each thread listens on a new port...
 	{
 		srcPort=rand()%64000;
 	}
