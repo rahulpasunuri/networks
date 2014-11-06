@@ -95,7 +95,6 @@ class Thread
 		int join();
 };
 
-
 class HelperClass
 {	
 	public:
@@ -107,4 +106,5 @@ class HelperClass
 		static const char* getScanTypeName(scanTypes_t inp);
 		static scanTypes_t getScanTypeId(string s);
 		static const char* GetPortName(unsigned short port);
+		//static void* threadhelper(void *context);
 };

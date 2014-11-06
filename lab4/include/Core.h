@@ -46,20 +46,47 @@ class Core
 		std::map<unsigned short, vector<struct packet> > portMap;
 		//vector<unsigned short> lPorts;
 
+		//add a packet to the queue..
 		void addPacketToPort(unsigned short port, struct packet p);
+		
+		//remove a packet from the queue.
 		void removePacketFromPort(unsigned short port, struct packet p);
-		bool addPortToList(unsigned short port);		
+
+		struct packet* fetchPacketFromPort(unsigned short port);
+
+		//adds a new mappings, and port sniffer will start save packets for this port.
+		bool addPortToList(unsigned short port);	
+		
+		//packet sniffer will stop saving packets for this port.		//removes the queue for the port.
 		void removePortFromList(unsigned short port);
 		args_t args;
-		string interfaceName;
-		void SendSinPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
+		
+		//sends a sync packet from a src port to a (dstIP,dstport)
+		void SendSynPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
+
+		//does the syn scan on a given ip and port..
 		void PerformSynScan(string dstIp, unsigned short dstPort);
+		
+		//computes the header checksum
 		uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size);
+		
+		//computes the tcp header checksum.
 		uint16_t computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp);
-		void readPacketOnPort();
+
+		//this is done by the individual thread, and they read packets which belong to their port..
+		struct packet* readPacketFromList(unsigned short port);
 		
 	public:
+		string interfaceName;
+
+		//this is port sniffer which will save packets
+		void readPacketOnPort();
+		static void *threadhelper(void *context);
+		
+		//the constructor..
 		Core(args_t,string);
+		
+		//this starts the port scanning process...
 		void Start();
 };
 

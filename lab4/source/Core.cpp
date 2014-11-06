@@ -9,6 +9,10 @@ struct remote
 
 bool Core::addPortToList(unsigned short port)
 {
+	if(port<10000) //dis allowing port below 10,000
+	{
+		return false;
+	}
 	lPortMutex.lock();
 	for (std::map<unsigned short,vector<packet> >::iterator it=portMap.begin(); it!=portMap.end(); ++it)
 	{
@@ -50,6 +54,9 @@ void Core::addPacketToPort(unsigned short port, struct packet p)
 	{
 		if(it->first==port)
 		{
+			struct tcphdr *tcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(tcphdr));	
+			cout<<"Packet source is "<<ntohs(tcp->source)<<endl;
+			cout<<"Packet destination is "<<ntohs(tcp->dest)<<endl;
 			it->second.push_back(p);
 			break;
 		}
@@ -127,7 +134,6 @@ void Core::readPacketOnPort()
 		struct packet p;
 		p.pointer=packet;
 		p.length=hdr->len;
-		cout<<ntohs(tcp->dest)<<endl;
 		//TODO - ignore packets with originating from this ip address..		
 		addPacketToPort(ntohs(tcp->source), p);
 		/* And close the session */
@@ -143,7 +149,7 @@ Core::Core(args_t args,string interfaceName)
 	this->interfaceName=interfaceName;
 }	
 
-void Core::SendSinPacket(unsigned short srcPort, string dstIp, unsigned short dstPort)
+void Core::SendSynPacket(unsigned short srcPort, string dstIp, unsigned short dstPort)
 {	
 	
 	int sock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
@@ -257,23 +263,67 @@ void Core::SendSinPacket(unsigned short srcPort, string dstIp, unsigned short ds
 	close (sock);// closing the socket.
 }
 
+void* Core::threadhelper(void *context)
+{
+    ((Core *)context)->readPacketOnPort();
+    return NULL;
+}
+
+struct packet* Core::fetchPacketFromPort(unsigned short port)
+{
+	struct packet* p = NULL; 
+	lPortMutex.lock();
+	map<unsigned short, vector<struct packet> >::iterator it=portMap.begin();
+	while(it!=portMap.end())
+	{
+		if(it->first==port)
+		{
+			p = new (struct packet);
+			memcpy(p, &it->second, sizeof(struct packet));
+			cout<<"a packet is fetched"<<endl;
+			break;
+		}
+		it++;
+	}
+	lPortMutex.unlock();
+	return p;
+}
+
+struct packet* Core::readPacketFromList(unsigned short port)
+{
+	//we can safely remove the packet from the list after we are done.	
+	struct packet* p=fetchPacketFromPort(port);
+	if(p==NULL)
+	{
+		return NULL;
+	}	
+	removePacketFromPort(port, *p);
+	return p;
+}
+
+
 void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 {
 	unsigned short srcPort = 0;
-	while(srcPort<10000 && !addPortToList(srcPort)) //ensures that each thread listens on a new port...
-	{
+	while(!addPortToList(srcPort)) //ensures that each thread listens on a new port...
+	{	
 		srcPort=rand()%64000;
 	}
 
 	//send a syn packet.
-	SendSinPacket(srcPort, dstIp, dstPort);
-	readPacketOnPort();
-	
-	/*
+	SendSynPacket(srcPort, dstIp, dstPort);		
+	struct packet *p=NULL;
+	while(p!=NULL)
+	{
+		cout<<"port is "<<srcPort<<endl;
+		//loop till we get the message intended to us..
+		p = readPacketFromList(srcPort);
+		
+		//break; //TODO
+	}
+	cout<<":??????????????"<<endl;		
 	//receive reply now..
-	const u_char *rcvdPacket;
-	
-	
+	const u_char *rcvdPacket=p->pointer;		
 	struct tcphdr *rcvdTcp = (struct tcphdr *)(rcvdPacket+sizeof(ethhdr)+sizeof(iphdr));
 	struct iphdr *rcvdIp = (struct iphdr *)(rcvdPacket+sizeof(ethhdr));
 	cout<<endl;
@@ -315,14 +365,25 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	{
 		cout<<"filtered"<<endl; //TODO
 	}
-	*/		
+	
 }
+
+
 
 void Core::Start()
 {
 	string dstIp="129.79.247.87"; //ip address of dagwood.soic.indiana.edu
 	//string dstIp="8.8.8.8"; //ip address of dagwood.soic.indiana.edu
-	PerformSynScan(dstIp,22);
+
+	pthread_t t;
+	int retVal=pthread_create(&t, NULL, &Core::threadhelper, this);
+	if(retVal!=0)
+	{
+		HelperClass::TerminateApplication("Unable to create the sniffer thread");
+	}
+	PerformSynScan(dstIp,22);	
+	pthread_join(t,NULL);
+	
 }
 
 //working check sum method...

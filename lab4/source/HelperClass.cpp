@@ -23,20 +23,6 @@ void HelperClass::TerminateApplication(string text)
 	return;
 }
 
-Thread::Thread(void *(*start_routine)(void *), void *arg)
-{
-	int retVal = pthread_create(&t, NULL, start_routine, arg);
-	if(retVal!=0)
-	{
-		HelperClass::TerminateApplication("Unable to create threads");
-	}		
-}
-
-Thread::join()
-{
-	return pthread_join(t, NULL);
-}
-
 const char* HelperClass::getScanTypeName(scanTypes_t inp)
 {
 	if(inp==TCP_SYN)
