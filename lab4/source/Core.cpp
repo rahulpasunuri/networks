@@ -28,16 +28,59 @@ bool Core::addPortToList(unsigned short port)
 void Core::removePortFromList(unsigned short port)
 {
 	//TODO
+	lPortMutex.lock();
+	std::map<unsigned short,vector<packet> >::iterator it=portMap.begin();
+	for (; it!=portMap.end(); ++it)
+	{
+		if(it->first==port)
+		{
+			break;
+		}
+	}	
+	portMap.erase(it);
+	lPortMutex.unlock();
 }
 
-
-class Thread
+void Core::addPacketToPort(unsigned short port, struct packet p)
 {
-	//TODO
-};
+	//the thread inserted its source port before reaching here..
+	lPortMutex.lock();
+	std::map<unsigned short,vector<packet> >::iterator it=portMap.begin();
+	for (; it!=portMap.end(); ++it)
+	{
+		if(it->first==port)
+		{
+			it->second.push_back(p);
+			break;
+		}
+	}		
+	lPortMutex.unlock();
+}
 
+void Core::removePacketFromPort(unsigned short port, struct packet p)
+{
+	//the thread inserted its source port before reaching here..
+	lPortMutex.lock();
+	std::map<unsigned short,vector<packet> >::iterator it=portMap.begin();
+	for (; it!=portMap.end(); ++it)
+	{
+		if(it->first==port)
+		{			
+			for(vector<packet>::iterator it1 = it->second.begin(); it1!=it->second.end(); it1++)
+			{
+				//if(*it1 == p)
+				{
+					it->second.erase(it1);
+					break;	
+				}				
+			}			
+			break;
+		}
+	}		
+	lPortMutex.unlock();
+}
 
-const u_char* Core::readPacketOnPort(int port)
+void Core::readPacketOnPort()
 {
 	char errbuf[PCAP_ERRBUF_SIZE];
 	
@@ -64,25 +107,32 @@ const u_char* Core::readPacketOnPort(int port)
 	
     /* Retrieve the packets */
     int res;
-    while((res = pcap_next_ex(handle, &hdr, &packet)) >= 0)
+    while(1)
     {
-        if(res == 0)
-        {
-        	//time out for reading a packet...
-            continue;            
-        }
-        break;
-    }
-    
-    if(res == -1)
-    {
-        printf("Error reading the packets: %s\n", pcap_geterr(handle));
-    }
-    cout<<hdr->len<<"-------------"<<endl;
-	/* And close the session */
+		while((res = pcap_next_ex(handle, &hdr, &packet)) >= 0)
+		{
+		    if(res == 0)
+		    {
+		    	//time out for reading a packet...
+		        continue;            
+		    }
+		    break;
+		}
+		
+		if(res == -1)
+		{
+		    printf("Error reading the packets: %s\n", pcap_geterr(handle));
+		}
+		struct tcphdr *tcp = (struct tcphdr *)(packet+sizeof(ethhdr)+sizeof(tcphdr));	
+		struct packet p;
+		p.pointer=packet;
+		p.length=hdr->len;
+		cout<<ntohs(tcp->dest)<<endl;
+		//TODO - ignore packets with originating from this ip address..		
+		addPacketToPort(ntohs(tcp->source), p);
+		/* And close the session */
+	}
 	pcap_close(handle);
-
-	return packet; //TODO
 }
 
 
@@ -217,10 +267,13 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 
 	//send a syn packet.
 	SendSinPacket(srcPort, dstIp, dstPort);
+	readPacketOnPort();
 	
+	/*
 	//receive reply now..
 	const u_char *rcvdPacket;
-	rcvdPacket = readPacketOnPort(srcPort);
+	
+	
 	struct tcphdr *rcvdTcp = (struct tcphdr *)(rcvdPacket+sizeof(ethhdr)+sizeof(iphdr));
 	struct iphdr *rcvdIp = (struct iphdr *)(rcvdPacket+sizeof(ethhdr));
 	cout<<endl;
@@ -261,7 +314,8 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	else
 	{
 		cout<<"filtered"<<endl; //TODO
-	}		
+	}
+	*/		
 }
 
 void Core::Start()

@@ -35,7 +35,7 @@ enum StandardServices
 
 struct packet
 {
-	u_char* pointer;
+	const u_char* pointer;
 	unsigned short length;		
 };
 
@@ -45,7 +45,9 @@ class Core
 		Mutex lPortMutex;
 		std::map<unsigned short, vector<struct packet> > portMap;
 		//vector<unsigned short> lPorts;
-		
+
+		void addPacketToPort(unsigned short port, struct packet p);
+		void removePacketFromPort(unsigned short port, struct packet p);
 		bool addPortToList(unsigned short port);		
 		void removePortFromList(unsigned short port);
 		args_t args;
@@ -54,7 +56,7 @@ class Core
 		void PerformSynScan(string dstIp, unsigned short dstPort);
 		uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size);
 		uint16_t computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp);
-		const u_char* readPacketOnPort(int port);
+		void readPacketOnPort();
 		
 	public:
 		Core(args_t,string);

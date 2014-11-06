@@ -86,6 +86,15 @@ class Mutex
 		void unlock();
 };
 
+class Thread
+{
+	private:
+		pthread_t t;
+	public:
+		Thread(void *(*start_routine)(void *), void *arg);
+		int join();
+};
+
 
 class HelperClass
 {	
