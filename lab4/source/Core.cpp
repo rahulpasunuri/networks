@@ -327,28 +327,28 @@ struct packet* Core::readPacketFromList(unsigned short port)
 void Core::printResult(struct results r)
 {
 	printMutex.lock();		
-	cout<<r.port<<"\t";
-	cout<<r.serviceName<<"\t\t";
-	cout<<HelperClass::getScanTypeName(r.scanType)<<"\t\t";	
+	cout<<setw(20)<<r.port;
+	cout<<setw(20)<<r.serviceName<<"\t\t";
+	cout<<setw(20)<<HelperClass::getScanTypeName(r.scanType)<<"\t\t";	
 	if(r.state==OPEN)
 	{
-		cout<<"open"<<endl;
+		cout<<setw(20)<<"open"<<endl;
 	}
 	else if(r.state==CLOSED)
 	{
-		cout<<"closed"<<endl;		
+		cout<<setw(20)<<"closed"<<endl;		
 	}	
 	else if(r.state==FILTERED)
 	{
-		cout<<"filtered"<<endl;
+		cout<<setw(20)<<"filtered"<<endl;
 	}
 	else if(r.state==UNFILTERED)
 	{
-		cout<<"unfiltered"<<endl;
+		cout<<setw(20)<<"unfiltered"<<endl;
 	}
 	else if(r.state==OPEN_OR_FILTERED)
 	{
-		cout<<"open | filtered"<<endl;
+		cout<<setw(20)<<"open | filtered"<<endl;
 	}
 	printMutex.unlock();
 }
@@ -513,12 +513,12 @@ void Core::Start()
 	}
 	sleep(1); //wait for the pthread to start sniffing..
 	
-	cout<<"------------------------------------------------------------\n";
-	cout<<"Port\t";
-	cout<<"Service Name\t";
-	cout<<"Scan Type\t";
-	cout<<"Status"<<endl;
-	cout<<"------------------------------------------------------------\n";
+	cout<<"\n------------------------------------------------------------------------------------------------------------------------\n";
+	cout<<setw(20)<<"  Port\t";
+	cout<<setw(20)<<"Service Name\t";
+	cout<<setw(20)<<"\t\tScan Type\t";
+	cout<<setw(20)<<"\tStatus"<<endl;
+	cout<<"------------------------------------------------------------------------------------------------------------------------\n";
 	
 	pthread_t* threads = new pthread_t[args.numThreads];
 	for(int i=0;i<args.numThreads;i++)
