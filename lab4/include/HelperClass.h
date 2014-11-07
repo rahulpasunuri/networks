@@ -55,7 +55,8 @@ enum scanTypes_t
 	TCP_FIN,
 	TCP_XMAS,
 	TCP_ACK,
-	UDP
+	UDP,
+	MISC
 };
 
 enum portState
@@ -74,6 +75,13 @@ struct args_t
        bool verboseMode;
        int numThreads;
        vector<scanTypes_t> scanTypes;
+};
+
+struct target
+{
+	string ip;
+	unsigned short port;
+	scanTypes_t scanType;
 };
 
 class Mutex

@@ -400,13 +400,54 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	
 }
 
+struct target Core::getWork()
+{	
+	struct target t;
+	workMutex.lock();
+	if(targets.empty())
+	{
+		//this means that all the work is done...
+		t.scanType=MISC;
+		workMutex.unlock();
+	}
+	else
+	{
+		//assign work to threads..
+		t = target[0];
+		vector<target>::iterator it = targets.begin();
+		targets.erase(it);
+	}		
+	workMutex.unlock();
+	return t;
+}
 
+
+void Core::doWork()
+{
+
+}
 
 void Core::Start()
 {
 	string dstIp="129.79.247.87"; //ip address of dagwood.soic.indiana.edu
 	//string dstIp="8.8.8.8"; //ip address of dagwood.soic.indiana.edu
-
+	
+	//init the target list..
+	for(unsigned int i=0;i<args.ipAddresses.size();i++)
+	{
+		for(unsigned  int j=0; i<args.portNumbers.size();j++)
+		{
+			for(unsigned  int k=0; k<args.scanTypes.size();k++)
+			{
+				struct target t;
+				t.ip = args.ipAddresses[i];
+				t.port= args.portNumbers[j];
+				t.scanType = args.scanTypes[k];
+				targets.push_back(t);
+			}
+		}
+	}	
+	
 	pthread_t t;
 	int retVal=pthread_create(&t, NULL, &Core::threadhelper, this);
 	if(retVal!=0)
@@ -414,7 +455,14 @@ void Core::Start()
 		HelperClass::TerminateApplication("Unable to create the sniffer thread");
 	}
 	sleep(1); //wait for the pthread to start sniffing..
-	PerformSynScan(dstIp,22);	
+	//PerformSynScan(dstIp,22);	
+	
+	pthread_t* threads = new pthread_t[args.numThreads];
+	//for(int i=0;i<args.numThreads;i++)
+	//{
+		
+	//}
+		
 	retVal=pthread_join(t,NULL);
 	if(retVal!=0)
 	{
