@@ -44,6 +44,7 @@ class Core
 	private:
 		Mutex lPortMutex;
 		Mutex workMutex;
+		Mutex printMutex;
 		vector<struct target> targets;
 		std::map<unsigned short, vector<struct packet*> > portMap;
 		//vector<unsigned short> lPorts;
@@ -81,11 +82,12 @@ class Core
 		void scheduler();
 	public:
 		string interfaceName;
-
+		void printResult(struct results r);
 		//this is port sniffer which will save packets
 		void readPacketOnPort();
 		static void *threadhelper(void *context);
-		void Core::doWork(); //the work done by the threads...		
+		static void *workhelper(void *context);
+		void doWork(); //the work done by the threads...		
 		//the constructor..
 		Core(args_t,string);
 		

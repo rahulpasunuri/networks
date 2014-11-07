@@ -190,7 +190,7 @@ args_t parseArguments(int argc, char** argv)
 					usage();
 					HelperClass::TerminateApplication("Number of threads is not specified");
 				}
-				if(!isNumber(optarg))
+				if(!HelperClass::isNumber(optarg))
 				{
 					HelperClass::TerminateApplication("Number of threads is not an integer..");
 				}

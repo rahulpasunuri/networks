@@ -68,6 +68,15 @@ enum portState
 	OPEN_OR_FILTERED		
 };
 
+struct results
+{
+	string ip;
+	string serviceName;
+	scanTypes_t scanType;
+	portState state;
+	int port;
+};
+
 struct args_t
 {
        vector<int> portNumbers;

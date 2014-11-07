@@ -55,9 +55,7 @@ void Core::addPacketToPort(unsigned short port, struct packet p)
 	{
 		if(it->first==port)
 		{
-			cout<<"Adding a packet "<<port<<endl;
-			struct tcphdr *tcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));	
-			cout<<"Source is "<<ntohs(tcp->source)<<endl;
+			//struct tcphdr *tcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));	
 			struct packet* p1=new (struct packet);
 			p1->pointer=p.pointer;
 			p1->length=p.length;
@@ -93,7 +91,6 @@ void Core::removePacketFromPort(unsigned short port, struct packet p)
 
 void Core::readPacketOnPort()
 {
-	cout<<"packet sniffer started"<<endl;
 	char errbuf[PCAP_ERRBUF_SIZE];
 	
 	pcap_t *handle;			/* Session handle */
@@ -286,6 +283,12 @@ void* Core::threadhelper(void *context)
     return NULL;
 }
 
+void* Core::workhelper(void *context)
+{
+    ((Core *)context)->doWork();
+    return NULL;
+}
+
 struct packet* Core::fetchPacketFromPort(unsigned short port)
 {
 	struct packet* p = NULL; 
@@ -321,6 +324,34 @@ struct packet* Core::readPacketFromList(unsigned short port)
 	return p;
 }
 
+void Core::printResult(struct results r)
+{
+	printMutex.lock();		
+	cout<<r.port<<"\t";
+	cout<<r.serviceName<<"\t\t";
+	cout<<HelperClass::getScanTypeName(r.scanType)<<"\t\t";	
+	if(r.state==OPEN)
+	{
+		cout<<"open"<<endl;
+	}
+	else if(r.state==CLOSED)
+	{
+		cout<<"closed"<<endl;		
+	}	
+	else if(r.state==FILTERED)
+	{
+		cout<<"filtered"<<endl;
+	}
+	else if(r.state==UNFILTERED)
+	{
+		cout<<"unfiltered"<<endl;
+	}
+	else if(r.state==OPEN_OR_FILTERED)
+	{
+		cout<<"open | filtered"<<endl;
+	}
+	printMutex.unlock();
+}
 
 void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 {
@@ -329,7 +360,6 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	{	
 		srcPort=rand()%64000;
 	}
-	cout<<"Listening on source port "<<srcPort<<endl;
 	//send a syn packet.
 	SendSynPacket(srcPort, dstIp, dstPort);		
 	struct packet *p=NULL;
@@ -344,7 +374,6 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 			//check the source ip address of the packet and compare it with dstIp
 			sockaddr_in s;
 			memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
-			cout<<dstPort<<endl;			
 			//also check source port of the packet with dstPort
 			if(ntohs(tcp->source) == dstPort && (strcmp(inet_ntoa(s.sin_addr), dstIp.c_str()) ==0 ))
 			{
@@ -358,7 +387,6 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	const u_char *rcvdPacket=p->pointer;		
 	struct tcphdr *rcvdTcp = (struct tcphdr *)(rcvdPacket+sizeof(ethhdr)+sizeof(iphdr));
 	struct iphdr *rcvdIp = (struct iphdr *)(rcvdPacket+sizeof(ethhdr));
-	cout<<endl;
 	
 	struct sockaddr_in sa;
 	memset(&sa, 0, sizeof(sockaddr));
@@ -366,38 +394,31 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	memcpy(&sa.sin_addr.s_addr, &rcvdIp->daddr, sizeof(rcvdIp->daddr)); //4 bytes for ip address.
 	char rcvdSrcIp[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &(sa.sin_addr), rcvdSrcIp, INET_ADDRSTRLEN);;	
-	cout<<rcvdSrcIp<<endl;	
-	
-	cout<<"------------------------------------------------------------\n";
-	cout<<"Port\t";
-	cout<<"Service Name\t";
-	cout<<"Scan Type\t";
-	cout<<"Status"<<endl;
-	cout<<"------------------------------------------------------------\n";
-	cout<<dstPort<<"\t";
+	struct results r;
+	r.port=dstPort;	
 	const char* serviceName=HelperClass::GetPortName(dstPort);
-	if(serviceName!=NULL)
+	if(serviceName==NULL)
 	{
-		cout<<serviceName<<"\t\t";
+		r.serviceName="Unassigned";
 	}
 	else
 	{
-		cout<<"Unassigned\t\t";
+		r.serviceName=serviceName;
 	}
-	cout<<"TCP-SYN-SCAN\t";
+	
 	if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
 	{
-		cout<<"open"<<endl;
+		r.state = OPEN;
 	}
 	else if(rcvdTcp->rst==1)
 	{
-		cout<<"closed"<<endl;		
+		r.state = CLOSED;
 	}	
 	else
 	{
-		cout<<"filtered"<<endl; //TODO
+		r.state = FILTERED;
 	}
-	
+	printResult(r);
 }
 
 struct target Core::getWork()
@@ -413,8 +434,8 @@ struct target Core::getWork()
 	else
 	{
 		//assign work to threads..
-		t = target[0];
-		vector<target>::iterator it = targets.begin();
+		t = targets[0];
+		vector<target>::iterator it = targets.begin(); //remove the work allocated from the list of work..
 		targets.erase(it);
 	}		
 	workMutex.unlock();
@@ -424,18 +445,54 @@ struct target Core::getWork()
 
 void Core::doWork()
 {
-
+	while(1)
+	{
+		struct target t = getWork();
+		if(t.scanType==MISC)
+		{
+			//exit the thread, as there is no work left to do..
+			break;
+		}
+		else if(t.scanType == TCP_SYN)
+		{
+			PerformSynScan(t.ip, t.port);
+		}
+		else if(t.scanType == TCP_NULL)
+		{
+			//TODO
+		}
+		else if(t.scanType == TCP_FIN)
+		{
+			//TODO
+		}
+		else if(t.scanType == TCP_XMAS)
+		{
+			//TODO
+		}
+		else if(t.scanType == TCP_ACK)
+		{
+			//TODO
+		}
+		else if(t.scanType == UDP)
+		{
+			//TODO
+		}	
+	}
+	//exit the thread, as there is no work left to do..
+	pthread_exit(NULL);
 }
 
 void Core::Start()
 {
+
 	string dstIp="129.79.247.87"; //ip address of dagwood.soic.indiana.edu
 	//string dstIp="8.8.8.8"; //ip address of dagwood.soic.indiana.edu
 	
 	//init the target list..
+	
 	for(unsigned int i=0;i<args.ipAddresses.size();i++)
 	{
-		for(unsigned  int j=0; i<args.portNumbers.size();j++)
+		for(unsigned  int j=0; j<args.portNumbers.size();j++)
 		{
 			for(unsigned  int k=0; k<args.scanTypes.size();k++)
 			{
@@ -446,8 +503,7 @@ void Core::Start()
 				targets.push_back(t);
 			}
 		}
-	}	
-	
+	}		
 	pthread_t t;
 	int retVal=pthread_create(&t, NULL, &Core::threadhelper, this);
 	if(retVal!=0)
@@ -455,19 +511,29 @@ void Core::Start()
 		HelperClass::TerminateApplication("Unable to create the sniffer thread");
 	}
 	sleep(1); //wait for the pthread to start sniffing..
-	//PerformSynScan(dstIp,22);	
+	
+	cout<<"------------------------------------------------------------\n";
+	cout<<"Port\t";
+	cout<<"Service Name\t";
+	cout<<"Scan Type\t";
+	cout<<"Status"<<endl;
+	cout<<"------------------------------------------------------------\n";
 	
 	pthread_t* threads = new pthread_t[args.numThreads];
-	//for(int i=0;i<args.numThreads;i++)
-	//{
-		
-	//}
-		
-	retVal=pthread_join(t,NULL);
-	if(retVal!=0)
+	for(int i=0;i<args.numThreads;i++)
 	{
-		HelperClass::TerminateApplication("Unable to join the sniffer thread");
-	}	
+		pthread_create(&threads[i], NULL, &Core::workhelper, this);
+	}
+	for(int i=0; i<args.numThreads; i++)
+	{
+		pthread_join(threads[i],NULL);
+	}
+	//TODO terminate the sniffer thread	
+	//retVal=pthread_join(t,NULL);
+	//if(retVal!=0)
+	//{
+	//	HelperClass::TerminateApplication("Unable to join the sniffer thread");
+	//}	
 	
 }
 
