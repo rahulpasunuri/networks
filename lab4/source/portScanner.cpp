@@ -404,8 +404,6 @@ int main(int argc, char** argv)
 	}
 	srand (time(NULL)); 
 	Core c(args, interfaceName);
-	
-	//c.PerformSynScan(dstIp,22);
 	c.Start();
 	return 0;
 }

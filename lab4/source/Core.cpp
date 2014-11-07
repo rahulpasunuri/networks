@@ -418,6 +418,7 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	{
 		r.state = FILTERED;
 	}
+	r.scanType = TCP_SYN;
 	printResult(r);
 }
 
