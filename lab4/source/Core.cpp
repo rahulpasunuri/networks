@@ -14,7 +14,7 @@ bool Core::addPortToList(unsigned short port)
 		return false;
 	}
 	lPortMutex.lock();
-	for (std::map<unsigned short,vector<packet> >::iterator it=portMap.begin(); it!=portMap.end(); ++it)
+	for (std::map<unsigned short,vector<packet*> >::iterator it=portMap.begin(); it!=portMap.end(); ++it)
 	{
 		if(it->first==port)
 		{
@@ -22,8 +22,8 @@ bool Core::addPortToList(unsigned short port)
 			return false;
 		}
 	}
-	vector<packet> newVector;
-	portMap.insert ( std::pair<unsigned short,vector<packet> >(port,newVector));
+	vector<packet*> newVector;
+	portMap.insert ( std::pair<unsigned short,vector<packet*> >(port,newVector));
 	//portMap.push_back(port,newVector);
 	lPortMutex.unlock();
 	return true;
@@ -33,7 +33,7 @@ void Core::removePortFromList(unsigned short port)
 {
 	//TODO
 	lPortMutex.lock();
-	std::map<unsigned short,vector<packet> >::iterator it=portMap.begin();
+	std::map<unsigned short,vector<packet*> >::iterator it=portMap.begin();
 	for (; it!=portMap.end(); ++it)
 	{
 		if(it->first==port)
@@ -49,7 +49,7 @@ void Core::addPacketToPort(unsigned short port, struct packet p)
 {
 	//the thread inserted its source port before reaching here..
 	lPortMutex.lock();
-	std::map<unsigned short,vector<packet> >::iterator it=portMap.begin();
+	std::map<unsigned short,vector<packet*> >::iterator it=portMap.begin();
 	for (; it!=portMap.end(); ++it)
 	{
 		if(it->first==port)
@@ -57,7 +57,9 @@ void Core::addPacketToPort(unsigned short port, struct packet p)
 			struct tcphdr *tcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(tcphdr));	
 			cout<<"Packet source is "<<ntohs(tcp->source)<<endl;
 			cout<<"Packet destination is "<<ntohs(tcp->dest)<<endl;
-			it->second.push_back(p);
+			struct packet* p1=new (struct packet);
+			memcpy(p1, &p, sizeof(struct packet));
+			it->second.push_back(p1);
 			break;
 		}
 	}		
@@ -68,12 +70,12 @@ void Core::removePacketFromPort(unsigned short port, struct packet p)
 {
 	//the thread inserted its source port before reaching here..
 	lPortMutex.lock();
-	std::map<unsigned short,vector<packet> >::iterator it=portMap.begin();
+	std::map<unsigned short,vector<packet*> >::iterator it=portMap.begin();
 	for (; it!=portMap.end(); ++it)
 	{
 		if(it->first==port)
 		{			
-			for(vector<packet>::iterator it1 = it->second.begin(); it1!=it->second.end(); it1++)
+			for(vector<packet*>::iterator it1 = it->second.begin(); it1!=it->second.end(); it1++)
 			{
 				//if(*it1 == p)
 				{
@@ -89,6 +91,7 @@ void Core::removePacketFromPort(unsigned short port, struct packet p)
 
 void Core::readPacketOnPort()
 {
+	cout<<"packet sniffer started"<<endl;
 	char errbuf[PCAP_ERRBUF_SIZE];
 	
 	pcap_t *handle;			/* Session handle */
@@ -138,6 +141,7 @@ void Core::readPacketOnPort()
 		addPacketToPort(ntohs(tcp->source), p);
 		/* And close the session */
 	}
+	cout<<"packet sniffing is closing"<<endl;
 	pcap_close(handle);
 }
 
@@ -273,13 +277,17 @@ struct packet* Core::fetchPacketFromPort(unsigned short port)
 {
 	struct packet* p = NULL; 
 	lPortMutex.lock();
-	map<unsigned short, vector<struct packet> >::iterator it=portMap.begin();
+	map<unsigned short, vector<struct packet*> >::iterator it=portMap.begin();
 	while(it!=portMap.end())
 	{
 		if(it->first==port)
 		{
+			if(it->second.empty())
+			{
+				break;
+			}
 			p = new (struct packet);
-			memcpy(p, &it->second, sizeof(struct packet));
+			p = it->second[0];
 			cout<<"a packet is fetched"<<endl;
 			break;
 		}
@@ -313,15 +321,31 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	//send a syn packet.
 	SendSynPacket(srcPort, dstIp, dstPort);		
 	struct packet *p=NULL;
-	while(p!=NULL)
+	while(1)
 	{
-		cout<<"port is "<<srcPort<<endl;
 		//loop till we get the message intended to us..
-		p = readPacketFromList(srcPort);
-		
-		//break; //TODO
+		p = readPacketFromList(srcPort);		
+		if(p!=NULL)
+		{
+			struct tcphdr* tcp= (struct tcphdr*)(p->pointer + sizeof(ethhdr)+sizeof(tcphdr));
+			//check the source ip address of the packet and compare it with dstIp
+			//TODO
+			cout<<"checking the correctnes of the packet"<<endl;
+			if(tcp!=NULL)
+			{
+				cout<<"recieved port is "<<tcp->dest<<endl;				
+			}
+
+			//also check source port of the packet with dstPort
+			if(ntohs(tcp->source) == dstPort)
+			{
+				cout<<"Correct packet recieved"<<endl;
+				break;				
+			}
+			
+		}
 	}
-	cout<<":??????????????"<<endl;		
+	
 	//receive reply now..
 	const u_char *rcvdPacket=p->pointer;		
 	struct tcphdr *rcvdTcp = (struct tcphdr *)(rcvdPacket+sizeof(ethhdr)+sizeof(iphdr));
@@ -381,8 +405,14 @@ void Core::Start()
 	{
 		HelperClass::TerminateApplication("Unable to create the sniffer thread");
 	}
+	sleep(3); //wait for the pthread to start sniffing..
 	PerformSynScan(dstIp,22);	
-	pthread_join(t,NULL);
+	retVal=pthread_join(t,NULL);
+	cout<<"join finished"<<endl;
+	if(retVal!=0)
+	{
+		HelperClass::TerminateApplication("Unable to join the sniffer thread");
+	}	
 	
 }
 

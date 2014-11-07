@@ -43,7 +43,7 @@ class Core
 {
 	private:
 		Mutex lPortMutex;
-		std::map<unsigned short, vector<struct packet> > portMap;
+		std::map<unsigned short, vector<struct packet*> > portMap;
 		//vector<unsigned short> lPorts;
 
 		//add a packet to the queue..
