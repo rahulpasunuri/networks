@@ -55,8 +55,9 @@ void Core::addPacketToPort(unsigned short port, struct packet p)
 	{
 		if(it->first==port)
 		{
-			cout<<"Adding a packet"<<endl;
-			//struct tcphdr *tcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(tcphdr));	
+			cout<<"Adding a packet "<<port<<endl;
+			struct tcphdr *tcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));	
+			cout<<"Source is "<<ntohs(tcp->source)<<endl;
 			struct packet* p1=new (struct packet);
 			p1->pointer=p.pointer;
 			p1->length=p.length;
@@ -138,9 +139,15 @@ void Core::readPacketOnPort()
 		//struct tcphdr *ip = (struct iphdr *)(packet+sizeof(ethhdr));	
 		
 		struct packet p;
-		p.pointer=packet;
+		p.pointer=new u_char[hdr->len];
+	    //void* temp=packet;
+	    for(unsigned int i=0;i<hdr->len;i++)
+	    {
+	    	p.pointer[i] = packet[i];
+	    }
+		//memcpy(p.pointer, temp, hdr->len);
 		p.length=hdr->len;
-		//TODO - ignore packets with originating from this ip address..		
+		//TODO - ignore packets with originating from this ip address..	
 		addPacketToPort(ntohs(tcp->dest), p);
 		/* And close the session */
 	}
@@ -335,19 +342,12 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 			struct tcphdr* tcp= (struct tcphdr*)(p->pointer + sizeof(ethhdr)+sizeof(iphdr));
 			struct iphdr* ip= (struct iphdr*)(p->pointer + sizeof(ethhdr));
 			//check the source ip address of the packet and compare it with dstIp
-			//TODO
 			sockaddr_in s;
-			memcpy(&s.sin_addr.s_addr, &ip->daddr, 4);
-			cout<<"checking the correctnes of the packet"<<inet_ntoa(s.sin_addr)<<endl;
-			if(tcp!=NULL)
-			{
-				cout<<"recieved port is "<<ntohs(tcp->source)<<endl;				
-			}
-
+			memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
+			cout<<dstPort<<endl;			
 			//also check source port of the packet with dstPort
-			if(ntohs(tcp->source) == dstPort)
+			if(ntohs(tcp->source) == dstPort && (strcmp(inet_ntoa(s.sin_addr), dstIp.c_str()) ==0 ))
 			{
-				cout<<"Correct packet recieved"<<endl;
 				break;				
 			}
 			
@@ -413,7 +413,7 @@ void Core::Start()
 	{
 		HelperClass::TerminateApplication("Unable to create the sniffer thread");
 	}
-	sleep(3); //wait for the pthread to start sniffing..
+	sleep(1); //wait for the pthread to start sniffing..
 	PerformSynScan(dstIp,22);	
 	retVal=pthread_join(t,NULL);
 	if(retVal!=0)

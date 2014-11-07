@@ -35,7 +35,7 @@ enum StandardServices
 
 struct packet
 {
-	const u_char* pointer;
+	u_char* pointer;
 	unsigned short length;		
 };
 
