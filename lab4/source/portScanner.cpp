@@ -326,9 +326,9 @@ args_t parseArguments(int argc, char** argv)
 					else if(HelperClass::isNumber(*it))
 					{
 						//this happens when a single port number is mentioned
-						if(HelperClass::isValidPortNumber(atoi(optarg)))
+						if(HelperClass::isValidPortNumber(atoi((*it).c_str())))
 						{
-							args.portNumbers.push_back(atoi(optarg));
+							args.portNumbers.push_back(atoi((*it).c_str()));
 						}
 						else
 						{
