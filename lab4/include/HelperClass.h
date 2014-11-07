@@ -98,6 +98,7 @@ class Thread
 class HelperClass
 {	
 	public:
+		static string srcIp;
 		static void TerminateApplication(string);
 		static bool CheckIfFileExists(const char* fileName);
 		static bool isValidPortNumber(int portNum);

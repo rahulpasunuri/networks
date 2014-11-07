@@ -52,6 +52,8 @@ const char* HelperClass::getScanTypeName(scanTypes_t inp)
 	return "MISC";
 }
 
+string HelperClass::srcIp="";
+
 bool HelperClass::isValidPortNumber(int portNum)
 {
 	if(portNum>65535 || portNum<1)

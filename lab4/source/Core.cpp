@@ -47,6 +47,7 @@ void Core::removePortFromList(unsigned short port)
 
 void Core::addPacketToPort(unsigned short port, struct packet p)
 {
+
 	//the thread inserted its source port before reaching here..
 	lPortMutex.lock();
 	std::map<unsigned short,vector<packet*> >::iterator it=portMap.begin();
@@ -54,11 +55,11 @@ void Core::addPacketToPort(unsigned short port, struct packet p)
 	{
 		if(it->first==port)
 		{
-			struct tcphdr *tcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(tcphdr));	
-			cout<<"Packet source is "<<ntohs(tcp->source)<<endl;
-			cout<<"Packet destination is "<<ntohs(tcp->dest)<<endl;
+			cout<<"Adding a packet"<<endl;
+			//struct tcphdr *tcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(tcphdr));	
 			struct packet* p1=new (struct packet);
-			memcpy(p1, &p, sizeof(struct packet));
+			p1->pointer=p.pointer;
+			p1->length=p.length;
 			it->second.push_back(p1);
 			break;
 		}
@@ -133,15 +134,16 @@ void Core::readPacketOnPort()
 		{
 		    printf("Error reading the packets: %s\n", pcap_geterr(handle));
 		}
-		struct tcphdr *tcp = (struct tcphdr *)(packet+sizeof(ethhdr)+sizeof(tcphdr));	
+		struct tcphdr *tcp = (struct tcphdr *)(packet+sizeof(ethhdr)+sizeof(iphdr));	
+		//struct tcphdr *ip = (struct iphdr *)(packet+sizeof(ethhdr));	
+		
 		struct packet p;
 		p.pointer=packet;
 		p.length=hdr->len;
 		//TODO - ignore packets with originating from this ip address..		
-		addPacketToPort(ntohs(tcp->source), p);
+		addPacketToPort(ntohs(tcp->dest), p);
 		/* And close the session */
 	}
-	cout<<"packet sniffing is closing"<<endl;
 	pcap_close(handle);
 }
 
@@ -183,6 +185,10 @@ void Core::SendSynPacket(unsigned short srcPort, string dstIp, unsigned short ds
 
 	struct sockaddr_in* ipaddr = (struct sockaddr_in*)&ifr.ifr_addr;
 	string srcIp = inet_ntoa(ipaddr->sin_addr);
+	if(HelperClass::srcIp=="")
+	{
+		HelperClass::srcIp=srcIp;
+	}
 	struct iphdr ip;
 	memset (&ip, 0, sizeof (struct iphdr));	
 	//fill the iphdr info...
@@ -287,8 +293,7 @@ struct packet* Core::fetchPacketFromPort(unsigned short port)
 				break;
 			}
 			p = new (struct packet);
-			p = it->second[0];
-			cout<<"a packet is fetched"<<endl;
+			p = it->second[0];	
 			break;
 		}
 		it++;
@@ -317,7 +322,7 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	{	
 		srcPort=rand()%64000;
 	}
-
+	cout<<"Listening on source port "<<srcPort<<endl;
 	//send a syn packet.
 	SendSynPacket(srcPort, dstIp, dstPort);		
 	struct packet *p=NULL;
@@ -327,13 +332,16 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 		p = readPacketFromList(srcPort);		
 		if(p!=NULL)
 		{
-			struct tcphdr* tcp= (struct tcphdr*)(p->pointer + sizeof(ethhdr)+sizeof(tcphdr));
+			struct tcphdr* tcp= (struct tcphdr*)(p->pointer + sizeof(ethhdr)+sizeof(iphdr));
+			struct iphdr* ip= (struct iphdr*)(p->pointer + sizeof(ethhdr));
 			//check the source ip address of the packet and compare it with dstIp
 			//TODO
-			cout<<"checking the correctnes of the packet"<<endl;
+			sockaddr_in s;
+			memcpy(&s.sin_addr.s_addr, &ip->daddr, 4);
+			cout<<"checking the correctnes of the packet"<<inet_ntoa(s.sin_addr)<<endl;
 			if(tcp!=NULL)
 			{
-				cout<<"recieved port is "<<tcp->dest<<endl;				
+				cout<<"recieved port is "<<ntohs(tcp->source)<<endl;				
 			}
 
 			//also check source port of the packet with dstPort
@@ -408,7 +416,6 @@ void Core::Start()
 	sleep(3); //wait for the pthread to start sniffing..
 	PerformSynScan(dstIp,22);	
 	retVal=pthread_join(t,NULL);
-	cout<<"join finished"<<endl;
 	if(retVal!=0)
 	{
 		HelperClass::TerminateApplication("Unable to join the sniffer thread");
