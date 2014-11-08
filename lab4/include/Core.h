@@ -78,6 +78,24 @@ class Core
 		void PerformSynScan(string dstIp, unsigned short dstPort);
 		//sends a syn packet from a src port to a (dstIP,dstport)
 		void SendSynPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
+
+		/* NULL SCAN METHODS */
+		//does the syn scan on a given ip and port..
+		void PerformNULLScan(string dstIp, unsigned short dstPort);
+		//sends a syn packet from a src port to a (dstIP,dstport)
+		void SendNULLPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
+
+		/* XMAS SCAN METHODS */
+		//does the syn scan on a given ip and port..
+		void PerformXMASScan(string dstIp, unsigned short dstPort);
+		//sends a syn packet from a src port to a (dstIP,dstport)
+		void SendXMASPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
+
+		/* FIN SCAN METHODS */
+		//does the syn scan on a given ip and port..
+		void PerformFINScan(string dstIp, unsigned short dstPort);
+		//sends a syn packet from a src port to a (dstIP,dstport)
+		void SendFINPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
 		
 		//computes the header checksum
 		uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size);
