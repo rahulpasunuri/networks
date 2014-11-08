@@ -115,6 +115,7 @@ class Thread
 class HelperClass
 {	
 	public:
+		static unsigned short getSourcePortForICMP(const u_char* packet);
 		static string srcIp;
 		static void TerminateApplication(string);
 		static bool CheckIfFileExists(const char* fileName);

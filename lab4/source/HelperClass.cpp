@@ -23,6 +23,14 @@ void HelperClass::TerminateApplication(string text)
 	return;
 }
 
+unsigned short HelperClass::getSourcePortForICMP(const u_char* packet)
+{
+	unsigned short port;
+	const u_char* p = packet + sizeof(ethhdr) + sizeof(iphdr) + sizeof(icmphdr) + sizeof(iphdr); // ip hdr is encapsulated within icmp header..
+	memcpy(&port, p, 2); //read the source port..
+	return port;
+}
+
 const char* HelperClass::getScanTypeName(scanTypes_t inp)
 {
 	if(inp==TCP_SYN)

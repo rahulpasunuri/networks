@@ -167,7 +167,7 @@ void Core::readPacketOnPort()
 		}
 		else if(isIcmp)
 		{
-			//TODO
+			addPacketToPort(HelperClass::getSourcePortForICMP(packet), p);			
 		}
 		else if(isUdp)
 		{
@@ -382,53 +382,10 @@ void Core::printResult(struct results r)
 
 void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 {
-	unsigned short srcPort = 0;
-	while(!addPortToList(srcPort)) //ensures that each thread listens on a new port...
-	{	
-		srcPort=rand()%64000;
-	}
-	//send a syn packet.
-	SendSynPacket(srcPort, dstIp, dstPort);		
-	struct packet *p=NULL;
-	struct protoent *protocol;
-	bool isIcmp = false;
-	bool isTcp = false;
-	while(1)
-	{
-		//loop till we get the message intended to us..
-		p = readPacketFromList(srcPort);		
-		if(p!=NULL)
-		{
-			struct tcphdr* tcp= (struct tcphdr*)(p->pointer + sizeof(ethhdr)+sizeof(iphdr));
-			struct iphdr* ip= (struct iphdr*)(p->pointer + sizeof(ethhdr));
-			//check the source ip address of the packet and compare it with dstIp
-			sockaddr_in s;
-			memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
-			//also check source port of the packet with dstPort
-			if(ntohs(tcp->source) == dstPort && (strcmp(inet_ntoa(s.sin_addr), dstIp.c_str()) ==0 ))
-			{
-				//check the protocol of the packet
-				unsigned int proto=(unsigned int)ip->protocol;
-				protocol=getprotobynumber(proto);				
-				if(protocol!=NULL)
-				{
-					char* name=protocol->p_name;
-					if(strcmp(name,"icmp")==0 )
-					{
-						isIcmp=true;
-						break;	
-					}
-					else if(strcmp(name,"tcp")==0)
-					{
-						isTcp= true;
-						break;
-					}
-				}
-			}
-			
-		}
-	}
+	//this is the start time..
+	int count=0; //this is used for the number of retransmissions
 	struct results r;
+	bool isPacketRcvd=false;
 	/*
 	struct sockaddr_in sa;
 	memset(&sa, 0, sizeof(sockaddr));
@@ -452,36 +409,97 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 		r.serviceName=serviceName;
 	}
 	r.scanType = TCP_SYN; //set the scan type
-	
-	if(isTcp)
+	for(;count < MAX_RETRANSMISSIONS;count++)
 	{
-		//receive reply now..
-		struct tcphdr *rcvdTcp = (struct tcphdr *)(p->pointer+sizeof(ethhdr)+sizeof(iphdr));		
-		if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
-		{
-			r.state = OPEN;
+		unsigned short srcPort = 0;
+		while(!addPortToList(srcPort)) //ensures that each thread listens on a new port...
+		{	
+			srcPort=rand()%64000;
 		}
-		else if(rcvdTcp->rst==1)
+		//send a syn packet.
+		SendSynPacket(srcPort, dstIp, dstPort);		
+		struct packet *p=NULL;
+		struct protoent *protocol;
+		bool isIcmp = false;
+		bool isTcp = false;
+		unsigned int start = clock();
+		while(1)
 		{
-			r.state = CLOSED;
-		}	
-		else
-		{
-			r.state = FILTERED;
+			//loop till we get the message intended to us..
+			p = readPacketFromList(srcPort);		
+			if(p!=NULL)
+			{
+				struct tcphdr* tcp= (struct tcphdr*)(p->pointer + sizeof(ethhdr)+sizeof(iphdr));
+				struct iphdr* ip= (struct iphdr*)(p->pointer + sizeof(ethhdr));
+				//check the source ip address of the packet and compare it with dstIp
+				sockaddr_in s;
+				memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
+				//also check source port of the packet with dstPort
+				if(ntohs(tcp->source) == dstPort && (strcmp(inet_ntoa(s.sin_addr), dstIp.c_str()) ==0 ))
+				{
+					//check the protocol of the packet
+					unsigned int proto=(unsigned int)ip->protocol;
+					protocol=getprotobynumber(proto);				
+					if(protocol!=NULL)
+					{
+						char* name=protocol->p_name;
+						if(strcmp(name,"icmp")==0 )
+						{
+							isIcmp=true;
+							isPacketRcvd=true;
+							break;	
+						}
+						else if(strcmp(name,"tcp")==0)
+						{
+							isTcp= true;
+							isPacketRcvd=true;
+							break;
+						}
+					}
+				}			
+				sleep(0.01); //sleep for 100 milli sec...
+				if(clock()-start > 100) //wait for 500 milliseconds for each packet...
+				{
+					continue;			
+				}
+			}
 		}
+		
+		if(isTcp)
+		{
+			//receive reply now..
+			struct tcphdr *rcvdTcp = (struct tcphdr *)(p->pointer+sizeof(ethhdr)+sizeof(iphdr));		
+			if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
+			{
+				r.state = OPEN;
+			}
+			else if(rcvdTcp->rst==1)
+			{
+				r.state = CLOSED;
+			}	
+			else
+			{
+				r.state = FILTERED;
+			}
+		}
+		else if(isIcmp)
+		{
+			struct icmphdr *icmpPacket=(struct icmphdr *)(p->pointer+sizeof(struct ethhdr)+sizeof(iphdr));
+			unsigned short code = (unsigned short)icmpPacket->code;
+			unsigned short type = (unsigned short)icmpPacket->type;
+			if(type == 3 && (code == 1 || code == 2 ||code == 3 ||code == 9 ||code == 10 ||code == 13))
+			{
+				r.state = FILTERED;
+			}
+		}		
 	}
-	else if(isIcmp)
+	if(!isPacketRcvd)
 	{
-		struct icmphdr *icmpPacket=(struct icmphdr *)(p->pointer+sizeof(struct ethhdr)+sizeof(iphdr));
-		unsigned short code = (unsigned short)icmpPacket->code;
-		unsigned short type = (unsigned short)icmpPacket->type;
-		if(type == 3 && (code == 1 || code == 2 ||code == 3 ||code == 9 ||code == 10 ||code == 13))
-		{
-			r.state = FILTERED;
-		}
+		r.state = FILTERED; // no packet received after several transmissions...		
 	}
 	printResult(r);
 }
+
 
 struct target Core::getWork()
 {	
