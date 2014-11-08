@@ -132,21 +132,47 @@ void Core::readPacketOnPort()
 		{
 		    printf("Error reading the packets: %s\n", pcap_geterr(handle));
 		}
-		struct tcphdr *tcp = (struct tcphdr *)(packet+sizeof(ethhdr)+sizeof(iphdr));	
-		//struct tcphdr *ip = (struct iphdr *)(packet+sizeof(ethhdr));	
-		
+		struct iphdr *ip = (struct iphdr *)(packet+sizeof(ethhdr));	
+		struct protoent* protocol;
+		unsigned int proto=(unsigned int)ip->protocol;
+		protocol=getprotobynumber(proto);				
+		bool isIcmp=false,isTcp=false,isUdp=false;
+		if(protocol!=NULL)
+		{
+			char* name=protocol->p_name;
+			if(strcmp(name,"icmp")==0 )
+			{
+				isIcmp=true;
+			}
+			else if(strcmp(name,"tcp")==0)
+			{
+				isTcp= true;
+			}
+			else if(strcmp(name,"udp")==0)
+			{
+				isUdp= true;
+			}
+		}
 		struct packet p;
 		p.pointer=new u_char[hdr->len];
-	    //void* temp=packet;
-	    for(unsigned int i=0;i<hdr->len;i++)
-	    {
-	    	p.pointer[i] = packet[i];
-	    }
-		//memcpy(p.pointer, temp, hdr->len);
+		for(unsigned int i=0;i<hdr->len;i++)
+		{
+			p.pointer[i] = packet[i];
+		}
 		p.length=hdr->len;
-		//TODO - ignore packets with originating from this ip address..	
-		addPacketToPort(ntohs(tcp->dest), p);
-		/* And close the session */
+		if(isTcp)
+		{
+			struct tcphdr *tcp = (struct tcphdr *)(packet+sizeof(ethhdr)+sizeof(iphdr));	
+			addPacketToPort(ntohs(tcp->dest), p);
+		}
+		else if(isIcmp)
+		{
+			//TODO
+		}
+		else if(isUdp)
+		{
+			//TODO
+		}		
 	}
 	pcap_close(handle);
 }
