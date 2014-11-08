@@ -403,15 +403,15 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 		}
 	}
 	struct results r;
-	const u_char *rcvdPacket=p->pointer;		
-	struct iphdr *rcvdIp = (struct iphdr *)(rcvdPacket+sizeof(ethhdr));
+	/*
 	struct sockaddr_in sa;
 	memset(&sa, 0, sizeof(sockaddr));
 	//memset();
 	memcpy(&sa.sin_addr.s_addr, &rcvdIp->saddr, sizeof(rcvdIp->saddr)); //4 bytes for ip address.
 	char rcvdSrcIp[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &(sa.sin_addr), rcvdSrcIp, INET_ADDRSTRLEN);;	
-	r.ip = rcvdSrcIp;
+	*/
+	r.ip = dstIp;
 	//store the port of the remote..
 	r.port=dstPort;	
 
@@ -430,7 +430,7 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	if(isTcp)
 	{
 		//receive reply now..
-		struct tcphdr *rcvdTcp = (struct tcphdr *)(rcvdPacket+sizeof(ethhdr)+sizeof(iphdr));		
+		struct tcphdr *rcvdTcp = (struct tcphdr *)(p->pointer+sizeof(ethhdr)+sizeof(iphdr));		
 		if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
 		{
 			r.state = OPEN;
@@ -446,7 +446,13 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	}
 	else if(isIcmp)
 	{
-		//TODO
+		struct icmphdr *icmpPacket=(struct icmphdr *)(p->pointer+sizeof(struct ethhdr)+sizeof(iphdr));
+		unsigned short code = (unsigned short)icmpPacket->code;
+		unsigned short type = (unsigned short)icmpPacket->type;
+		if(type == 3 && (code == 1 || code == 2 ||code == 3 ||code == 9 ||code == 10 ||code == 13))
+		{
+			r.state = FILTERED;
+		}
 	}
 	printResult(r);
 }
@@ -559,6 +565,7 @@ void Core::Start()
 	{
 		pthread_join(threads[i],NULL);
 	}
+	
 	//TODO terminate the sniffer thread	
 	//retVal=pthread_join(t,NULL);
 	//if(retVal!=0)
