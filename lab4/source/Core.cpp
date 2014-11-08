@@ -327,6 +327,7 @@ struct packet* Core::readPacketFromList(unsigned short port)
 void Core::printResult(struct results r)
 {
 	printMutex.lock();		
+	cout<<setw(20)<<r.ip;
 	cout<<setw(20)<<r.port;
 	cout<<setw(20)<<r.serviceName<<"\t\t";
 	cout<<setw(20)<<HelperClass::getScanTypeName(r.scanType)<<"\t\t";	
@@ -363,6 +364,9 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	//send a syn packet.
 	SendSynPacket(srcPort, dstIp, dstPort);		
 	struct packet *p=NULL;
+	struct protoent *protocol;
+	bool isIcmp = false;
+	bool isTcp = false;
 	while(1)
 	{
 		//loop till we get the message intended to us..
@@ -377,25 +381,41 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 			//also check source port of the packet with dstPort
 			if(ntohs(tcp->source) == dstPort && (strcmp(inet_ntoa(s.sin_addr), dstIp.c_str()) ==0 ))
 			{
-				break;				
+				//check the protocol of the packet
+				unsigned int proto=(unsigned int)ip->protocol;
+				protocol=getprotobynumber(proto);				
+				if(protocol!=NULL)
+				{
+					char* name=protocol->p_name;
+					if(strcmp(name,"icmp")==0 )
+					{
+						isIcmp=true;
+						break;	
+					}
+					else if(strcmp(name,"tcp")==0)
+					{
+						isTcp= true;
+						break;
+					}
+				}
 			}
 			
 		}
 	}
-	
-	//receive reply now..
+	struct results r;
 	const u_char *rcvdPacket=p->pointer;		
-	struct tcphdr *rcvdTcp = (struct tcphdr *)(rcvdPacket+sizeof(ethhdr)+sizeof(iphdr));
 	struct iphdr *rcvdIp = (struct iphdr *)(rcvdPacket+sizeof(ethhdr));
-	
 	struct sockaddr_in sa;
 	memset(&sa, 0, sizeof(sockaddr));
 	//memset();
-	memcpy(&sa.sin_addr.s_addr, &rcvdIp->daddr, sizeof(rcvdIp->daddr)); //4 bytes for ip address.
+	memcpy(&sa.sin_addr.s_addr, &rcvdIp->saddr, sizeof(rcvdIp->saddr)); //4 bytes for ip address.
 	char rcvdSrcIp[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &(sa.sin_addr), rcvdSrcIp, INET_ADDRSTRLEN);;	
-	struct results r;
+	r.ip = rcvdSrcIp;
+	//store the port of the remote..
 	r.port=dstPort;	
+
+	//store the service name of the port.
 	const char* serviceName=HelperClass::GetPortName(dstPort);
 	if(serviceName==NULL)
 	{
@@ -405,20 +425,29 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	{
 		r.serviceName=serviceName;
 	}
+	r.scanType = TCP_SYN; //set the scan type
 	
-	if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
+	if(isTcp)
 	{
-		r.state = OPEN;
+		//receive reply now..
+		struct tcphdr *rcvdTcp = (struct tcphdr *)(rcvdPacket+sizeof(ethhdr)+sizeof(iphdr));		
+		if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
+		{
+			r.state = OPEN;
+		}
+		else if(rcvdTcp->rst==1)
+		{
+			r.state = CLOSED;
+		}	
+		else
+		{
+			r.state = FILTERED;
+		}
 	}
-	else if(rcvdTcp->rst==1)
+	else if(isIcmp)
 	{
-		r.state = CLOSED;
-	}	
-	else
-	{
-		r.state = FILTERED;
+		//TODO
 	}
-	r.scanType = TCP_SYN;
 	printResult(r);
 }
 
@@ -513,12 +542,13 @@ void Core::Start()
 	}
 	sleep(1); //wait for the pthread to start sniffing..
 	
-	cout<<"\n------------------------------------------------------------------------------------------------------------------------\n";
-	cout<<setw(20)<<"  Port\t";
-	cout<<setw(20)<<"Service Name\t";
+	cout<<"\n------------------------------------------------------------------------------------------------------------------------------\n";
+	cout<<setw(20)<<"IP Address";
+	cout<<setw(20)<<"Port";
+	cout<<setw(20)<<"\tService Name\t";
 	cout<<setw(20)<<"\t\tScan Type\t";
 	cout<<setw(20)<<"\tStatus"<<endl;
-	cout<<"------------------------------------------------------------------------------------------------------------------------\n";
+	cout<<"------------------------------------------------------------------------------------------------------------------------------\n";
 	
 	pthread_t* threads = new pthread_t[args.numThreads];
 	for(int i=0;i<args.numThreads;i++)
