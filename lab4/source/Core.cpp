@@ -1,4 +1,5 @@
 #include "../include/Core.h"
+#include <signal.h>
 
 struct remote
 {
@@ -117,6 +118,13 @@ void Core::readPacketOnPort()
     int res;
     while(1)
     {
+    	packetSnifferMutex.lock();
+    	if (shldPacketSnifferExit == true)
+    	{
+    		packetSnifferMutex.unlock();
+    		break;	
+    	}
+    	packetSnifferMutex.unlock();
 		while((res = pcap_next_ex(handle, &hdr, &packet)) >= 0)
 		{
 		    if(res == 0)
@@ -170,7 +178,8 @@ void Core::readPacketOnPort()
 		}
 		else if(isUdp)
 		{
-			//TODO
+			struct udphdr *udp = (struct udphdr *)(packet+sizeof(ethhdr)+sizeof(iphdr));	
+			addPacketToPort(ntohs((unsigned short)udp->dest), p);
 		}		
 	}
 	pcap_close(handle);
@@ -254,13 +263,12 @@ void Core::SendSynPacket(unsigned short srcPort, string dstIp, unsigned short ds
 	tcp.psh = 0;
 	tcp.ack = 0;
 	tcp.urg = 0;
-	tcp.window = ntohs(29200); //set all bits to 1 => max size..TODO
-	//tcp.window = ~0;
+	tcp.window = ntohs(TCP_WINDOW_SIZE);
 	unsigned int optSize=0;
 	tcp.doff = (sizeof(struct tcphdr)+optSize)/WORD_SIZE; //so no options..	
 	tcp.urg_ptr= 0; 	
 	
-	u_char* temp=new u_char[sizeof(tcphdr) + optSize]; //TODO 20 for options.
+	u_char* temp=new u_char[sizeof(tcphdr) + optSize]; 
 	memcpy(temp, &tcp, sizeof(tcphdr));
 	//memcpy(temp+sizeof(tcphdr),backup,optSize);
 	
@@ -571,7 +579,7 @@ void Core::Start()
 
 	string dstIp="129.79.247.87"; //ip address of dagwood.soic.indiana.edu
 	//string dstIp="8.8.8.8"; //ip address of dagwood.soic.indiana.edu
-	
+	shldPacketSnifferExit=false;
 	//init the target list..
 	
 	for(unsigned int i=0;i<args.ipAddresses.size();i++)
@@ -614,13 +622,13 @@ void Core::Start()
 		pthread_join(threads[i],NULL);
 	}
 	
-	//TODO terminate the sniffer thread	
-	//retVal=pthread_join(t,NULL);
-	//if(retVal!=0)
-	//{
-	//	HelperClass::TerminateApplication("Unable to join the sniffer thread");
-	//}	
+	//TODO terminate the sniffer thread
+
+	packetSnifferMutex.lock();
+	shldPacketSnifferExit = true;
+	packetSnifferMutex.unlock();
 	
+	retVal=pthread_join(t,NULL);		
 }
 
 //working check sum method...

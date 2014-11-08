@@ -45,6 +45,8 @@ class Core
 		Mutex lPortMutex;
 		Mutex workMutex;
 		Mutex printMutex;
+		Mutex packetSnifferMutex;
+		bool shldPacketSnifferExit;
 		vector<struct target> targets;
 		std::map<unsigned short, vector<struct packet*> > portMap;
 		//vector<unsigned short> lPorts;
@@ -80,6 +82,8 @@ class Core
 		struct packet* readPacketFromList(unsigned short port);
 		struct target getWork();
 		void scheduler();
+
+
 	public:
 		string interfaceName;
 		void printResult(struct results r);

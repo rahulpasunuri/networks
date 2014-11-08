@@ -47,7 +47,7 @@ using namespace std;
 //define some constants...
 #define WORD_SIZE 4
 #define MAX_RETRANSMISSIONS 3
-
+#define TCP_WINDOW_SIZE 29200
 enum scanTypes_t
 {
 	TCP_SYN,
