@@ -66,11 +66,18 @@ class Core
 		void removePortFromList(unsigned short port);
 		args_t args;
 		
-		//sends a sync packet from a src port to a (dstIP,dstport)
-		void SendSynPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
 
+		/*ACK SCAN METHDOS*/
+		//sends a ack packet from a src port to a (dstIP,dstport)
+		void SendAckPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
+		//does the ack scan on a given ip and port..
+		void PerformAckScan(string dstIp, unsigned short dstPort);
+
+		/* SYN SCAN METHODS */
 		//does the syn scan on a given ip and port..
 		void PerformSynScan(string dstIp, unsigned short dstPort);
+		//sends a syn packet from a src port to a (dstIP,dstport)
+		void SendSynPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
 		
 		//computes the header checksum
 		uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size);
