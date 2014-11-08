@@ -313,12 +313,16 @@ void Core::SendSynPacket(unsigned short srcPort, string dstIp, unsigned short ds
 void* Core::threadhelper(void *context)
 {
     ((Core *)context)->readPacketOnPort();
+	//exit the thread, as there is no work left to do..
+	pthread_exit(NULL);
     return NULL;
 }
 
 void* Core::workhelper(void *context)
 {
     ((Core *)context)->doWork();
+	//exit the thread, as there is no work left to do..
+	pthread_exit(NULL);
     return NULL;
 }
 
