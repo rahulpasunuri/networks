@@ -40,7 +40,16 @@ void Core::removePortFromList(unsigned short port)
 		{
 			break;
 		}
-	}	
+	}		
+	
+	//clear all the packets we have...		
+	vector<struct packet*>::iterator it2;
+	for(it2=(it->second).begin(); it2!=(it->second).end(); it2++)
+	{
+		delete[] (*it2)->pointer;
+		delete (*it2);
+	}		
+	
 	portMap.erase(it);
 	lPortMutex.unlock();
 }
@@ -754,6 +763,7 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 			{
 				r.state = UNFILTERED;
 			}
+			delete[] p->pointer;
 		}
 		else if(isIcmp)
 		{
@@ -764,7 +774,8 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 			{
 				r.state = FILTERED;
 			}
-		}		
+		}
+		delete[] p->pointer;		
 	}
 	if(!isPacketRcvd)
 	{
@@ -874,7 +885,9 @@ void Core::PerformNULLScan(string dstIp, unsigned short dstPort)
 			{
 				r.state = FILTERED;
 			}
-		}		
+		}	
+		cout<<"????????????????????"<<endl;
+		delete[] p->pointer;	
 	}
 	if(!isPacketRcvd)
 	{
@@ -986,6 +999,7 @@ void Core::PerformXMASScan(string dstIp, unsigned short dstPort)
 				r.state = FILTERED;
 			}
 		}		
+		delete[] p->pointer;
 	}
 	if(!isPacketRcvd)
 	{
@@ -1096,6 +1110,7 @@ void Core::PerformFINScan(string dstIp, unsigned short dstPort)
 				r.state = FILTERED;
 			}
 		}		
+		delete[] p->pointer;
 	}
 	if(!isPacketRcvd)
 	{
@@ -1419,7 +1434,8 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 			{
 				r.state = FILTERED;
 			}
-		}		
+		}	
+		delete[] p->pointer;	
 	}
 	if(!isPacketRcvd)
 	{
@@ -1545,6 +1561,8 @@ void Core::Start()
 	packetSnifferMutex.unlock();
 	
 	retVal=pthread_join(t,NULL);		
+	
+	delete[] threads;
 }
 
 //working check sum method...
