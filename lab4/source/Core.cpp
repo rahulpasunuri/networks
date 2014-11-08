@@ -31,7 +31,6 @@ bool Core::addPortToList(unsigned short port)
 
 void Core::removePortFromList(unsigned short port)
 {
-	//TODO
 	lPortMutex.lock();
 	std::map<unsigned short,vector<packet*> >::iterator it=portMap.begin();
 	for (; it!=portMap.end(); ++it)
@@ -457,14 +456,19 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 						}
 					}
 				}			
-				sleep(0.01); //sleep for 100 milli sec...
-				if(clock()-start > 100) //wait for 500 milliseconds for each packet...
-				{
-					continue;			
-				}
+			}
+			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
+			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
+			{			
+				isPacketRcvd=false;					
+				break;			
 			}
 		}
-		
+		removePortFromList(srcPort); // we dont have to listen on this port again...
+		if(isPacketRcvd==false)
+		{
+			continue;
+		}
 		if(isTcp)
 		{
 			//receive reply now..
