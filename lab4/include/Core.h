@@ -48,7 +48,7 @@ class Core
 		Mutex packetSnifferMutex;
 		bool shldPacketSnifferExit;
 		vector<struct target> targets;
-		std::map<unsigned short, vector<struct packet*> > portMap;
+		std::map<unsigned short, vector<struct packet> > portMap;
 		//vector<unsigned short> lPorts;
 
 		//add a packet to the queue..
@@ -57,7 +57,7 @@ class Core
 		//remove a packet from the queue.
 		void removePacketFromPort(unsigned short port, struct packet p);
 
-		struct packet* fetchPacketFromPort(unsigned short port);
+		struct packet fetchPacketFromPort(unsigned short port);
 
 		//adds a new mappings, and port sniffer will start save packets for this port.
 		bool addPortToList(unsigned short port);	
@@ -104,7 +104,7 @@ class Core
 		uint16_t computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp);
 
 		//this is done by the individual thread, and they read packets which belong to their port..
-		struct packet* readPacketFromList(unsigned short port);
+		struct packet readPacketFromList(unsigned short port);
 		struct target getWork();
 		void scheduler();
 

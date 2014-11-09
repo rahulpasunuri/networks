@@ -15,7 +15,7 @@ bool Core::addPortToList(unsigned short port)
 		return false;
 	}
 	lPortMutex.lock();
-	for (std::map<unsigned short,vector<packet*> >::iterator it=portMap.begin(); it!=portMap.end(); ++it)
+	for (std::map<unsigned short,vector<packet> >::iterator it=portMap.begin(); it!=portMap.end(); ++it)
 	{
 		if(it->first==port)
 		{
@@ -23,8 +23,8 @@ bool Core::addPortToList(unsigned short port)
 			return false;
 		}
 	}
-	vector<packet*> newVector;
-	portMap.insert ( std::pair<unsigned short,vector<packet*> >(port,newVector));
+	vector<packet> newVector;
+	portMap.insert ( std::pair<unsigned short,vector<packet> >(port,newVector));
 	//portMap.push_back(port,newVector);
 	lPortMutex.unlock();
 	return true;
@@ -33,23 +33,14 @@ bool Core::addPortToList(unsigned short port)
 void Core::removePortFromList(unsigned short port)
 {
 	lPortMutex.lock();
-	std::map<unsigned short,vector<packet*> >::iterator it=portMap.begin();
+	std::map<unsigned short,vector<packet> >::iterator it=portMap.begin();
 	for (; it!=portMap.end(); ++it)
 	{
 		if(it->first==port)
 		{
 			break;
 		}
-	}		
-	
-	//clear all the packets we have...		
-	vector<struct packet*>::iterator it2;
-	for(it2=(it->second).begin(); it2!=(it->second).end(); it2++)
-	{
-		delete[] (*it2)->pointer;
-		delete (*it2);
-	}		
-	
+	}				
 	portMap.erase(it);
 	lPortMutex.unlock();
 }
@@ -59,15 +50,15 @@ void Core::addPacketToPort(unsigned short port, struct packet p)
 
 	//the thread inserted its source port before reaching here..
 	lPortMutex.lock();
-	std::map<unsigned short,vector<packet*> >::iterator it=portMap.begin();
+	std::map<unsigned short,vector<packet> >::iterator it=portMap.begin();
 	for (; it!=portMap.end(); ++it)
 	{
 		if(it->first==port)
 		{
 			//struct tcphdr *tcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));	
-			struct packet* p1=new (struct packet);
-			p1->pointer=p.pointer;
-			p1->length=p.length;
+			struct packet p1;
+			p1.pointer=p.pointer;
+			p1.length=p.length;
 			it->second.push_back(p1);
 			break;
 		}
@@ -79,18 +70,15 @@ void Core::removePacketFromPort(unsigned short port, struct packet p)
 {
 	//the thread inserted its source port before reaching here..
 	lPortMutex.lock();
-	std::map<unsigned short,vector<packet*> >::iterator it=portMap.begin();
+	std::map<unsigned short,vector<packet> >::iterator it=portMap.begin();
 	for (; it!=portMap.end(); ++it)
 	{
 		if(it->first==port)
 		{			
-			for(vector<packet*>::iterator it1 = it->second.begin(); it1!=it->second.end(); it1++)
+			for(vector<packet>::iterator it1 = it->second.begin(); it1!=it->second.end(); it1++)
 			{
-				//if(*it1 == p)
-				{
 					it->second.erase(it1);
 					break;	
-				}				
 			}			
 			break;
 		}
@@ -695,7 +683,7 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 		}
 		//send a ack packet.
 		SendAckPacket(srcPort, dstIp, dstPort);		
-		struct packet *p=NULL;
+		struct packet p;
 		struct protoent *protocol;
 		bool isIcmp = false;
 		bool isTcp = false;
@@ -704,10 +692,10 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 		{
 			//loop till we get the message intended to us..
 			p = readPacketFromList(srcPort);		
-			if(p!=NULL)
+			if(p.pointer!=NULL)
 			{
-				struct tcphdr* tcp= (struct tcphdr*)(p->pointer + sizeof(ethhdr)+sizeof(iphdr));
-				struct iphdr* ip= (struct iphdr*)(p->pointer + sizeof(ethhdr));
+				struct tcphdr* tcp= (struct tcphdr*)(p.pointer + sizeof(ethhdr)+sizeof(iphdr));
+				struct iphdr* ip= (struct iphdr*)(p.pointer + sizeof(ethhdr));
 				//check the source ip address of the packet and compare it with dstIp
 				sockaddr_in s;
 				memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
@@ -750,16 +738,16 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 		if(isTcp)
 		{
 			//receive reply now..
-			struct tcphdr *rcvdTcp = (struct tcphdr *)(p->pointer+sizeof(ethhdr)+sizeof(iphdr));		
+			struct tcphdr *rcvdTcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));		
 			if(rcvdTcp->rst==1)
 			{
 				r.state = UNFILTERED;
 			}
-			delete[] p->pointer;
+			delete[] p.pointer;
 		}
 		else if(isIcmp)
 		{
-			struct icmphdr *icmpPacket=(struct icmphdr *)(p->pointer+sizeof(struct ethhdr)+sizeof(iphdr));
+			struct icmphdr *icmpPacket=(struct icmphdr *)(p.pointer+sizeof(struct ethhdr)+sizeof(iphdr));
 			unsigned short code = (unsigned short)icmpPacket->code;
 			unsigned short type = (unsigned short)icmpPacket->type;
 			if(type == 3 && (code == 1 || code == 2 ||code == 3 ||code == 9 ||code == 10 ||code == 13))
@@ -767,7 +755,7 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 				r.state = FILTERED;
 			}
 		}
-		delete[] p->pointer;		
+		delete[] p.pointer;		
 	}
 	if(!isPacketRcvd)
 	{
@@ -799,7 +787,7 @@ void Core::PerformNULLScan(string dstIp, unsigned short dstPort)
 		}
 		//send a ack packet.
 		SendNULLPacket(srcPort, dstIp, dstPort);		
-		struct packet *p=NULL;
+		struct packet p;
 		struct protoent *protocol;
 		bool isIcmp = false;
 		bool isTcp = false;
@@ -808,10 +796,10 @@ void Core::PerformNULLScan(string dstIp, unsigned short dstPort)
 		{
 			//loop till we get the message intended to us..
 			p = readPacketFromList(srcPort);		
-			if(p!=NULL)
+			if(p.pointer!=NULL)
 			{
-				struct tcphdr* tcp= (struct tcphdr*)(p->pointer + sizeof(ethhdr)+sizeof(iphdr));
-				struct iphdr* ip= (struct iphdr*)(p->pointer + sizeof(ethhdr));
+				struct tcphdr* tcp= (struct tcphdr*)(p.pointer + sizeof(ethhdr)+sizeof(iphdr));
+				struct iphdr* ip= (struct iphdr*)(p.pointer + sizeof(ethhdr));
 				//check the source ip address of the packet and compare it with dstIp
 				sockaddr_in s;
 				memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
@@ -854,7 +842,7 @@ void Core::PerformNULLScan(string dstIp, unsigned short dstPort)
 		if(isTcp)
 		{
 			//receive reply now..
-			struct tcphdr *rcvdTcp = (struct tcphdr *)(p->pointer+sizeof(ethhdr)+sizeof(iphdr));		
+			struct tcphdr *rcvdTcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));		
 			if(rcvdTcp->rst==1)
 			{
 				r.state = CLOSED;
@@ -862,7 +850,7 @@ void Core::PerformNULLScan(string dstIp, unsigned short dstPort)
 		}
 		else if(isIcmp)
 		{
-			struct icmphdr *icmpPacket=(struct icmphdr *)(p->pointer+sizeof(struct ethhdr)+sizeof(iphdr));
+			struct icmphdr *icmpPacket=(struct icmphdr *)(p.pointer+sizeof(struct ethhdr)+sizeof(iphdr));
 			unsigned short code = (unsigned short)icmpPacket->code;
 			unsigned short type = (unsigned short)icmpPacket->type;
 			if(type == 3 && (code == 1 || code == 2 ||code == 3 ||code == 9 ||code == 10 ||code == 13))
@@ -870,7 +858,7 @@ void Core::PerformNULLScan(string dstIp, unsigned short dstPort)
 				r.state = FILTERED;
 			}
 		}	
-		delete[] p->pointer;	
+		delete[] p.pointer;	
 	}
 	if(!isPacketRcvd)
 	{
@@ -903,7 +891,7 @@ void Core::PerformXMASScan(string dstIp, unsigned short dstPort)
 		}
 		//send a ack packet.
 		SendXMASPacket(srcPort, dstIp, dstPort);		
-		struct packet *p=NULL;
+		struct packet p;
 		struct protoent *protocol;
 		bool isIcmp = false;
 		bool isTcp = false;
@@ -912,10 +900,10 @@ void Core::PerformXMASScan(string dstIp, unsigned short dstPort)
 		{
 			//loop till we get the message intended to us..
 			p = readPacketFromList(srcPort);		
-			if(p!=NULL)
+			if(p.pointer!=NULL)
 			{
-				struct tcphdr* tcp= (struct tcphdr*)(p->pointer + sizeof(ethhdr)+sizeof(iphdr));
-				struct iphdr* ip= (struct iphdr*)(p->pointer + sizeof(ethhdr));
+				struct tcphdr* tcp= (struct tcphdr*)(p.pointer + sizeof(ethhdr)+sizeof(iphdr));
+				struct iphdr* ip= (struct iphdr*)(p.pointer + sizeof(ethhdr));
 				//check the source ip address of the packet and compare it with dstIp
 				sockaddr_in s;
 				memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
@@ -958,7 +946,7 @@ void Core::PerformXMASScan(string dstIp, unsigned short dstPort)
 		if(isTcp)
 		{
 			//receive reply now..
-			struct tcphdr *rcvdTcp = (struct tcphdr *)(p->pointer+sizeof(ethhdr)+sizeof(iphdr));		
+			struct tcphdr *rcvdTcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));		
 			if(rcvdTcp->rst==1)
 			{
 				r.state = CLOSED;
@@ -966,7 +954,7 @@ void Core::PerformXMASScan(string dstIp, unsigned short dstPort)
 		}
 		else if(isIcmp)
 		{
-			struct icmphdr *icmpPacket=(struct icmphdr *)(p->pointer+sizeof(struct ethhdr)+sizeof(iphdr));
+			struct icmphdr *icmpPacket=(struct icmphdr *)(p.pointer+sizeof(struct ethhdr)+sizeof(iphdr));
 			unsigned short code = (unsigned short)icmpPacket->code;
 			unsigned short type = (unsigned short)icmpPacket->type;
 			if(type == 3 && (code == 1 || code == 2 ||code == 3 ||code == 9 ||code == 10 ||code == 13))
@@ -974,7 +962,7 @@ void Core::PerformXMASScan(string dstIp, unsigned short dstPort)
 				r.state = FILTERED;
 			}
 		}		
-		delete[] p->pointer;
+		delete[] p.pointer;
 	}
 	if(!isPacketRcvd)
 	{
@@ -1006,7 +994,7 @@ void Core::PerformFINScan(string dstIp, unsigned short dstPort)
 		}
 		//send a ack packet.
 		SendFINPacket(srcPort, dstIp, dstPort);		
-		struct packet *p=NULL;
+		struct packet p;
 		struct protoent *protocol;
 		bool isIcmp = false;
 		bool isTcp = false;
@@ -1015,10 +1003,10 @@ void Core::PerformFINScan(string dstIp, unsigned short dstPort)
 		{
 			//loop till we get the message intended to us..
 			p = readPacketFromList(srcPort);		
-			if(p!=NULL)
+			if(p.pointer!=NULL)
 			{
-				struct tcphdr* tcp= (struct tcphdr*)(p->pointer + sizeof(ethhdr)+sizeof(iphdr));
-				struct iphdr* ip= (struct iphdr*)(p->pointer + sizeof(ethhdr));
+				struct tcphdr* tcp= (struct tcphdr*)(p.pointer + sizeof(ethhdr)+sizeof(iphdr));
+				struct iphdr* ip= (struct iphdr*)(p.pointer + sizeof(ethhdr));
 				//check the source ip address of the packet and compare it with dstIp
 				sockaddr_in s;
 				memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
@@ -1061,7 +1049,7 @@ void Core::PerformFINScan(string dstIp, unsigned short dstPort)
 		if(isTcp)
 		{
 			//receive reply now..
-			struct tcphdr *rcvdTcp = (struct tcphdr *)(p->pointer+sizeof(ethhdr)+sizeof(iphdr));		
+			struct tcphdr *rcvdTcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));		
 			if(rcvdTcp->rst==1)
 			{
 				r.state = CLOSED;
@@ -1069,7 +1057,7 @@ void Core::PerformFINScan(string dstIp, unsigned short dstPort)
 		}
 		else if(isIcmp)
 		{
-			struct icmphdr *icmpPacket=(struct icmphdr *)(p->pointer+sizeof(struct ethhdr)+sizeof(iphdr));
+			struct icmphdr *icmpPacket=(struct icmphdr *)(p.pointer+sizeof(struct ethhdr)+sizeof(iphdr));
 			unsigned short code = (unsigned short)icmpPacket->code;
 			unsigned short type = (unsigned short)icmpPacket->type;
 			if(type == 3 && (code == 1 || code == 2 ||code == 3 ||code == 9 ||code == 10 ||code == 13))
@@ -1077,7 +1065,7 @@ void Core::PerformFINScan(string dstIp, unsigned short dstPort)
 				r.state = FILTERED;
 			}
 		}		
-		delete[] p->pointer;
+		delete[] p.pointer;
 	}
 	if(!isPacketRcvd)
 	{
@@ -1220,11 +1208,12 @@ void* Core::workhelper(void *context)
     return NULL;
 }
 
-struct packet* Core::fetchPacketFromPort(unsigned short port)
+struct packet Core::fetchPacketFromPort(unsigned short port)
 {
-	struct packet* p = NULL; 
+	struct packet p; 
+	p.pointer=NULL;
 	lPortMutex.lock();
-	map<unsigned short, vector<struct packet*> >::iterator it=portMap.begin();
+	map<unsigned short, vector<struct packet> >::iterator it=portMap.begin();
 	while(it!=portMap.end())
 	{
 		if(it->first==port)
@@ -1233,7 +1222,6 @@ struct packet* Core::fetchPacketFromPort(unsigned short port)
 			{
 				break;
 			}
-			p = new (struct packet);
 			p = it->second[0];	
 			break;
 		}
@@ -1243,15 +1231,15 @@ struct packet* Core::fetchPacketFromPort(unsigned short port)
 	return p;
 }
 
-struct packet* Core::readPacketFromList(unsigned short port)
+struct packet Core::readPacketFromList(unsigned short port)
 {
 	//we can safely remove the packet from the list after we are done.	
-	struct packet* p=fetchPacketFromPort(port);
-	if(p==NULL)
+	struct packet p=fetchPacketFromPort(port);
+	if(p.pointer==NULL)
 	{
-		return NULL;
+		return p;
 	}	
-	removePacketFromPort(port, *p);
+	removePacketFromPort(port, p);
 	return p;
 }
 
@@ -1316,7 +1304,7 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 		}
 		//send a syn packet.
 		SendSynPacket(srcPort, dstIp, dstPort);		
-		struct packet *p=NULL;
+		struct packet p;
 		struct protoent *protocol;
 		bool isIcmp = false;
 		bool isTcp = false;
@@ -1325,10 +1313,10 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 		{
 			//loop till we get the message intended to us..
 			p = readPacketFromList(srcPort);		
-			if(p!=NULL)
+			if(p.pointer!=NULL)
 			{
-				struct tcphdr* tcp= (struct tcphdr*)(p->pointer + sizeof(ethhdr)+sizeof(iphdr));
-				struct iphdr* ip= (struct iphdr*)(p->pointer + sizeof(ethhdr));
+				struct tcphdr* tcp= (struct tcphdr*)(p.pointer + sizeof(ethhdr)+sizeof(iphdr));
+				struct iphdr* ip= (struct iphdr*)(p.pointer + sizeof(ethhdr));
 				//check the source ip address of the packet and compare it with dstIp
 				sockaddr_in s;
 				memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
@@ -1371,7 +1359,7 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 		if(isTcp)
 		{
 			//receive reply now..
-			struct tcphdr *rcvdTcp = (struct tcphdr *)(p->pointer+sizeof(ethhdr)+sizeof(iphdr));		
+			struct tcphdr *rcvdTcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));		
 			if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
 			{
 				r.state = OPEN;
@@ -1387,7 +1375,7 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 		}
 		else if(isIcmp)
 		{
-			struct icmphdr *icmpPacket=(struct icmphdr *)(p->pointer+sizeof(struct ethhdr)+sizeof(iphdr));
+			struct icmphdr *icmpPacket=(struct icmphdr *)(p.pointer+sizeof(struct ethhdr)+sizeof(iphdr));
 			unsigned short code = (unsigned short)icmpPacket->code;
 			unsigned short type = (unsigned short)icmpPacket->type;
 			if(type == 3 && (code == 1 || code == 2 ||code == 3 ||code == 9 ||code == 10 ||code == 13))
@@ -1395,8 +1383,7 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 				r.state = FILTERED;
 			}
 		}	
-		delete[] p->pointer;	
-		delete p;
+		delete[] p.pointer;	
 	}
 	if(!isPacketRcvd)
 	{
