@@ -23,7 +23,6 @@ bool Core::addPortToList(unsigned short port)
 			return false;
 		}
 	}
-	cout<<"adding port done !!!!!!!!!!!!1"<<endl;
 	vector<packet> newVector;
 	portMap.insert ( std::pair<unsigned short,vector<packet> >(port,newVector));
 	//portMap.push_back(port,newVector);
@@ -34,12 +33,13 @@ bool Core::addPortToList(unsigned short port)
 void Core::removePortFromList(unsigned short port)
 {
 	lPortMutex.lock();
+	bool isPortFound=false;
 	std::map<unsigned short,vector<packet> >::iterator it=portMap.begin();
 	for (; it!=portMap.end(); ++it)
 	{
 		if(it->first==port)
 		{
-			cout<<"removing done ???????????????????"<<endl;
+			isPortFound=true;
 			//remove all packets from the queue..
 			int size = it->second.size();
 			for(int i=0; i<size; i++)
@@ -48,8 +48,11 @@ void Core::removePortFromList(unsigned short port)
 			}
 			break;
 		}
-	}				
-	portMap.erase(it);
+	}
+	if(isPortFound)
+	{				
+		portMap.erase(it);
+	}
 	lPortMutex.unlock();
 }
 
@@ -65,7 +68,6 @@ void Core::addPacketToPort(unsigned short port, struct packet p)
 		{
 			isAdded=true;
 			//struct tcphdr *tcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));	
-			cout<<"++++++++++++++++++++++++++++++++++++++++++++++"<<endl;
 			struct packet p1;
 			p1.pointer=p.pointer;
 			p1.length=p.length;
@@ -76,14 +78,12 @@ void Core::addPacketToPort(unsigned short port, struct packet p)
 	lPortMutex.unlock();
 	if(!isAdded)
 	{
-		cout<<"-------------------"<<endl;
 		delete[] p.pointer;
 	}
 }
 
 void Core::removePacketFromPort(unsigned short port, struct packet p)
 {
-	cout<<"packet removed from queue"<<endl;
 	//the thread inserted its source port before reaching here..
 	lPortMutex.lock();
 	std::map<unsigned short,vector<packet> >::iterator it=portMap.begin();
@@ -693,6 +693,7 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 	
 	//store the service name of the port.
 	string serviceName=HelperClass::GetPortName(dstPort);
+	r.serviceName=serviceName;
 	r.scanType = TCP_ACK; //set the scan type
 	for(;count < MAX_RETRANSMISSIONS;count++)
 	{
@@ -746,6 +747,7 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
 			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
 			{			
+				removePortFromList(srcPort); // we dont have to listen on this port again...
 				isPacketRcvd=false;					
 				break;			
 			}
@@ -774,7 +776,6 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 				r.state = FILTERED;
 			}
 		}
-		cout<<"-------------------------------------------before exiting"<<endl;
 		delete[] p.pointer;		
 	}
 	if(!isPacketRcvd)
@@ -797,6 +798,7 @@ void Core::PerformNULLScan(string dstIp, unsigned short dstPort)
 	
 	//store the service name of the port.
 	string serviceName=HelperClass::GetPortName(dstPort);
+	r.serviceName=serviceName;
 	r.scanType = TCP_NULL; //set the scan type
 	for(;count < MAX_RETRANSMISSIONS;count++)
 	{
@@ -849,7 +851,8 @@ void Core::PerformNULLScan(string dstIp, unsigned short dstPort)
 			}
 			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
 			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
-			{			
+			{	
+				removePortFromList(srcPort); // we dont have to listen on this port again...		
 				isPacketRcvd=false;					
 				break;			
 			}
@@ -901,6 +904,7 @@ void Core::PerformXMASScan(string dstIp, unsigned short dstPort)
 	
 	//store the service name of the port.
 	string serviceName=HelperClass::GetPortName(dstPort);
+	r.serviceName=serviceName;
 	r.scanType = TCP_XMAS; //set the scan type
 	for(;count < MAX_RETRANSMISSIONS;count++)
 	{
@@ -954,6 +958,7 @@ void Core::PerformXMASScan(string dstIp, unsigned short dstPort)
 			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
 			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
 			{			
+				removePortFromList(srcPort); // we dont have to listen on this port again...
 				isPacketRcvd=false;					
 				break;			
 			}
@@ -1004,6 +1009,7 @@ void Core::PerformFINScan(string dstIp, unsigned short dstPort)
 	
 	//store the service name of the port.
 	string serviceName=HelperClass::GetPortName(dstPort);
+	r.serviceName=serviceName;
 	r.scanType = TCP_FIN; //set the scan type
 	for(;count < MAX_RETRANSMISSIONS;count++)
 	{
@@ -1056,7 +1062,8 @@ void Core::PerformFINScan(string dstIp, unsigned short dstPort)
 			}
 			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
 			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
-			{			
+			{		
+				removePortFromList(srcPort); // we dont have to listen on this port again...	
 				isPacketRcvd=false;					
 				break;			
 			}
@@ -1355,11 +1362,10 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 						}
 					}
 				}
-				cout<<"--------------------------------"<<endl;
 				delete[] p.pointer;			
 			}
 			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
-			if(clock()-start > 1000000) //wait for 8 seconds for each packet...
+			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
 			{			
 				removePortFromList(srcPort); // we dont have to listen on this port again...
 				isPacketRcvd=false;					
@@ -1397,7 +1403,6 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 				r.state = FILTERED;
 			}
 		}	
-		cout<<"--------------------------------"<<endl;
 		delete[] p.pointer;	
 		//removePortFromList(srcPort);
 	}
@@ -1535,10 +1540,8 @@ void Core::Start()
 	for(;it!=portMap.end();it++)
 	{
 		int size = it->second.size();
-		cout<<"size is "<<size<<endl;
 		for(int i=0;i<size;i++)
 		{
-			cout<<"-----------------------------------"<<endl;
 			delete[] it->second[i].pointer;
 		}
 	}
