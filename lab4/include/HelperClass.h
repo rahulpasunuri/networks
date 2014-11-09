@@ -124,6 +124,6 @@ class HelperClass
 		static bool isNumber(string s);
 		static const char* getScanTypeName(scanTypes_t inp);
 		static scanTypes_t getScanTypeId(string s);
-		static const char* GetPortName(unsigned short port);
+		static string GetPortName(unsigned short port);
 		//static void* threadhelper(void *context);
 };

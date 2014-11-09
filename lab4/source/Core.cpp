@@ -684,16 +684,8 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 	r.port=dstPort;	
 	
 	//store the service name of the port.
-	const char* serviceName=HelperClass::GetPortName(dstPort);
-	if(serviceName==NULL)
-	{
-		r.serviceName="Unassigned";
-	}
-	else
-	{
-		r.serviceName=serviceName;
-	}
-	r.scanType = TCP_SYN; //set the scan type
+	string serviceName=HelperClass::GetPortName(dstPort);
+	r.scanType = TCP_ACK; //set the scan type
 	for(;count < MAX_RETRANSMISSIONS;count++)
 	{
 		unsigned short srcPort = 0;
@@ -796,16 +788,8 @@ void Core::PerformNULLScan(string dstIp, unsigned short dstPort)
 	r.port=dstPort;	
 	
 	//store the service name of the port.
-	const char* serviceName=HelperClass::GetPortName(dstPort);
-	if(serviceName==NULL)
-	{
-		r.serviceName="Unassigned";
-	}
-	else
-	{
-		r.serviceName=serviceName;
-	}
-	r.scanType = TCP_SYN; //set the scan type
+	string serviceName=HelperClass::GetPortName(dstPort);
+	r.scanType = TCP_NULL; //set the scan type
 	for(;count < MAX_RETRANSMISSIONS;count++)
 	{
 		unsigned short srcPort = 0;
@@ -886,7 +870,6 @@ void Core::PerformNULLScan(string dstIp, unsigned short dstPort)
 				r.state = FILTERED;
 			}
 		}	
-		cout<<"????????????????????"<<endl;
 		delete[] p->pointer;	
 	}
 	if(!isPacketRcvd)
@@ -909,16 +892,8 @@ void Core::PerformXMASScan(string dstIp, unsigned short dstPort)
 	r.port=dstPort;	
 	
 	//store the service name of the port.
-	const char* serviceName=HelperClass::GetPortName(dstPort);
-	if(serviceName==NULL)
-	{
-		r.serviceName="Unassigned";
-	}
-	else
-	{
-		r.serviceName=serviceName;
-	}
-	r.scanType = TCP_SYN; //set the scan type
+	string serviceName=HelperClass::GetPortName(dstPort);
+	r.scanType = TCP_XMAS; //set the scan type
 	for(;count < MAX_RETRANSMISSIONS;count++)
 	{
 		unsigned short srcPort = 0;
@@ -1020,16 +995,8 @@ void Core::PerformFINScan(string dstIp, unsigned short dstPort)
 	r.port=dstPort;	
 	
 	//store the service name of the port.
-	const char* serviceName=HelperClass::GetPortName(dstPort);
-	if(serviceName==NULL)
-	{
-		r.serviceName="Unassigned";
-	}
-	else
-	{
-		r.serviceName=serviceName;
-	}
-	r.scanType = TCP_SYN; //set the scan type
+	string serviceName=HelperClass::GetPortName(dstPort);
+	r.scanType = TCP_FIN; //set the scan type
 	for(;count < MAX_RETRANSMISSIONS;count++)
 	{
 		unsigned short srcPort = 0;
@@ -1337,19 +1304,12 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	r.port=dstPort;	
 
 	//store the service name of the port.
-	const char* serviceName=HelperClass::GetPortName(dstPort);
-	if(serviceName==NULL)
-	{
-		r.serviceName="Unassigned";
-	}
-	else
-	{
-		r.serviceName=serviceName;
-	}
+	string serviceName=HelperClass::GetPortName(dstPort);
+	r.serviceName=serviceName;
 	r.scanType = TCP_SYN; //set the scan type
+	unsigned short srcPort=0;
 	for(;count < MAX_RETRANSMISSIONS;count++)
 	{
-		unsigned short srcPort = 0;
 		while(!addPortToList(srcPort)) //ensures that each thread listens on a new port...
 		{	
 			srcPort=rand()%64000;
@@ -1399,11 +1359,11 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
 			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
 			{			
+				//removePortFromList(srcPort); // we dont have to listen on this port again...
 				isPacketRcvd=false;					
 				break;			
-			}
+			}			
 		}
-		removePortFromList(srcPort); // we dont have to listen on this port again...
 		if(isPacketRcvd==false)
 		{
 			continue;
@@ -1436,11 +1396,13 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 			}
 		}	
 		delete[] p->pointer;	
+		delete p;
 	}
 	if(!isPacketRcvd)
 	{
 		r.state = FILTERED; // no packet received after several transmissions...		
-	}
+	}	
+	removePortFromList(srcPort); // we dont have to listen on this port again...
 	printResult(r);
 }
 
