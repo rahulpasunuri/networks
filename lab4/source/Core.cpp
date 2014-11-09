@@ -23,6 +23,7 @@ bool Core::addPortToList(unsigned short port)
 			return false;
 		}
 	}
+	cout<<"adding port done !!!!!!!!!!!!1"<<endl;
 	vector<packet> newVector;
 	portMap.insert ( std::pair<unsigned short,vector<packet> >(port,newVector));
 	//portMap.push_back(port,newVector);
@@ -38,6 +39,13 @@ void Core::removePortFromList(unsigned short port)
 	{
 		if(it->first==port)
 		{
+			cout<<"removing done ???????????????????"<<endl;
+			//remove all packets from the queue..
+			int size = it->second.size();
+			for(int i=0; i<size; i++)
+			{
+				delete[] it->second[i].pointer;
+			}
 			break;
 		}
 	}				
@@ -47,15 +55,17 @@ void Core::removePortFromList(unsigned short port)
 
 void Core::addPacketToPort(unsigned short port, struct packet p)
 {
-
 	//the thread inserted its source port before reaching here..
+	bool isAdded=false;
 	lPortMutex.lock();
 	std::map<unsigned short,vector<packet> >::iterator it=portMap.begin();
 	for (; it!=portMap.end(); ++it)
 	{
 		if(it->first==port)
 		{
+			isAdded=true;
 			//struct tcphdr *tcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));	
+			cout<<"++++++++++++++++++++++++++++++++++++++++++++++"<<endl;
 			struct packet p1;
 			p1.pointer=p.pointer;
 			p1.length=p.length;
@@ -64,10 +74,16 @@ void Core::addPacketToPort(unsigned short port, struct packet p)
 		}
 	}		
 	lPortMutex.unlock();
+	if(!isAdded)
+	{
+		cout<<"-------------------"<<endl;
+		delete[] p.pointer;
+	}
 }
 
 void Core::removePacketFromPort(unsigned short port, struct packet p)
 {
+	cout<<"packet removed from queue"<<endl;
 	//the thread inserted its source port before reaching here..
 	lPortMutex.lock();
 	std::map<unsigned short,vector<packet> >::iterator it=portMap.begin();
@@ -177,7 +193,11 @@ void Core::readPacketOnPort()
 		{
 			struct udphdr *udp = (struct udphdr *)(packet+sizeof(ethhdr)+sizeof(iphdr));	
 			addPacketToPort(ntohs((unsigned short)udp->dest), p);
-		}		
+		}
+		else
+		{
+			delete[] p.pointer;		
+		}
 	}
 	pcap_close(handle);
 }
@@ -742,8 +762,7 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 			if(rcvdTcp->rst==1)
 			{
 				r.state = UNFILTERED;
-			}
-			delete[] p.pointer;
+			}			
 		}
 		else if(isIcmp)
 		{
@@ -755,6 +774,7 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 				r.state = FILTERED;
 			}
 		}
+		cout<<"-------------------------------------------before exiting"<<endl;
 		delete[] p.pointer;		
 	}
 	if(!isPacketRcvd)
@@ -1279,14 +1299,6 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 	int count=0; //this is used for the number of retransmissions
 	struct results r;
 	bool isPacketRcvd=false;
-	/*
-	struct sockaddr_in sa;
-	memset(&sa, 0, sizeof(sockaddr));
-	//memset();
-	memcpy(&sa.sin_addr.s_addr, &rcvdIp->saddr, sizeof(rcvdIp->saddr)); //4 bytes for ip address.
-	char rcvdSrcIp[INET_ADDRSTRLEN];
-	inet_ntop(AF_INET, &(sa.sin_addr), rcvdSrcIp, INET_ADDRSTRLEN);;	
-	*/
 	r.ip = dstIp;
 	//store the port of the remote..
 	r.port=dstPort;	
@@ -1342,12 +1354,14 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 							break;
 						}
 					}
-				}			
+				}
+				cout<<"--------------------------------"<<endl;
+				delete[] p.pointer;			
 			}
 			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
-			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
+			if(clock()-start > 1000000) //wait for 8 seconds for each packet...
 			{			
-				//removePortFromList(srcPort); // we dont have to listen on this port again...
+				removePortFromList(srcPort); // we dont have to listen on this port again...
 				isPacketRcvd=false;					
 				break;			
 			}			
@@ -1383,13 +1397,18 @@ void Core::PerformSynScan(string dstIp, unsigned short dstPort)
 				r.state = FILTERED;
 			}
 		}	
+		cout<<"--------------------------------"<<endl;
 		delete[] p.pointer;	
+		//removePortFromList(srcPort);
 	}
 	if(!isPacketRcvd)
 	{
 		r.state = FILTERED; // no packet received after several transmissions...		
-	}	
-	removePortFromList(srcPort); // we dont have to listen on this port again...
+	}
+	if(isPacketRcvd)
+	{	
+		removePortFromList(srcPort); // we dont have to listen on this port again...
+	}
 	printResult(r);
 }
 
@@ -1511,6 +1530,19 @@ void Core::Start()
 	
 	retVal=pthread_join(t,NULL);		
 	
+	//clear all the resources..
+	map<unsigned short, vector<struct packet> >::iterator it = portMap.begin();
+	for(;it!=portMap.end();it++)
+	{
+		int size = it->second.size();
+		cout<<"size is "<<size<<endl;
+		for(int i=0;i<size;i++)
+		{
+			cout<<"-----------------------------------"<<endl;
+			delete[] it->second[i].pointer;
+		}
+	}
+		
 	delete[] threads;
 }
 
