@@ -2,11 +2,36 @@ Tasks Accomplished:
 1) Parsing the command line arguments and error checking on command line arguments.
 2) Getting the service names for the standard ports (1-1024). (The mapping of port number and service names is kept in a csv file).
 3) Computation of TCP checksum and UDP checksum.
-
+4) All TCP scans are implemented.
+5) All the memory leaks of the code have been cleared.
+6) The code is written in a multi-threaded fashion using pthreads. The work is distributed among the threads, and no thread remains silent when work is available.
+7) Explicit exit calls are written for every thread.
 
 Tasks Ahead:
+As, majority of the project is completed, only the below two tasks are pending, and we will be doing them in the order mentioned.
 1) UDP scan on the ports.
-2) 
+2) Getting version information of standard services.
 
-Folder Structure:
+Building the project:
+"make" command compiles the code, and creates object files in the object/ directory and the executable in the bin/ directory.
+
+Running the application:
+options:
+• --help. Print out the message. \n\
+• --verbose. Runs in a verbose Mode. --\n\
+• --ports <ports to scan>. Specify the ports and range of ports to scan(using -) \n\
+• --ip <IP address to scan>. Specify the ip address to scan \n\
+• --prefix <IP prefix to scan>. Specify the ip prefix to scan \n\
+• --file <file name containing IP addresses to scan>. specify the file name containing the ip addresses \n\
+• --speedup <parallel threads to use>. Specify number of  threads to use \n\
+• --scan <one or more scans>. Specify the scans (each separated by a space)\n";
+
+Warnings:
+1) If scan types are not mentioned, the port scanner runs all the scan types.
+2) If ports are not mentioned, then ports in the range 1-1024 are run.
+
+Examples:
+1) sudo nice ./bin/portScanner --ip 129.79.247.87 --speedup 5 --ports 22
+This runs all the scan types for the remote ip address, using 5 threads and checks the status of port 22.
+
 
