@@ -157,7 +157,7 @@ string HelperClass::GetPortName(unsigned short port)
 {
 	if(port<1 || port>1024) //we search for port numbers only in this range...
 	{
-		return NULL;
+		return "Unassigned";
 	}
 	const char* fileName="resources/service-names-port-numbers.csv";
 	if(!CheckIfFileExists(fileName))
@@ -174,6 +174,7 @@ string HelperClass::GetPortName(unsigned short port)
 		{
 			return "Unassigned";
 		}
+		
 		string serviceName=value.substr(0,index);
 		value=value.substr(index+1);
 		index=value.find(',');
