@@ -362,8 +362,6 @@ void Core::PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 	r.port=dstPort;	
 
 	//store the service name of the port.
-	string serviceName=HelperClass::GetPortName(dstPort);
-	r.serviceName=serviceName;	
 	r.scanType = scanType; //set the scan type
 	for(;count < MAX_RETRANSMISSIONS;count++)
 	{
@@ -589,9 +587,11 @@ void Core::printResult(vector<struct results> list)
 {
 	printMutex.lock();		
 	
+	cout<<"IP Address: "<<list[0].ip<<endl;
+	
+	unsigned short port = list[0].port;
+	string serviceName = HelperClass::GetPortName(port);
 	/*
-	cout<<setw(20)<<r.ip;
-	cout<<setw(20)<<r.port;
 	cout<<setw(20)<<r.serviceName<<"\t\t";
 	cout<<setw(20)<<HelperClass::getScanTypeName(r.scanType)<<"\t\t";	
 	if(r.state==OPEN)

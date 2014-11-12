@@ -87,7 +87,6 @@ enum portState
 struct results
 {
 	string ip;
-	string serviceName;
 	scanTypes_t scanType;
 	portState state;
 	int port;
