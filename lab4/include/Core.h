@@ -65,38 +65,11 @@ class Core
 		//packet sniffer will stop saving packets for this port.		//removes the queue for the port.
 		void removePortFromList(unsigned short port);
 		args_t args;
-		
 
-		/*ACK SCAN METHDOS*/
-		//sends a ack packet from a src port to a (dstIP,dstport)
-		void SendAckPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
-		//does the ack scan on a given ip and port..
-		void PerformAckScan(string dstIp, unsigned short dstPort);
+		void SendTCPPacket(unsigned short srcPort, string dstIp, unsigned short dstPort, scanTypes_t);
 
-		/* SYN SCAN METHODS */
-		//does the syn scan on a given ip and port..
-		void PerformSynScan(string dstIp, unsigned short dstPort);
-		//sends a syn packet from a src port to a (dstIP,dstport)
-		void SendSynPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
-
-		/* NULL SCAN METHODS */
-		//does the syn scan on a given ip and port..
-		void PerformNULLScan(string dstIp, unsigned short dstPort);
-		//sends a syn packet from a src port to a (dstIP,dstport)
-		void SendNULLPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
-
-		/* XMAS SCAN METHODS */
-		//does the syn scan on a given ip and port..
-		void PerformXMASScan(string dstIp, unsigned short dstPort);
-		//sends a syn packet from a src port to a (dstIP,dstport)
-		void SendXMASPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
-
-		/* FIN SCAN METHODS */
-		//does the syn scan on a given ip and port..
-		void PerformFINScan(string dstIp, unsigned short dstPort);
-		//sends a syn packet from a src port to a (dstIP,dstport)
-		void SendFINPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
-		
+		void PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t);
+	
 		//computes the header checksum
 		uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size);
 		

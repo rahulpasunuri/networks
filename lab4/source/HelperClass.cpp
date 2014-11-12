@@ -26,7 +26,9 @@ void HelperClass::TerminateApplication(string text)
 unsigned short HelperClass::getSourcePortForICMP(const u_char* packet)
 {
 	unsigned short port;
-	const u_char* p = packet + sizeof(ethhdr) + sizeof(iphdr) + sizeof(icmphdr) + sizeof(iphdr); // ip hdr is encapsulated within icmp header..
+	struct iphdr* ip = (struct iphdr *)(packet+sizeof(struct ethhdr));
+	unsigned short len = (unsigned short)ip->ihl*sizeof (uint32_t);
+	const u_char* p = packet + sizeof(ethhdr) + len + sizeof(icmphdr) + sizeof(iphdr); // ip hdr is encapsulated within icmp header..
 	memcpy(&port, p, 2); //read the source port..
 	return port;
 }

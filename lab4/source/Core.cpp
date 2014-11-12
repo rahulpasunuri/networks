@@ -180,9 +180,10 @@ void Core::readPacketOnPort()
 			p.pointer[i] = packet[i];
 		}
 		p.length=hdr->len;
+		unsigned short len = (unsigned short)ip->ihl*sizeof (uint32_t);
 		if(isTcp)
 		{
-			struct tcphdr *tcp = (struct tcphdr *)(packet+sizeof(ethhdr)+sizeof(iphdr));	
+			struct tcphdr *tcp = (struct tcphdr *)(packet+sizeof(ethhdr)+len);	
 			addPacketToPort(ntohs(tcp->dest), p);
 		}
 		else if(isIcmp)
@@ -191,7 +192,7 @@ void Core::readPacketOnPort()
 		}
 		else if(isUdp)
 		{
-			struct udphdr *udp = (struct udphdr *)(packet+sizeof(ethhdr)+sizeof(iphdr));	
+			struct udphdr *udp = (struct udphdr *)(packet+sizeof(ethhdr)+len);	
 			addPacketToPort(ntohs((unsigned short)udp->dest), p);
 		}
 		else
@@ -210,7 +211,7 @@ Core::Core(args_t args,string interfaceName)
 	this->interfaceName=interfaceName;
 }	
 
-void Core::SendSynPacket(unsigned short srcPort, string dstIp, unsigned short dstPort)
+void Core::SendTCPPacket(unsigned short srcPort, string dstIp, unsigned short dstPort, scanTypes_t scanType)
 {	
 	
 	int sock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
@@ -273,130 +274,37 @@ void Core::SendSynPacket(unsigned short srcPort, string dstIp, unsigned short ds
 	tcp.seq = htonl(0); // note that its a 32 bit integer...could be a random number...
 	tcp.ack_seq = htonl(0);		
 	tcp.res1 = 0;// reserved and unused bits..
-	tcp.res2 = 0;
-	tcp.fin = 0;
-	tcp.syn = 1; //set only the syn flag..
-	tcp.rst = 0;
-	tcp.psh = 0;
-	tcp.ack = 0;
-	tcp.urg = 0;
-	tcp.window = ntohs(TCP_WINDOW_SIZE);
-	unsigned int optSize=0;
-	tcp.doff = (sizeof(struct tcphdr)+optSize)/WORD_SIZE; //so no options..	
-	tcp.urg_ptr= 0; 	
-	
-	u_char* temp=new u_char[sizeof(tcphdr) + optSize]; 
-	memcpy(temp, &tcp, sizeof(tcphdr));
-	//memcpy(temp+sizeof(tcphdr),backup,optSize);
-	
-	tcp.check = 0;
-	tcp.check=computeTCPHeaderCheckSum(ip,tcp);
-	//lets build the packet..
-	u_char* packet = new u_char[sizeof(struct iphdr)+sizeof(struct tcphdr)+optSize]; //this works because we have no tcp options and no tcp payload
-	memcpy(packet, &ip, sizeof(iphdr));
-	memcpy(packet+sizeof(iphdr), &tcp, sizeof(struct tcphdr));
-	
-	struct sockaddr_in sin;
-	memset (&sin, 0, sizeof (struct sockaddr_in));
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = ip.daddr; //set the destination address here..
-
-	int flag = 1;
-	// IP_HDRINCL setting this flag, as we are adding our own ip header..though it is set in most machines.
-	if (setsockopt (sock, IPPROTO_IP, IP_HDRINCL, (char *) &flag, sizeof(int)) < 0) 
-	{
-		HelperClass::TerminateApplication("send() failed!!");
-	}
-
-	// bind the socket.
-	if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof (ifr)) < 0) 
-	{
-		HelperClass::TerminateApplication("bind() failed!!");
-	}
-	
-	// Send packet.
-	if (sendto (sock, packet, sizeof(iphdr) + sizeof(tcphdr)+optSize, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)
-	{
-		HelperClass::TerminateApplication("send() failed!!");
-	}	
-	
-	
-	//free resources///	
-	delete[] temp;
-	delete[] packet;		
-	close (sock);// closing the socket.
-}
-
-void Core::SendNULLPacket(unsigned short srcPort, string dstIp, unsigned short dstPort)
-{	
-	
-	int sock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
-	if (sock < 0)  //create a raw socket
-	{
-		HelperClass::TerminateApplication("socket() failed ");
-	}
-
-	struct ifreq ifr;
-	memset (&ifr, 0, sizeof (ifr));
-	size_t if_name_len=strlen(interfaceName.c_str());
-	
-	if (if_name_len-1<sizeof(ifr.ifr_name)) 
-	{
-		memcpy(ifr.ifr_name,interfaceName.c_str(),if_name_len);
-		ifr.ifr_name[if_name_len]='\0'; // terminate the string with a null character...
-	} 
-	else 
-	{
-		HelperClass::TerminateApplication("Name of interface exceeds the limit!!!");
-	}
-	if (ioctl(sock,SIOCGIFADDR,&ifr)==-1) 
-	{
-		close(sock);
-		HelperClass::TerminateApplication("ioctl() failed!!!");	
-	}
-
-	struct sockaddr_in* ipaddr = (struct sockaddr_in*)&ifr.ifr_addr;
-	string srcIp = inet_ntoa(ipaddr->sin_addr);
-	if(HelperClass::srcIp=="")
-	{
-		HelperClass::srcIp=srcIp;
-	}
-	struct iphdr ip;
-	memset (&ip, 0, sizeof (struct iphdr));	
-	//fill the iphdr info...
-	ip.ihl = sizeof(struct iphdr)/sizeof (uint32_t); //# words in ip header.
-	ip.version = 4; //IPV4
-
-
-	ip.tos = 0; //tos stands for type of service (0 : Best Effort)
-	ip.tot_len = htons(sizeof(iphdr) + sizeof(tcphdr));  //as we dont have any application data..size here is size of tcp + ip.
-	ip.id = htons (0); //can we use this in a intelligent way ??? it is unused...
-	ip.frag_off=0; // alll flags are 0, and the fragment offset is 0 for the first packet.
-	ip.ttl = 0;
-	ip.ttl = ~ip.ttl; //set it to all 1's
-	ip.protocol = IPPROTO_TCP; //as transport layer protocol is tcp..
-    
-	  // Source IPv4 address (32 bits)
-	if (inet_pton (AF_INET, srcIp.c_str(), &(ip.saddr)) != 1 || inet_pton (AF_INET, dstIp.c_str(), &(ip.daddr)) != 1) 
-	{
-		HelperClass::TerminateApplication("inet_pton() failed!!");
-	}
-	ip.check=0; //init
-    ip.check=computeHeaderCheckSum((uint16_t *) & ip, sizeof(struct iphdr)); //this is the last step..
-    //lets create a tcp packet now..
-	struct tcphdr tcp;		
-	tcp.source = htons(srcPort);
-	tcp.dest = htons(dstPort);
-	tcp.seq = htonl(0); // note that its a 32 bit integer...could be a random number...
-	tcp.ack_seq = htonl(0);		
-	tcp.res1 = 0;// reserved and unused bits..
-	tcp.res2 = 0;
+	tcp.res2 = 0;	
 	tcp.fin = 0;
 	tcp.syn = 0; 
 	tcp.rst = 0;
 	tcp.psh = 0;
 	tcp.ack = 0;
 	tcp.urg = 0;
+	if(scanType == TCP_SYN)
+	{
+		tcp.syn = 1; //set only the syn flag..	
+	}
+	else if(scanType == TCP_NULL)
+	{
+		//do nothing.
+	}
+	else if(scanType == TCP_FIN)
+	{
+		tcp.fin = 1;
+	}
+	else if (scanType == TCP_XMAS)
+	{
+		tcp.fin = 1;
+		tcp.psh = 1;
+		tcp.urg = 1;
+	}
+	else if (scanType==TCP_ACK)
+	{
+		tcp.ack =1;		
+	}
+	
+
 	tcp.window = ntohs(TCP_WINDOW_SIZE);
 	unsigned int optSize=0;
 	tcp.doff = (sizeof(struct tcphdr)+optSize)/WORD_SIZE; //so no options..	
@@ -435,126 +343,7 @@ void Core::SendNULLPacket(unsigned short srcPort, string dstIp, unsigned short d
 	if (sendto (sock, packet, sizeof(iphdr) + sizeof(tcphdr)+optSize, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)
 	{
 		HelperClass::TerminateApplication("send() failed!!");
-	}	
-	
-	
-	//free resources///	
-	delete[] temp;
-	delete[] packet;		
-	close (sock);// closing the socket.
-}
-
-
-void Core::SendFINPacket(unsigned short srcPort, string dstIp, unsigned short dstPort)
-{	
-	
-	int sock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
-	if (sock < 0)  //create a raw socket
-	{
-		HelperClass::TerminateApplication("socket() failed ");
-	}
-
-	struct ifreq ifr;
-	memset (&ifr, 0, sizeof (ifr));
-	size_t if_name_len=strlen(interfaceName.c_str());
-	
-	if (if_name_len-1<sizeof(ifr.ifr_name)) 
-	{
-		memcpy(ifr.ifr_name,interfaceName.c_str(),if_name_len);
-		ifr.ifr_name[if_name_len]='\0'; // terminate the string with a null character...
-	} 
-	else 
-	{
-		HelperClass::TerminateApplication("Name of interface exceeds the limit!!!");
-	}
-	if (ioctl(sock,SIOCGIFADDR,&ifr)==-1) 
-	{
-		close(sock);
-		HelperClass::TerminateApplication("ioctl() failed!!!");	
-	}
-
-	struct sockaddr_in* ipaddr = (struct sockaddr_in*)&ifr.ifr_addr;
-	string srcIp = inet_ntoa(ipaddr->sin_addr);
-	if(HelperClass::srcIp=="")
-	{
-		HelperClass::srcIp=srcIp;
-	}
-	struct iphdr ip;
-	memset (&ip, 0, sizeof (struct iphdr));	
-	//fill the iphdr info...
-	ip.ihl = sizeof(struct iphdr)/sizeof (uint32_t); //# words in ip header.
-	ip.version = 4; //IPV4
-
-
-	ip.tos = 0; //tos stands for type of service (0 : Best Effort)
-	ip.tot_len = htons(sizeof(iphdr) + sizeof(tcphdr));  //as we dont have any application data..size here is size of tcp + ip.
-	ip.id = htons (0); //can we use this in a intelligent way ??? it is unused...
-	ip.frag_off=0; // alll flags are 0, and the fragment offset is 0 for the first packet.
-	ip.ttl = 0;
-	ip.ttl = ~ip.ttl; //set it to all 1's
-	ip.protocol = IPPROTO_TCP; //as transport layer protocol is tcp..
-    
-	  // Source IPv4 address (32 bits)
-	if (inet_pton (AF_INET, srcIp.c_str(), &(ip.saddr)) != 1 || inet_pton (AF_INET, dstIp.c_str(), &(ip.daddr)) != 1) 
-	{
-		HelperClass::TerminateApplication("inet_pton() failed!!");
-	}
-	ip.check=0; //init
-    ip.check=computeHeaderCheckSum((uint16_t *) & ip, sizeof(struct iphdr)); //this is the last step..
-    //lets create a tcp packet now..
-	struct tcphdr tcp;		
-	tcp.source = htons(srcPort);
-	tcp.dest = htons(dstPort);
-	tcp.seq = htonl(0); // note that its a 32 bit integer...could be a random number...
-	tcp.ack_seq = htonl(0);		
-	tcp.res1 = 0;// reserved and unused bits..
-	tcp.res2 = 0;
-	tcp.fin = 1;
-	tcp.syn = 0; //set only the syn flag..
-	tcp.rst = 0;
-	tcp.psh = 0;
-	tcp.ack = 0;
-	tcp.urg = 0;
-	tcp.window = ntohs(TCP_WINDOW_SIZE);
-	unsigned int optSize=0;
-	tcp.doff = (sizeof(struct tcphdr)+optSize)/WORD_SIZE; //so no options..	
-	tcp.urg_ptr= 0; 	
-	
-	u_char* temp=new u_char[sizeof(tcphdr) + optSize]; 
-	memcpy(temp, &tcp, sizeof(tcphdr));
-	//memcpy(temp+sizeof(tcphdr),backup,optSize);
-	
-	tcp.check = 0;
-	tcp.check=computeTCPHeaderCheckSum(ip,tcp);
-	//lets build the packet..
-	u_char* packet = new u_char[sizeof(struct iphdr)+sizeof(struct tcphdr)+optSize]; //this works because we have no tcp options and no tcp payload
-	memcpy(packet, &ip, sizeof(iphdr));
-	memcpy(packet+sizeof(iphdr), &tcp, sizeof(struct tcphdr));
-	
-	struct sockaddr_in sin;
-	memset (&sin, 0, sizeof (struct sockaddr_in));
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = ip.daddr; //set the destination address here..
-
-	int flag = 1;
-	// IP_HDRINCL setting this flag, as we are adding our own ip header..though it is set in most machines.
-	if (setsockopt (sock, IPPROTO_IP, IP_HDRINCL, (char *) &flag, sizeof(int)) < 0) 
-	{
-		HelperClass::TerminateApplication("send() failed!!");
-	}
-
-	// bind the socket.
-	if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof (ifr)) < 0) 
-	{
-		HelperClass::TerminateApplication("bind() failed!!");
-	}
-	
-	// Send packet.
-	if (sendto (sock, packet, sizeof(iphdr) + sizeof(tcphdr)+optSize, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)
-	{
-		HelperClass::TerminateApplication("send() failed!!");
-	}	
-	
+	}		
 	
 	//free resources///	
 	delete[] temp;
@@ -562,126 +351,7 @@ void Core::SendFINPacket(unsigned short srcPort, string dstIp, unsigned short ds
 	close (sock);// closing the socket.
 }
 
-void Core::SendXMASPacket(unsigned short srcPort, string dstIp, unsigned short dstPort)
-{	
-	
-	int sock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
-	if (sock < 0)  //create a raw socket
-	{
-		HelperClass::TerminateApplication("socket() failed ");
-	}
-
-	struct ifreq ifr;
-	memset (&ifr, 0, sizeof (ifr));
-	size_t if_name_len=strlen(interfaceName.c_str());
-	
-	if (if_name_len-1<sizeof(ifr.ifr_name)) 
-	{
-		memcpy(ifr.ifr_name,interfaceName.c_str(),if_name_len);
-		ifr.ifr_name[if_name_len]='\0'; // terminate the string with a null character...
-	} 
-	else 
-	{
-		HelperClass::TerminateApplication("Name of interface exceeds the limit!!!");
-	}
-	if (ioctl(sock,SIOCGIFADDR,&ifr)==-1) 
-	{
-		close(sock);
-		HelperClass::TerminateApplication("ioctl() failed!!!");	
-	}
-
-	struct sockaddr_in* ipaddr = (struct sockaddr_in*)&ifr.ifr_addr;
-	string srcIp = inet_ntoa(ipaddr->sin_addr);
-	if(HelperClass::srcIp=="")
-	{
-		HelperClass::srcIp=srcIp;
-	}
-	struct iphdr ip;
-	memset (&ip, 0, sizeof (struct iphdr));	
-	//fill the iphdr info...
-	ip.ihl = sizeof(struct iphdr)/sizeof (uint32_t); //# words in ip header.
-	ip.version = 4; //IPV4
-
-
-	ip.tos = 0; //tos stands for type of service (0 : Best Effort)
-	ip.tot_len = htons(sizeof(iphdr) + sizeof(tcphdr));  //as we dont have any application data..size here is size of tcp + ip.
-	ip.id = htons (0); //can we use this in a intelligent way ??? it is unused...
-	ip.frag_off=0; // alll flags are 0, and the fragment offset is 0 for the first packet.
-	ip.ttl = 0;
-	ip.ttl = ~ip.ttl; //set it to all 1's
-	ip.protocol = IPPROTO_TCP; //as transport layer protocol is tcp..
-    
-	  // Source IPv4 address (32 bits)
-	if (inet_pton (AF_INET, srcIp.c_str(), &(ip.saddr)) != 1 || inet_pton (AF_INET, dstIp.c_str(), &(ip.daddr)) != 1) 
-	{
-		HelperClass::TerminateApplication("inet_pton() failed!!");
-	}
-	ip.check=0; //init
-    ip.check=computeHeaderCheckSum((uint16_t *) & ip, sizeof(struct iphdr)); //this is the last step..
-    //lets create a tcp packet now..
-	struct tcphdr tcp;		
-	tcp.source = htons(srcPort);
-	tcp.dest = htons(dstPort);
-	tcp.seq = htonl(0); // note that its a 32 bit integer...could be a random number...
-	tcp.ack_seq = htonl(0);		
-	tcp.res1 = 0;// reserved and unused bits..
-	tcp.res2 = 0;
-	tcp.fin = 1;
-	tcp.syn = 0; //set only the syn flag..
-	tcp.rst = 0;
-	tcp.psh = 1;
-	tcp.ack = 0;
-	tcp.urg = 1;
-	tcp.window = ntohs(TCP_WINDOW_SIZE);
-	unsigned int optSize=0;
-	tcp.doff = (sizeof(struct tcphdr)+optSize)/WORD_SIZE; //so no options..	
-	tcp.urg_ptr= 0; 	
-	
-	u_char* temp=new u_char[sizeof(tcphdr) + optSize]; 
-	memcpy(temp, &tcp, sizeof(tcphdr));
-	//memcpy(temp+sizeof(tcphdr),backup,optSize);
-	
-	tcp.check = 0;
-	tcp.check=computeTCPHeaderCheckSum(ip,tcp);
-	//lets build the packet..
-	u_char* packet = new u_char[sizeof(struct iphdr)+sizeof(struct tcphdr)+optSize]; //this works because we have no tcp options and no tcp payload
-	memcpy(packet, &ip, sizeof(iphdr));
-	memcpy(packet+sizeof(iphdr), &tcp, sizeof(struct tcphdr));
-	
-	struct sockaddr_in sin;
-	memset (&sin, 0, sizeof (struct sockaddr_in));
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = ip.daddr; //set the destination address here..
-
-	int flag = 1;
-	// IP_HDRINCL setting this flag, as we are adding our own ip header..though it is set in most machines.
-	if (setsockopt (sock, IPPROTO_IP, IP_HDRINCL, (char *) &flag, sizeof(int)) < 0) 
-	{
-		HelperClass::TerminateApplication("send() failed!!");
-	}
-
-	// bind the socket.
-	if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof (ifr)) < 0) 
-	{
-		HelperClass::TerminateApplication("bind() failed!!");
-	}
-	
-	// Send packet.
-	if (sendto (sock, packet, sizeof(iphdr) + sizeof(tcphdr)+optSize, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)
-	{
-		HelperClass::TerminateApplication("send() failed!!");
-	}	
-	
-	
-	//free resources///	
-	delete[] temp;
-	delete[] packet;		
-	close (sock);// closing the socket.
-}
-
-
-
-void Core::PerformAckScan(string dstIp, unsigned short dstPort)
+void Core::PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t scanType)
 {
 	//this is the start time..
 	int count=0; //this is used for the number of retransmissions
@@ -690,11 +360,11 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 	r.ip = dstIp;
 	//store the port of the remote..
 	r.port=dstPort;	
-	
+
 	//store the service name of the port.
 	string serviceName=HelperClass::GetPortName(dstPort);
-	r.serviceName=serviceName;
-	r.scanType = TCP_ACK; //set the scan type
+	r.serviceName=serviceName;	
+	r.scanType = scanType; //set the scan type
 	for(;count < MAX_RETRANSMISSIONS;count++)
 	{
 		unsigned short srcPort = 0;
@@ -702,8 +372,8 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 		{	
 			srcPort=rand()%64000;
 		}
-		//send a ack packet.
-		SendAckPacket(srcPort, dstIp, dstPort);		
+		//send a ack packet.		
+		SendTCPPacket(srcPort, dstIp, dstPort,scanType);		
 		struct packet p;
 		struct protoent *protocol;
 		bool isIcmp = false;
@@ -715,8 +385,9 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 			p = readPacketFromList(srcPort);		
 			if(p.pointer!=NULL)
 			{
-				struct tcphdr* tcp= (struct tcphdr*)(p.pointer + sizeof(ethhdr)+sizeof(iphdr));
-				struct iphdr* ip= (struct iphdr*)(p.pointer + sizeof(ethhdr));
+				struct iphdr* ip = (struct iphdr *)(p.pointer + sizeof(struct ethhdr));
+				unsigned short len = (unsigned short)ip->ihl*sizeof (uint32_t);	
+				struct tcphdr* tcp= (struct tcphdr*)(p.pointer + sizeof(ethhdr)+len);
 				//check the source ip address of the packet and compare it with dstIp
 				sockaddr_in s;
 				memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
@@ -760,15 +431,44 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 		if(isTcp)
 		{
 			//receive reply now..
-			struct tcphdr *rcvdTcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));		
-			if(rcvdTcp->rst==1)
+			struct iphdr* ip = (struct iphdr *)(p.pointer+sizeof(struct ethhdr));
+			unsigned short len = (unsigned short)ip->ihl*sizeof (uint32_t);	
+			struct tcphdr *rcvdTcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+len);	
+			if(scanType == TCP_SYN)
 			{
-				r.state = UNFILTERED;
+				if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
+				{
+					r.state = OPEN;
+				}
+				else if(rcvdTcp->rst==1)
+				{
+					r.state = CLOSED;
+				}	
+				else
+				{
+					r.state = FILTERED;
+				}
+			}
+			else if (scanType == TCP_ACK)
+			{
+				if(rcvdTcp->rst==1)
+				{
+					r.state = UNFILTERED;
+				}
+			}
+			else
+			{
+				if(rcvdTcp->rst==1)
+				{
+					r.state = CLOSED;
+				}	
 			}			
 		}
 		else if(isIcmp)
 		{
-			struct icmphdr *icmpPacket=(struct icmphdr *)(p.pointer+sizeof(struct ethhdr)+sizeof(iphdr));
+			struct iphdr* ip = (struct iphdr *)(p.pointer+sizeof(struct ethhdr));
+			unsigned short len = (unsigned short)ip->ihl*sizeof (uint32_t);	
+			struct icmphdr *icmpPacket=(struct icmphdr *)(p.pointer+sizeof(struct ethhdr)+len);
 			unsigned short code = (unsigned short)icmpPacket->code;
 			unsigned short type = (unsigned short)icmpPacket->type;
 			if(type == 3 && (code == 1 || code == 2 ||code == 3 ||code == 9 ||code == 10 ||code == 13))
@@ -780,444 +480,22 @@ void Core::PerformAckScan(string dstIp, unsigned short dstPort)
 	}
 	if(!isPacketRcvd)
 	{
-		r.state = FILTERED; // no packet received after several transmissions...		
+		if(scanType == TCP_ACK)
+		{			
+			r.state = FILTERED; // no packet received after several transmissions...		
+		}
+		else if(scanType == TCP_SYN)
+		{
+			r.state = FILTERED; // no packet received after several transmissions...		
+		}
+		else
+		{
+			r.state = OPEN_OR_FILTERED;
+		}
 	}
-	printResult(r);
-
+	printResult(r);	
 }
 
-void Core::PerformNULLScan(string dstIp, unsigned short dstPort)
-{
-	//this is the start time..
-	int count=0; //this is used for the number of retransmissions
-	struct results r;
-	bool isPacketRcvd=false;
-	r.ip = dstIp;
-	//store the port of the remote..
-	r.port=dstPort;	
-	
-	//store the service name of the port.
-	string serviceName=HelperClass::GetPortName(dstPort);
-	r.serviceName=serviceName;
-	r.scanType = TCP_NULL; //set the scan type
-	for(;count < MAX_RETRANSMISSIONS;count++)
-	{
-		unsigned short srcPort = 0;
-		while(!addPortToList(srcPort)) //ensures that each thread listens on a new port...
-		{	
-			srcPort=rand()%64000;
-		}
-		//send a ack packet.
-		SendNULLPacket(srcPort, dstIp, dstPort);		
-		struct packet p;
-		struct protoent *protocol;
-		bool isIcmp = false;
-		bool isTcp = false;
-		unsigned int start = clock();
-		while(1)
-		{
-			//loop till we get the message intended to us..
-			p = readPacketFromList(srcPort);		
-			if(p.pointer!=NULL)
-			{
-				struct tcphdr* tcp= (struct tcphdr*)(p.pointer + sizeof(ethhdr)+sizeof(iphdr));
-				struct iphdr* ip= (struct iphdr*)(p.pointer + sizeof(ethhdr));
-				//check the source ip address of the packet and compare it with dstIp
-				sockaddr_in s;
-				memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
-				//also check source port of the packet with dstPort
-				if(ntohs(tcp->source) == dstPort && (strcmp(inet_ntoa(s.sin_addr), dstIp.c_str()) ==0 ))
-				{
-					//check the protocol of the packet
-					unsigned int proto=(unsigned int)ip->protocol;
-					protocol=getprotobynumber(proto);				
-					if(protocol!=NULL)
-					{
-						char* name=protocol->p_name;
-						if(strcmp(name,"icmp")==0 )
-						{
-							isIcmp=true;
-							isPacketRcvd=true;
-							break;	
-						}
-						else if(strcmp(name,"tcp")==0)
-						{
-							isTcp= true;
-							isPacketRcvd=true;
-							break;
-						}
-					}
-				}			
-			}
-			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
-			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
-			{	
-				removePortFromList(srcPort); // we dont have to listen on this port again...		
-				isPacketRcvd=false;					
-				break;			
-			}
-		}
-		removePortFromList(srcPort); // we dont have to listen on this port again...
-		if(isPacketRcvd==false)
-		{
-			continue;
-		}
-		if(isTcp)
-		{
-			//receive reply now..
-			struct tcphdr *rcvdTcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));		
-			if(rcvdTcp->rst==1)
-			{
-				r.state = CLOSED;
-			}
-		}
-		else if(isIcmp)
-		{
-			struct icmphdr *icmpPacket=(struct icmphdr *)(p.pointer+sizeof(struct ethhdr)+sizeof(iphdr));
-			unsigned short code = (unsigned short)icmpPacket->code;
-			unsigned short type = (unsigned short)icmpPacket->type;
-			if(type == 3 && (code == 1 || code == 2 ||code == 3 ||code == 9 ||code == 10 ||code == 13))
-			{
-				r.state = FILTERED;
-			}
-		}	
-		delete[] p.pointer;	
-	}
-	if(!isPacketRcvd)
-	{
-		r.state = OPEN_OR_FILTERED; // no packet received after several transmissions...		
-	}
-	printResult(r);
-
-}
-
-
-void Core::PerformXMASScan(string dstIp, unsigned short dstPort)
-{
-	//this is the start time..
-	int count=0; //this is used for the number of retransmissions
-	struct results r;
-	bool isPacketRcvd=false;
-	r.ip = dstIp;
-	//store the port of the remote..
-	r.port=dstPort;	
-	
-	//store the service name of the port.
-	string serviceName=HelperClass::GetPortName(dstPort);
-	r.serviceName=serviceName;
-	r.scanType = TCP_XMAS; //set the scan type
-	for(;count < MAX_RETRANSMISSIONS;count++)
-	{
-		unsigned short srcPort = 0;
-		while(!addPortToList(srcPort)) //ensures that each thread listens on a new port...
-		{	
-			srcPort=rand()%64000;
-		}
-		//send a ack packet.
-		SendXMASPacket(srcPort, dstIp, dstPort);		
-		struct packet p;
-		struct protoent *protocol;
-		bool isIcmp = false;
-		bool isTcp = false;
-		unsigned int start = clock();
-		while(1)
-		{
-			//loop till we get the message intended to us..
-			p = readPacketFromList(srcPort);		
-			if(p.pointer!=NULL)
-			{
-				struct tcphdr* tcp= (struct tcphdr*)(p.pointer + sizeof(ethhdr)+sizeof(iphdr));
-				struct iphdr* ip= (struct iphdr*)(p.pointer + sizeof(ethhdr));
-				//check the source ip address of the packet and compare it with dstIp
-				sockaddr_in s;
-				memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
-				//also check source port of the packet with dstPort
-				if(ntohs(tcp->source) == dstPort && (strcmp(inet_ntoa(s.sin_addr), dstIp.c_str()) ==0 ))
-				{
-					//check the protocol of the packet
-					unsigned int proto=(unsigned int)ip->protocol;
-					protocol=getprotobynumber(proto);				
-					if(protocol!=NULL)
-					{
-						char* name=protocol->p_name;
-						if(strcmp(name,"icmp")==0 )
-						{
-							isIcmp=true;
-							isPacketRcvd=true;
-							break;	
-						}
-						else if(strcmp(name,"tcp")==0)
-						{
-							isTcp= true;
-							isPacketRcvd=true;
-							break;
-						}
-					}
-				}			
-			}
-			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
-			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
-			{			
-				removePortFromList(srcPort); // we dont have to listen on this port again...
-				isPacketRcvd=false;					
-				break;			
-			}
-		}
-		removePortFromList(srcPort); // we dont have to listen on this port again...
-		if(isPacketRcvd==false)
-		{
-			continue;
-		}
-		if(isTcp)
-		{
-			//receive reply now..
-			struct tcphdr *rcvdTcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));		
-			if(rcvdTcp->rst==1)
-			{
-				r.state = CLOSED;
-			}
-		}
-		else if(isIcmp)
-		{
-			struct icmphdr *icmpPacket=(struct icmphdr *)(p.pointer+sizeof(struct ethhdr)+sizeof(iphdr));
-			unsigned short code = (unsigned short)icmpPacket->code;
-			unsigned short type = (unsigned short)icmpPacket->type;
-			if(type == 3 && (code == 1 || code == 2 ||code == 3 ||code == 9 ||code == 10 ||code == 13))
-			{
-				r.state = FILTERED;
-			}
-		}		
-		delete[] p.pointer;
-	}
-	if(!isPacketRcvd)
-	{
-		r.state = OPEN_OR_FILTERED; // no packet received after several transmissions...		
-	}
-	printResult(r);
-
-}
-
-void Core::PerformFINScan(string dstIp, unsigned short dstPort)
-{
-	//this is the start time..
-	int count=0; //this is used for the number of retransmissions
-	struct results r;
-	bool isPacketRcvd=false;
-	r.ip = dstIp;
-	//store the port of the remote..
-	r.port=dstPort;	
-	
-	//store the service name of the port.
-	string serviceName=HelperClass::GetPortName(dstPort);
-	r.serviceName=serviceName;
-	r.scanType = TCP_FIN; //set the scan type
-	for(;count < MAX_RETRANSMISSIONS;count++)
-	{
-		unsigned short srcPort = 0;
-		while(!addPortToList(srcPort)) //ensures that each thread listens on a new port...
-		{	
-			srcPort=rand()%64000;
-		}
-		//send a ack packet.
-		SendFINPacket(srcPort, dstIp, dstPort);		
-		struct packet p;
-		struct protoent *protocol;
-		bool isIcmp = false;
-		bool isTcp = false;
-		unsigned int start = clock();
-		while(1)
-		{
-			//loop till we get the message intended to us..
-			p = readPacketFromList(srcPort);		
-			if(p.pointer!=NULL)
-			{
-				struct tcphdr* tcp= (struct tcphdr*)(p.pointer + sizeof(ethhdr)+sizeof(iphdr));
-				struct iphdr* ip= (struct iphdr*)(p.pointer + sizeof(ethhdr));
-				//check the source ip address of the packet and compare it with dstIp
-				sockaddr_in s;
-				memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
-				//also check source port of the packet with dstPort
-				if(ntohs(tcp->source) == dstPort && (strcmp(inet_ntoa(s.sin_addr), dstIp.c_str()) ==0 ))
-				{
-					//check the protocol of the packet
-					unsigned int proto=(unsigned int)ip->protocol;
-					protocol=getprotobynumber(proto);				
-					if(protocol!=NULL)
-					{
-						char* name=protocol->p_name;
-						if(strcmp(name,"icmp")==0 )
-						{
-							isIcmp=true;
-							isPacketRcvd=true;
-							break;	
-						}
-						else if(strcmp(name,"tcp")==0)
-						{
-							isTcp= true;
-							isPacketRcvd=true;
-							break;
-						}
-					}
-				}			
-			}
-			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
-			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
-			{		
-				removePortFromList(srcPort); // we dont have to listen on this port again...	
-				isPacketRcvd=false;					
-				break;			
-			}
-		}
-		removePortFromList(srcPort); // we dont have to listen on this port again...
-		if(isPacketRcvd==false)
-		{
-			continue;
-		}
-		if(isTcp)
-		{
-			//receive reply now..
-			struct tcphdr *rcvdTcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));		
-			if(rcvdTcp->rst==1)
-			{
-				r.state = CLOSED;
-			}
-		}
-		else if(isIcmp)
-		{
-			struct icmphdr *icmpPacket=(struct icmphdr *)(p.pointer+sizeof(struct ethhdr)+sizeof(iphdr));
-			unsigned short code = (unsigned short)icmpPacket->code;
-			unsigned short type = (unsigned short)icmpPacket->type;
-			if(type == 3 && (code == 1 || code == 2 ||code == 3 ||code == 9 ||code == 10 ||code == 13))
-			{
-				r.state = FILTERED;
-			}
-		}		
-		delete[] p.pointer;
-	}
-	if(!isPacketRcvd)
-	{
-		r.state = OPEN_OR_FILTERED; // no packet received after several transmissions...		
-	}
-	printResult(r);
-
-}
-
-
-//sends a ack packet from a src port to a (dstIP,dstport)
-void Core::SendAckPacket(unsigned short srcPort, string dstIp, unsigned short dstPort)
-{
-	int sock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
-	if (sock < 0)  //create a raw socket
-	{
-		HelperClass::TerminateApplication("socket() failed ");
-	}
-
-	struct ifreq ifr;
-	memset (&ifr, 0, sizeof (ifr));
-	size_t if_name_len=strlen(interfaceName.c_str());
-	
-	if (if_name_len-1<sizeof(ifr.ifr_name)) 
-	{
-		memcpy(ifr.ifr_name,interfaceName.c_str(),if_name_len);
-		ifr.ifr_name[if_name_len]='\0'; // terminate the string with a null character...
-	} 
-	else 
-	{
-		HelperClass::TerminateApplication("Name of interface exceeds the limit!!!");
-	}
-	if (ioctl(sock,SIOCGIFADDR,&ifr)==-1) 
-	{
-		close(sock);
-		HelperClass::TerminateApplication("ioctl() failed!!!");	
-	}
-
-	struct sockaddr_in* ipaddr = (struct sockaddr_in*)&ifr.ifr_addr;
-	string srcIp = inet_ntoa(ipaddr->sin_addr);
-	if(HelperClass::srcIp=="")
-	{
-		HelperClass::srcIp=srcIp;
-	}
-	struct iphdr ip;
-	memset (&ip, 0, sizeof (struct iphdr));	
-	//fill the iphdr info...
-	ip.ihl = sizeof(struct iphdr)/sizeof (uint32_t); //# words in ip header.
-	ip.version = 4; //IPV4
-
-
-	ip.tos = 0; //tos stands for type of service (0 : Best Effort)
-	ip.tot_len = htons(sizeof(iphdr) + sizeof(tcphdr));  //as we dont have any application data..size here is size of tcp + ip.
-	ip.id = htons (0); //can we use this in a intelligent way ??? it is unused...
-	ip.frag_off=0; // alll flags are 0, and the fragment offset is 0 for the first packet.
-	ip.ttl = 0;
-	ip.ttl = ~ip.ttl; //set it to all 1's
-	ip.protocol = IPPROTO_TCP; //as transport layer protocol is tcp..
-    
-	  // Source IPv4 address (32 bits)
-	if (inet_pton (AF_INET, srcIp.c_str(), &(ip.saddr)) != 1 || inet_pton (AF_INET, dstIp.c_str(), &(ip.daddr)) != 1) 
-	{
-		HelperClass::TerminateApplication("inet_pton() failed!!");
-	}
-	ip.check=0; //init
-    ip.check=computeHeaderCheckSum((uint16_t *) & ip, sizeof(struct iphdr)); //this is the last step..
-    //lets create a tcp packet now..
-	struct tcphdr tcp;		
-	tcp.source = htons(srcPort);
-	tcp.dest = htons(dstPort);
-	tcp.seq = htonl(0); // note that its a 32 bit integer...could be a random number...
-	tcp.ack_seq = htonl(0);		
-	tcp.res1 = 0;// reserved and unused bits..
-	tcp.res2 = 0;
-	tcp.fin = 0;
-	tcp.syn = 0; 
-	tcp.rst = 0;
-	tcp.psh = 0;
-	tcp.ack = 1; //set only the syn flag..
-	tcp.urg = 0;
-	tcp.window = ntohs(TCP_WINDOW_SIZE);
-	unsigned int optSize=0;
-	tcp.doff = (sizeof(struct tcphdr)+optSize)/WORD_SIZE; //so no options..	
-	tcp.urg_ptr= 0; 	
-	
-	u_char* temp=new u_char[sizeof(tcphdr) + optSize]; 
-	memcpy(temp, &tcp, sizeof(tcphdr));
-	//memcpy(temp+sizeof(tcphdr),backup,optSize);
-	
-	tcp.check = 0;
-	tcp.check=computeTCPHeaderCheckSum(ip,tcp);
-	//lets build the packet..
-	u_char* packet = new u_char[sizeof(struct iphdr)+sizeof(struct tcphdr)+optSize]; //this works because we have no tcp options and no tcp payload
-	memcpy(packet, &ip, sizeof(iphdr));
-	memcpy(packet+sizeof(iphdr), &tcp, sizeof(struct tcphdr));
-	
-	struct sockaddr_in sin;
-	memset (&sin, 0, sizeof (struct sockaddr_in));
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = ip.daddr; //set the destination address here..
-
-	int flag = 1;
-	// IP_HDRINCL setting this flag, as we are adding our own ip header..though it is set in most machines.
-	if (setsockopt (sock, IPPROTO_IP, IP_HDRINCL, (char *) &flag, sizeof(int)) < 0) 
-	{
-		HelperClass::TerminateApplication("send() failed!!");
-	}
-
-	// bind the socket.
-	if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof (ifr)) < 0) 
-	{
-		HelperClass::TerminateApplication("bind() failed!!");
-	}
-	
-	// Send packet.
-	if (sendto (sock, packet, sizeof(iphdr) + sizeof(tcphdr)+optSize, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)
-	{
-		HelperClass::TerminateApplication("send() failed!!");
-	}	
-		
-	//free resources///	
-	delete[] temp;
-	delete[] packet;		
-	close (sock);// closing the socket.
-}
 
 void* Core::threadhelper(void *context)
 {
@@ -1300,124 +578,6 @@ void Core::printResult(struct results r)
 	printMutex.unlock();
 }
 
-void Core::PerformSynScan(string dstIp, unsigned short dstPort)
-{
-	//this is the start time..
-	int count=0; //this is used for the number of retransmissions
-	struct results r;
-	bool isPacketRcvd=false;
-	r.ip = dstIp;
-	//store the port of the remote..
-	r.port=dstPort;	
-
-	//store the service name of the port.
-	string serviceName=HelperClass::GetPortName(dstPort);
-	r.serviceName=serviceName;
-	r.scanType = TCP_SYN; //set the scan type
-	unsigned short srcPort=0;
-	for(;count < MAX_RETRANSMISSIONS;count++)
-	{
-		while(!addPortToList(srcPort)) //ensures that each thread listens on a new port...
-		{	
-			srcPort=rand()%64000;
-		}
-		//send a syn packet.
-		SendSynPacket(srcPort, dstIp, dstPort);		
-		struct packet p;
-		struct protoent *protocol;
-		bool isIcmp = false;
-		bool isTcp = false;
-		unsigned int start = clock();
-		while(1)
-		{
-			//loop till we get the message intended to us..
-			p = readPacketFromList(srcPort);		
-			if(p.pointer!=NULL)
-			{
-				struct tcphdr* tcp= (struct tcphdr*)(p.pointer + sizeof(ethhdr)+sizeof(iphdr));
-				struct iphdr* ip= (struct iphdr*)(p.pointer + sizeof(ethhdr));
-				//check the source ip address of the packet and compare it with dstIp
-				sockaddr_in s;
-				memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
-				//also check source port of the packet with dstPort
-				if(ntohs(tcp->source) == dstPort && (strcmp(inet_ntoa(s.sin_addr), dstIp.c_str()) ==0 ))
-				{
-					//check the protocol of the packet
-					unsigned int proto=(unsigned int)ip->protocol;
-					protocol=getprotobynumber(proto);				
-					if(protocol!=NULL)
-					{
-						char* name=protocol->p_name;
-						if(strcmp(name,"icmp")==0 )
-						{
-							isIcmp=true;
-							isPacketRcvd=true;
-							break;	
-						}
-						else if(strcmp(name,"tcp")==0)
-						{
-							isTcp= true;
-							isPacketRcvd=true;
-							break;
-						}
-					}
-				}
-				delete[] p.pointer;			
-			}
-			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
-			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
-			{			
-				removePortFromList(srcPort); // we dont have to listen on this port again...
-				isPacketRcvd=false;					
-				break;			
-			}			
-		}
-		if(isPacketRcvd==false)
-		{
-			continue;
-		}
-		if(isTcp)
-		{
-			//receive reply now..
-			struct tcphdr *rcvdTcp = (struct tcphdr *)(p.pointer+sizeof(ethhdr)+sizeof(iphdr));		
-			if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
-			{
-				r.state = OPEN;
-			}
-			else if(rcvdTcp->rst==1)
-			{
-				r.state = CLOSED;
-			}	
-			else
-			{
-				r.state = FILTERED;
-			}
-		}
-		else if(isIcmp)
-		{
-			struct icmphdr *icmpPacket=(struct icmphdr *)(p.pointer+sizeof(struct ethhdr)+sizeof(iphdr));
-			unsigned short code = (unsigned short)icmpPacket->code;
-			unsigned short type = (unsigned short)icmpPacket->type;
-			if(type == 3 && (code == 1 || code == 2 ||code == 3 ||code == 9 ||code == 10 ||code == 13))
-			{
-				r.state = FILTERED;
-			}
-		}	
-		delete[] p.pointer;	
-		//removePortFromList(srcPort);
-	}
-	if(!isPacketRcvd)
-	{
-		r.state = FILTERED; // no packet received after several transmissions...		
-	}
-	if(isPacketRcvd)
-	{	
-		removePortFromList(srcPort); // we dont have to listen on this port again...
-	}
-	printResult(r);
-}
-
-
 struct target Core::getWork()
 {	
 	struct target t;
@@ -1452,23 +612,23 @@ void Core::doWork()
 		}
 		else if(t.scanType == TCP_SYN)
 		{
-			PerformSynScan(t.ip, t.port);
+			PerformTCPScan(t.ip, t.port, TCP_SYN);
 		}
 		else if(t.scanType == TCP_NULL)
 		{
-			PerformNULLScan(t.ip, t.port);
+			PerformTCPScan(t.ip, t.port, TCP_NULL);
 		}
 		else if(t.scanType == TCP_FIN)
 		{
-			PerformFINScan(t.ip, t.port);
+			PerformTCPScan(t.ip, t.port, TCP_FIN);
 		}
 		else if(t.scanType == TCP_XMAS)
 		{
-			PerformXMASScan(t.ip, t.port);
+			PerformTCPScan(t.ip, t.port, TCP_XMAS);
 		}
 		else if(t.scanType == TCP_ACK)
 		{
-			PerformAckScan(t.ip, t.port);
+			PerformTCPScan(t.ip, t.port, TCP_ACK);
 		}
 		else if(t.scanType == UDP)
 		{
