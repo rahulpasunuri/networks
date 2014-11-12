@@ -1,0 +1,8 @@
+Dagwood VM services:
+Port	Service version
+22	SSH-2.0-OpenSSH_5.3
+24	P538 DUMBMAIL beta 2a.01c
+43	Version 1.0rc
+80	apache/2.2.15 (red hat)
+110	Dovecot
+143	Version: IMAP4rev1, Server: Dovecot
