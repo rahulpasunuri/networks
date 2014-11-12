@@ -23,21 +23,6 @@
 #include<fstream>
 #include "HelperClass.h"
 #include<map>
-enum StandardServices
-{
-	SSH=22,
-	SMTP=24, //TODO try other ports 24, 25, and 587
-	WHOIS=43,
-	HTTP=80,
-	POP=110,
-	IMAP=143
-};
-
-struct packet
-{
-	u_char* pointer;
-	unsigned short length;		
-};
 
 class Core
 {
@@ -47,8 +32,10 @@ class Core
 		Mutex printMutex;
 		Mutex packetSnifferMutex;
 		bool shldPacketSnifferExit;
+		Mutex addResultsMutex;
 		vector<struct target> targets;
 		std::map<unsigned short, vector<struct packet> > portMap;
+		map< struct combo , vector<struct results> > aggResults;
 		//vector<unsigned short> lPorts;
 
 		//add a packet to the queue..
@@ -84,7 +71,9 @@ class Core
 
 	public:
 		string interfaceName;
-		void printResult(struct results r);
+		void printResult(vector<struct results> list);
+		void addResult(struct results r);
+		
 		//this is port sniffer which will save packets
 		void readPacketOnPort();
 		static void *threadhelper(void *context);

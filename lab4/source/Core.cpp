@@ -493,7 +493,44 @@ void Core::PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 			r.state = OPEN_OR_FILTERED;
 		}
 	}
-	printResult(r);	
+	addResult(r);	
+}
+
+void Core::addResult(struct results r)
+{
+	addResultsMutex.lock();
+	map< struct combo, vector<struct results> >::iterator it=aggResults.begin();
+	for(; it!=aggResults.end(); it++)
+	{
+		if(it->first.ip == r.ip && it->first.port == r.port)
+		{
+			break;
+		}
+	}
+	
+	it->second.push_back(r);	
+	bool isComplete = false;
+	for(unsigned int i=0; i < args.scanTypes.size();i++)
+	{
+		isComplete=false;
+		for(unsigned int j=0; j < it->second.size();j++)
+		{
+			if(args.scanTypes[i]==it->second[j].scanType)
+			{
+				isComplete = true;
+				break;
+			}		
+		}	
+		if(!isComplete)
+		{
+			break;
+		}
+	}
+	addResultsMutex.unlock();
+	if(isComplete)
+	{
+		printResult(it->second);	
+	}
 }
 
 
@@ -548,9 +585,11 @@ struct packet Core::readPacketFromList(unsigned short port)
 	return p;
 }
 
-void Core::printResult(struct results r)
+void Core::printResult(vector<struct results> list)
 {
 	printMutex.lock();		
+	
+	/*
 	cout<<setw(20)<<r.ip;
 	cout<<setw(20)<<r.port;
 	cout<<setw(20)<<r.serviceName<<"\t\t";
@@ -576,6 +615,7 @@ void Core::printResult(struct results r)
 		cout<<setw(20)<<"open | filtered"<<endl;
 	}
 	printMutex.unlock();
+	*/
 }
 
 struct target Core::getWork()
@@ -756,7 +796,4 @@ uint16_t Core::computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp)
 	delete[] t; //free memory..
 	return checkSum;
 }
-
-
-
 

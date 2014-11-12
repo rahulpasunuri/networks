@@ -58,6 +58,22 @@ enum scanTypes_t
 	UDP,
 	MISC
 };
+enum StandardServices
+{
+	SSH=22,
+	SMTP=24, //TODO try other ports 24, 25, and 587
+	WHOIS=43,
+	HTTP=80,
+	POP=110,
+	IMAP=143
+};
+
+struct packet
+{
+	u_char* pointer;
+	unsigned short length;		
+};
+
 
 enum portState
 {
@@ -93,6 +109,12 @@ struct target
 	scanTypes_t scanType;
 };
 
+struct combo
+{
+	string ip;
+	unsigned short port;
+};
+
 class Mutex
 {
 	private:
@@ -102,6 +124,7 @@ class Mutex
 		void lock();
 		void unlock();
 };
+
 
 class Thread
 {
