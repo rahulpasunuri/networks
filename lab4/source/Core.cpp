@@ -494,6 +494,217 @@ void Core::PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 	addResult(r);	
 }
 
+void Core::SendUDPPacket(unsigned short srcPort, string dstIp, unsigned short dstPort)
+{	
+	
+	int sock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
+	if (sock < 0)  //create a raw socket
+	{
+		HelperClass::TerminateApplication("socket() failed ");
+	}
+
+	struct ifreq ifr;
+	memset (&ifr, 0, sizeof (ifr));
+	size_t if_name_len=strlen(interfaceName.c_str());
+	
+	if (if_name_len-1<sizeof(ifr.ifr_name)) 
+	{
+		memcpy(ifr.ifr_name,interfaceName.c_str(),if_name_len);
+		ifr.ifr_name[if_name_len]='\0'; // terminate the string with a null character...
+	} 
+	else 
+	{
+		HelperClass::TerminateApplication("Name of interface exceeds the limit!!!");
+	}
+	if (ioctl(sock,SIOCGIFADDR,&ifr)==-1) 
+	{
+		close(sock);
+		HelperClass::TerminateApplication("ioctl() failed!!!");	
+	}
+
+	struct sockaddr_in* ipaddr = (struct sockaddr_in*)&ifr.ifr_addr;
+	string srcIp = inet_ntoa(ipaddr->sin_addr);
+	if(HelperClass::srcIp=="")
+	{
+		HelperClass::srcIp=srcIp;
+	}
+	struct iphdr ip;
+	memset (&ip, 0, sizeof (struct iphdr));	
+	//fill the iphdr info...
+	ip.ihl = sizeof(struct iphdr)/sizeof (uint32_t); //# words in ip header.
+	ip.version = 4; //IPV4
+
+
+	ip.tos = 0; //tos stands for type of service (0 : Best Effort)
+	ip.tot_len = htons(sizeof(iphdr) + sizeof(udphdr));  //as we dont have any application data..size here is size of tcp + ip.
+	ip.id = htons (0); //can we use this in a intelligent way ??? it is unused...
+	ip.frag_off=0; // alll flags are 0, and the fragment offset is 0 for the first packet.
+	ip.ttl = 0;
+	ip.ttl = ~ip.ttl; //set it to all 1's
+	ip.protocol = IPPROTO_UDP; //as transport layer protocol is udp..
+    
+	  // Source IPv4 address (32 bits)
+	if (inet_pton (AF_INET, srcIp.c_str(), &(ip.saddr)) != 1 || inet_pton (AF_INET, dstIp.c_str(), &(ip.daddr)) != 1) 
+	{
+		HelperClass::TerminateApplication("inet_pton() failed!!");
+	}
+	ip.check=0; //init
+    ip.check=computeHeaderCheckSum((uint16_t *) & ip, sizeof(struct iphdr)); //this is the last step..
+    
+    //lets create a udp packet now..
+	struct udphdr udp;
+
+  	udp.source = htons(srcPort);
+	udp.dest = htons(dstPort);
+	udp.len = sizeof(udphdr);
+  	udp.check=0;
+	 		
+	u_char* temp=new u_char[sizeof(udphdr)]; 
+	memcpy(temp, &udp, sizeof(udphdr));
+	
+	// filling the udp.check value...
+	udp.check=computeUDPHeaderCheckSum(ip,udp);
+	//lets build the packet..
+	u_char* packet = new u_char[sizeof(struct iphdr)+sizeof(struct udphdr)]; 
+	memcpy(packet, &ip, sizeof(iphdr));
+	memcpy(packet+sizeof(iphdr), &udp, sizeof(struct udphdr));
+	
+	struct sockaddr_in sin;
+	memset (&sin, 0, sizeof (struct sockaddr_in));
+	sin.sin_family = AF_INET;
+	sin.sin_addr.s_addr = ip.daddr; //set the destination address here..
+
+	int flag = 1;
+	// IP_HDRINCL setting this flag, as we are adding our own ip header..though it is set in most machines.
+	if (setsockopt (sock, IPPROTO_IP, IP_HDRINCL, (char *) &flag, sizeof(int)) < 0) 
+	{
+		HelperClass::TerminateApplication("send() failed!!");
+	}
+
+	// bind the socket.
+	if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof (ifr)) < 0) 
+	{
+		HelperClass::TerminateApplication("bind() failed!!");
+	}
+	
+	// Send packet.
+	if (sendto (sock, packet, sizeof(iphdr) + sizeof(udphdr), 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)
+	{
+		HelperClass::TerminateApplication("send() failed!!");
+	}		
+	
+	//free resources///	
+	delete[] temp;
+	delete[] packet;		
+	close (sock);// closing the socket.
+}
+
+void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scanType)
+{
+	//this is the start time..
+	int count=0; //this is used for the number of retransmissions
+	struct results r;
+	bool isPacketRcvd=false;
+	r.ip = dstIp;
+	//store the port of the remote..
+	r.port=dstPort;	
+
+	//store the service name of the port.
+	r.scanType = scanType; //set the scan type
+	for(;count < MAX_RETRANSMISSIONS;count++)
+	{
+		unsigned short srcPort = 0;
+		while(!addPortToList(srcPort)) //ensures that each thread listens on a new port...
+		{	
+			srcPort=rand()%64000;
+		}
+		//send a  packet.		
+		SendUDPPacket(srcPort, dstIp, dstPort);		
+		struct packet p;
+		struct protoent *protocol;
+		bool isIcmp = false;
+		bool isUdp = false;
+		unsigned int start = clock();
+		while(1)
+		{
+			//loop till we get the message intended to us..
+			p = readPacketFromList(srcPort);		
+			if(p.pointer!=NULL)
+			{
+				struct iphdr* ip = (struct iphdr *)(p.pointer + sizeof(struct ethhdr));
+				unsigned short len = (unsigned short)ip->ihl*sizeof (uint32_t);	
+				struct udphdr* udp= (struct udphdr*)(p.pointer + sizeof(ethhdr)+len);
+				//check the source ip address of the packet and compare it with dstIp
+				sockaddr_in s;
+				memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
+				//also check source port of the packet with dstPort
+				if(ntohs(udp->source) == dstPort && (strcmp(inet_ntoa(s.sin_addr), dstIp.c_str()) ==0 ))
+				{
+					//check the protocol of the packet
+					unsigned int proto=(unsigned int)ip->protocol;
+					protocol=getprotobynumber(proto);				
+					if(protocol!=NULL)
+					{
+						char* name=protocol->p_name;
+						if(strcmp(name,"icmp")==0 )
+						{
+							isIcmp=true;
+							isPacketRcvd=true;
+							break;	
+						}
+						else if(strcmp(name,"udp")==0)
+						{
+							isUdp= true;
+							isPacketRcvd=true;
+							break;
+						}
+					}
+				}			
+			}
+			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
+			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
+			{			
+				removePortFromList(srcPort); // we dont have to listen on this port again...
+				isPacketRcvd=false;					
+				break;			
+			}
+		}
+		removePortFromList(srcPort); // we dont have to listen on this port again...
+		if(isPacketRcvd==false)
+		{
+			continue;
+		}
+		if(isUdp)
+		{
+			r.state = OPEN;							
+		}
+		else if(isIcmp)
+		{
+			struct iphdr* ip = (struct iphdr *)(p.pointer+sizeof(struct ethhdr));
+			unsigned short len = (unsigned short)ip->ihl*sizeof (uint32_t);	
+			struct icmphdr *icmpPacket=(struct icmphdr *)(p.pointer+sizeof(struct ethhdr)+len);
+			unsigned short code = (unsigned short)icmpPacket->code;
+			unsigned short type = (unsigned short)icmpPacket->type;
+			if(type == 3 && code == 3 )
+			{
+				r.state = CLOSED;
+			}
+			else if(type == 3 && (code == 1||code== 2|| code==9|| code == 10|| code== 13))
+			{
+				r.state = FILTERED;
+			}
+		}
+		delete[] p.pointer;		
+	}
+	if(!isPacketRcvd)
+	{
+		r.state = OPEN_OR_FILTERED;
+	}
+	addResult(r);	
+}
+
+
+
 void Core::addResult(struct results r)
 {
 	addResultsMutex.lock();
@@ -672,7 +883,7 @@ void Core::doWork()
 		}
 		else if(t.scanType == UDP)
 		{
-			//TODO
+			PerformUDPScan(t.ip, t.port, UDP);
 		}	
 	}
 	//exit the thread, as there is no work left to do..
@@ -790,6 +1001,28 @@ uint16_t Core::computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp)
 
 	memcpy(t+10, &segmentSize, 2);
 	memcpy(t+size, &tcp,tcpHdrSize);
+	
+	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
+	uint16_t checkSum = computeHeaderCheckSum((uint16_t*)t, size+segSize);
+	delete[] t; //free memory..
+	return checkSum;
+}
+
+uint16_t Core::computeUDPHeaderCheckSum(struct iphdr ip,struct udphdr udp)
+{	 
+	unsigned int size=12;
+	unsigned int udpHdrSize= sizeof(udphdr);
+	unsigned int segSize= udpHdrSize;
+	u_char* t=new u_char[size+segSize];
+	memcpy(t, &ip.saddr, 4);
+	memcpy(t+4, &ip.daddr, 4);
+	t[8]=0;
+	t[9]=IPPROTO_UDP;
+
+	unsigned short segmentSize=htons(segSize);
+
+	memcpy(t+10, &segmentSize, 2);
+	memcpy(t+size, &udp,udpHdrSize);
 	
 	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
 	uint16_t checkSum = computeHeaderCheckSum((uint16_t*)t, size+segSize);

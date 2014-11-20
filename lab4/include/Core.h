@@ -54,14 +54,21 @@ class Core
 		args_t args;
 
 		void SendTCPPacket(unsigned short srcPort, string dstIp, unsigned short dstPort, scanTypes_t);
+		
+		void SendUDPPacket(unsigned short srcPort, string dstIp, unsigned short dstPort);
 
 		void PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t);
+		
+		void PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t);
 	
 		//computes the header checksum
 		uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size);
 		
 		//computes the tcp header checksum.
 		uint16_t computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp);
+		
+		//computes the UDP header checksum.
+		uint16_t computeUDPHeaderCheckSum(struct iphdr ip,struct udphdr udp);
 
 		//this is done by the individual thread, and they read packets which belong to their port..
 		struct packet readPacketFromList(unsigned short port);
