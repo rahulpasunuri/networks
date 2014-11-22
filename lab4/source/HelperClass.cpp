@@ -30,7 +30,7 @@ unsigned short HelperClass::getSourcePortForICMP(const u_char* packet)
 	unsigned short len = (unsigned short)ip->ihl*sizeof (uint32_t);
 	const u_char* p = packet + sizeof(ethhdr) + len + sizeof(icmphdr) + sizeof(iphdr); // ip hdr is encapsulated within icmp header..
 	memcpy(&port, p, 2); //read the source port..
-	return port;
+	return ntohs(port);
 }
 
 const char* HelperClass::getScanTypeName(scanTypes_t inp)
@@ -132,7 +132,7 @@ scanTypes_t HelperClass::getScanTypeId(string s)
 	{
 		return TCP_ACK;
 	}
-	if(s=="UPD")
+	if(s=="UDP")
 	 return UDP;
 	HelperClass::TerminateApplication("Unknown scan Type"+ s);
 	return UDP;//to make the compiler happy
