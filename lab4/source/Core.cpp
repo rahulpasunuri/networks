@@ -353,6 +353,7 @@ void Core::SendTCPPacket(unsigned short srcPort, string dstIp, unsigned short ds
 
 void Core::PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t scanType)
 {
+	cout<<"calling tcp scan "<<endl;
 	//this is the start time..
 	int count=0; //this is used for the number of retransmissions
 	struct results r;
@@ -384,34 +385,38 @@ void Core::PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 			if(p.pointer!=NULL)
 			{
 				struct iphdr* ip = (struct iphdr *)(p.pointer + sizeof(struct ethhdr));
-				unsigned short len = (unsigned short)ip->ihl*sizeof (uint32_t);	
-				struct tcphdr* tcp= (struct tcphdr*)(p.pointer + sizeof(ethhdr)+len);
-				//check the source ip address of the packet and compare it with dstIp
-				sockaddr_in s;
-				memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
-				//also check source port of the packet with dstPort
-				if(ntohs(tcp->source) == dstPort && (strcmp(inet_ntoa(s.sin_addr), dstIp.c_str()) ==0 ))
+				unsigned int proto=(unsigned int)ip->protocol;
+				protocol=getprotobynumber(proto);				
+				if(protocol!=NULL)
 				{
-					//check the protocol of the packet
-					unsigned int proto=(unsigned int)ip->protocol;
-					protocol=getprotobynumber(proto);				
-					if(protocol!=NULL)
+					char* name=protocol->p_name;
+					if(strcmp(name,"icmp")==0 )
 					{
-						char* name=protocol->p_name;
-						if(strcmp(name,"icmp")==0 )
+						isIcmp=true;
+						isPacketRcvd=true;
+						break;	
+					}
+					else if(strcmp(name,"tcp")==0)
+					{
+						unsigned short len = (unsigned short)ip->ihl*sizeof (uint32_t);	
+						struct tcphdr* tcp= (struct tcphdr*)(p.pointer + sizeof(ethhdr)+len);
+						//check the source ip address of the packet and compare it with dstIp
+						sockaddr_in s;
+						memcpy(&s.sin_addr.s_addr, &ip->saddr, 4);
+						//also check source port of the packet with dstPort
+						if(ntohs(tcp->source) == dstPort && (strcmp(inet_ntoa(s.sin_addr), dstIp.c_str()) ==0 ))
 						{
-							isIcmp=true;
-							isPacketRcvd=true;
-							break;	
-						}
-						else if(strcmp(name,"tcp")==0)
-						{
+							cout<<"what????????"<<endl;
 							isTcp= true;
 							isPacketRcvd=true;
 							break;
-						}
+						}			
 					}
-				}			
+				}																
+			}
+			if(isPacketRcvd)
+			{
+				break;
 			}
 			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
 			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
