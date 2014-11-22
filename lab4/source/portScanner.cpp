@@ -91,7 +91,7 @@ args_t parseArguments(int argc, char** argv)
 	args_t args;
 	//init some arguments
 	args.verboseMode=false;
-	args.numThreads=0;
+	args.numThreads=1; //default 1 thread...
 		static struct option long_options[] =
 		{
 		  /* These options set a flag. */
