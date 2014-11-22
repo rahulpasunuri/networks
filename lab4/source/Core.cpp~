@@ -556,7 +556,7 @@ void Core::SendUDPPacket(unsigned short srcPort, string dstIp, unsigned short ds
 
   	udp.source = htons(srcPort);
 	udp.dest = htons(dstPort);
-	udp.len = htons(sizeof(udphdr));
+	udp.len = sizeof(udphdr);
   	udp.check=0;
 	 		
 	u_char* temp=new u_char[sizeof(udphdr)]; 

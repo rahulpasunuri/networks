@@ -6,7 +6,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <openssl/sha.h>// need to add -lssl to compile
+//#include <openssl/sha.h>// need to add -lssl to compile
 #include <string>
 #include<iostream>
 #include<fstream>
