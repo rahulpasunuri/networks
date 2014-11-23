@@ -23,6 +23,43 @@ void HelperClass::TerminateApplication(string text)
 	return;
 }
 
+bool combo::operator<(const combo& c) const
+{	
+	if(ip !=c.ip || port !=c.port)
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+const char* HelperClass::getPortTypeName(portState inp)
+{
+	if(inp == OPEN)
+	{
+		return "OPEN";
+	}
+	else if(inp==CLOSED)
+	{
+		return "CLOSED";
+	}
+		else if(inp==FILTERED)
+	{
+		return "FILTERED";
+	}
+	else if(inp==UNFILTERED)
+	{
+		return "UNFILTERED";
+	}
+	else if(inp==OPEN_OR_FILTERED)
+	{
+		return "OPEN_OR_FILTERED";
+	}
+	return "MISC_PORT_STATE";
+}
+
 unsigned short HelperClass::getSourcePortForICMP(const u_char* packet)
 {
 	unsigned short port;

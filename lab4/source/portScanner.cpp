@@ -405,5 +405,6 @@ int main(int argc, char** argv)
 	srand (time(NULL)); 
 	Core c(args, interfaceName);
 	c.Start();
+	cout<<"Exiting application "<<endl;
 	return 0;
 }

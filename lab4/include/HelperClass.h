@@ -81,7 +81,8 @@ enum portState
 	CLOSED,
 	FILTERED,
 	UNFILTERED,
-	OPEN_OR_FILTERED		
+	OPEN_OR_FILTERED,
+	MISC_PORT_STATE
 };
 
 struct results
@@ -108,10 +109,12 @@ struct target
 	scanTypes_t scanType;
 };
 
-struct combo
+class combo
 {
-	string ip;
-	unsigned short port;
+	public:
+		string ip;
+		unsigned short port;
+		bool operator<(const combo& c) const;
 };
 
 class Mutex
@@ -145,6 +148,7 @@ class HelperClass
 		static bool isValidIpAddress(string ip);
 		static bool isNumber(string s);
 		static const char* getScanTypeName(scanTypes_t inp);
+		static const char* getPortTypeName(portState inp);
 		static scanTypes_t getScanTypeId(string s);
 		static string GetPortName(unsigned short port);
 		//static void* threadhelper(void *context);

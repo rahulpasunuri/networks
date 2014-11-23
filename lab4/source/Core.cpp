@@ -44,7 +44,11 @@ void Core::removePortFromList(unsigned short port)
 			int size = it->second.size();
 			for(int i=0; i<size; i++)
 			{
-				delete[] it->second[i].pointer;
+				if(it->second[i].pointer!=NULL)
+				{
+					delete[] it->second[i].pointer;
+					it->second[i].pointer = NULL;
+				}
 			}
 			break;
 		}
@@ -78,7 +82,11 @@ void Core::addPacketToPort(unsigned short port, struct packet p)
 	lPortMutex.unlock();
 	if(!isAdded)
 	{
-		delete[] p.pointer;
+		if(p.pointer!=NULL)
+		{
+			delete[] p.pointer;
+			p.pointer = NULL;
+		}
 	}
 }
 
@@ -197,7 +205,11 @@ void Core::readPacketOnPort()
 		}
 		else
 		{
-			delete[] p.pointer;		
+			if(p.pointer!=NULL)
+			{				
+				delete[] p.pointer;		
+				p.pointer = NULL;
+			}
 		}
 	}
 	pcap_close(handle);
@@ -212,8 +224,7 @@ Core::Core(args_t args,string interfaceName)
 }	
 
 void Core::SendTCPPacket(unsigned short srcPort, string dstIp, unsigned short dstPort, scanTypes_t scanType)
-{	
-	
+{		
 	int sock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
 	if (sock < 0)  //create a raw socket
 	{
@@ -346,14 +357,21 @@ void Core::SendTCPPacket(unsigned short srcPort, string dstIp, unsigned short ds
 	}		
 	
 	//free resources///	
-	delete[] temp;
-	delete[] packet;		
+	if(temp!=NULL)
+	{
+		delete[] temp;
+		temp = NULL;
+	}
+	if(packet!=NULL)
+	{
+		delete[] packet;		
+		packet = NULL;
+	}
 	close (sock);// closing the socket.
 }
 
 void Core::PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t scanType)
 {
-	cout<<"calling tcp scan "<<endl;
 	//this is the start time..
 	int count=0; //this is used for the number of retransmissions
 	struct results r;
@@ -478,7 +496,11 @@ void Core::PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 				r.state = FILTERED;
 			}
 		}
-		delete[] p.pointer;		
+		if(p.pointer!=NULL)
+		{
+			delete[] p.pointer;
+			p.pointer=NULL;
+		}
 	}
 	if(!isPacketRcvd)
 	{
@@ -598,8 +620,16 @@ void Core::SendUDPPacket(unsigned short srcPort, string dstIp, unsigned short ds
 	}		
 	
 	//free resources///	
-	delete[] temp;
-	delete[] packet;		
+	if(temp!=NULL)
+	{
+		delete[] temp;
+		temp = NULL;
+	}
+	if(packet!=NULL)
+	{
+		delete[] packet;		
+		packet = NULL;
+	}
 	close (sock);// closing the socket.
 }
 
@@ -701,30 +731,50 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 				cout<<"port is filtered\n";
 			}
 		}
-		delete[] p.pointer;		
+		if(p.pointer!=NULL)
+		{
+			delete[] p.pointer;		
+			p.pointer=NULL;
+		}
 	}
 	if(!isPacketRcvd)
 	{
 		cout<<"port is open|Filetered";
 	}
-	//addResult(r);	
+	addResult(r);	
 }
 
 
 
 void Core::addResult(struct results r)
-{
+{	
 	addResultsMutex.lock();
-	map< struct combo, vector<struct results> >::iterator it=aggResults.begin();
+	map< combo, vector<struct results> >::iterator it=aggResults.begin();
+	bool isPresent = false;
 	for(; it!=aggResults.end(); it++)
 	{
 		if(it->first.ip == r.ip && it->first.port == r.port)
 		{
+			isPresent = true;
 			break;
 		}
 	}
 	
-	it->second.push_back(r);	
+	if(isPresent)
+	{
+		it->second.push_back(r);	
+	}
+	else
+	{
+		combo c;
+		c.ip = r.ip;
+		c.port = r.port;		
+		vector<results> rVector;
+		rVector.push_back(r);		
+		aggResults[c] = rVector;
+		
+		//it = aggResults.begin();
+	}
 	bool isComplete = false;
 	for(unsigned int i=0; i < args.scanTypes.size();i++)
 	{
@@ -809,31 +859,108 @@ void Core::printResult(vector<struct results> list)
 	
 	unsigned short port = list[0].port;
 	string serviceName = HelperClass::GetPortName(port);
-	/*
-	cout<<setw(20)<<r.serviceName<<"\t\t";
-	cout<<setw(20)<<HelperClass::getScanTypeName(r.scanType)<<"\t\t";	
-	if(r.state==OPEN)
+	//find the syn scan result out of the results list.
+	portState conclusion=MISC_PORT_STATE;
+	if(list.size() == 1)
 	{
-		cout<<setw(20)<<"open"<<endl;
+		conclusion = list[0].state; //no analysis required if only one scan type is done..
 	}
-	else if(r.state==CLOSED)
+	struct results* syn=NULL;
+	struct results* fin=NULL;
+	struct results* null=NULL;
+	struct results* xmas=NULL;
+	struct results* ack=NULL;
+	struct results* udp=NULL;
+		
+	string scanRes="";
+	for(unsigned int i=0; i<list.size();i++)
 	{
-		cout<<setw(20)<<"closed"<<endl;		
+		scanRes+= HelperClass::getScanTypeName(list[i].scanType);
+		scanRes+=" (";
+		scanRes+=HelperClass::getPortTypeName(list[i].state);
+		scanRes+=") ";		
 	}	
-	else if(r.state==FILTERED)
+	//first check the obvious cases...
+	for(unsigned int i=0; i<list.size(); i++)
 	{
-		cout<<setw(20)<<"filtered"<<endl;
+		if(list[i].scanType==TCP_SYN)
+		{
+			syn = &list[i];
+		}
+		else if(list[i].scanType==TCP_ACK)
+		{
+			ack = &list[i];
+		}
+		else if(list[i].scanType==TCP_NULL)
+		{
+			null = &list[i];
+		}
+		else if(list[i].scanType==TCP_FIN)
+		{
+			fin = &list[i];
+		}
+		else if(list[i].scanType==TCP_XMAS)
+		{
+			xmas = &list[i];
+		}
+		else if(list[i].scanType==UDP)
+		{
+			udp = &list[i];
+		}
 	}
-	else if(r.state==UNFILTERED)
+	if(conclusion == MISC_PORT_STATE)
 	{
-		cout<<setw(20)<<"unfiltered"<<endl;
+		if (syn!=NULL && syn->state == OPEN) //if syn says it is open ==> it is open
+		{
+			conclusion = OPEN;
+		}
+		else if (syn!=NULL && syn->state == CLOSED) //if syn says it is closed => it is closed.
+		{
+			conclusion = CLOSED;
+		}
+		else if (null!=NULL && null->state == CLOSED) //if fin/null/xmas says port is closed => port is closed.
+		{
+			conclusion = CLOSED;
+		}	
+		else if (fin!=NULL && fin->state == CLOSED)
+		{
+			conclusion = CLOSED;
+		}
+		else if (xmas!=NULL && xmas->state == CLOSED)
+		{
+			conclusion = CLOSED;
+		}
+		else if (udp!=NULL && udp->state == CLOSED)
+		{
+			conclusion = CLOSED; //TO do or not to do is the question ?
+		}
 	}
-	else if(r.state==OPEN_OR_FILTERED)
+	//if conclusion is not yet made, then it means that syn gave a FILTERED.
+	////conclusion cannot be made from the obvious cases...
+	if(conclusion == MISC_PORT_STATE)
+	{		
+		//if ack says it is unfiltered, then it is unfiltered.
+		if(ack!=null && ack->state==UNFILTERED)
+		{
+			conclusion=UNFILTERED;
+		}
+	}
+	if(conclusion == MISC_PORT_STATE)
 	{
-		cout<<setw(20)<<"open | filtered"<<endl;
-	}
+		if((fin!=NULL && fin->state==OPEN_OR_FILTERED) || (xmas!=NULL && xmas->state==OPEN_OR_FILTERED) || (null!=NULL && null->state==OPEN_OR_FILTERED))
+		{
+			conclusion = OPEN_OR_FILTERED; 	
+		}
+		else
+		{
+			conclusion = FILTERED;
+		}
+	}			
+	cout<<setw(20)<<serviceName<<"\t\t";
+	cout<<setw(20)<<scanRes<<"\t\t";
+	cout<<setw(20)<<HelperClass::getPortTypeName(conclusion)<<endl;
 	printMutex.unlock();
-	*/
+
 }
 
 struct target Core::getWork()
@@ -960,11 +1087,19 @@ void Core::Start()
 		int size = it->second.size();
 		for(int i=0;i<size;i++)
 		{
-			delete[] it->second[i].pointer;
+			if(it->second[i].pointer!=NULL)
+			{				
+				delete[] it->second[i].pointer;
+				it->second[i].pointer = NULL;
+			}
 		}
 	}
-		
-	delete[] threads;
+	
+	if(threads!=NULL)
+	{	
+		delete[] threads;
+		threads = NULL;
+	}
 }
 
 //working check sum method...
@@ -1011,7 +1146,11 @@ uint16_t Core::computeTCPHeaderCheckSum(struct iphdr ip,struct tcphdr tcp)
 	
 	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
 	uint16_t checkSum = computeHeaderCheckSum((uint16_t*)t, size+segSize);
-	delete[] t; //free memory..
+	if(t!=NULL)	
+	{
+		delete[] t; //free memory..
+		t=NULL;
+	}
 	return checkSum;
 }
 
@@ -1033,7 +1172,13 @@ uint16_t Core::computeUDPHeaderCheckSum(struct iphdr ip,struct udphdr udp)
 	
 	//The checksum field is the 16-bit one's complement of the one's complement sum of all 16-bit words in the header.  (source -WIKIPEDIA)
 	uint16_t checkSum = computeHeaderCheckSum((uint16_t*)t, size+segSize);
-	delete[] t; //free memory..
+	
+	if(t!=NULL)
+	{
+		delete[] t; //free memory..
+		t=NULL;
+	}
+	
 	return checkSum;
 }
 
