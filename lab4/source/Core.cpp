@@ -522,115 +522,159 @@ void Core::PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 
 void Core::SendUDPPacket(unsigned short srcPort, string dstIp, unsigned short dstPort)
 {	
+	if(dstPort!=53)
+	{
+		int sock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
+		if (sock < 0)  //create a raw socket
+		{
+			HelperClass::TerminateApplication("socket() failed ");
+		}
+
+		struct ifreq ifr;
+		memset (&ifr, 0, sizeof (ifr));
+		size_t if_name_len=strlen(interfaceName.c_str());
 	
-	int sock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
-	if (sock < 0)  //create a raw socket
-	{
-		HelperClass::TerminateApplication("socket() failed ");
-	}
+		if (if_name_len-1<sizeof(ifr.ifr_name)) 
+		{
+			memcpy(ifr.ifr_name,interfaceName.c_str(),if_name_len);
+			ifr.ifr_name[if_name_len]='\0'; // terminate the string with a null character...
+		} 
+		else 
+		{
+			HelperClass::TerminateApplication("Name of interface exceeds the limit!!!");
+		}
+		if (ioctl(sock,SIOCGIFADDR,&ifr)==-1) 
+		{
+			close(sock);
+			HelperClass::TerminateApplication("ioctl() failed!!!");	
+		}
 
-	struct ifreq ifr;
-	memset (&ifr, 0, sizeof (ifr));
-	size_t if_name_len=strlen(interfaceName.c_str());
+		struct sockaddr_in* ipaddr = (struct sockaddr_in*)&ifr.ifr_addr;
+		string srcIp = inet_ntoa(ipaddr->sin_addr);
+		if(HelperClass::srcIp=="")
+		{
+			HelperClass::srcIp=srcIp;
+		}
+		struct iphdr ip;
+		memset (&ip, 0, sizeof (struct iphdr));	
+		//fill the iphdr info...
+		ip.ihl = sizeof(struct iphdr)/sizeof (uint32_t); //# words in ip header.
+		ip.version = 4; //IPV4
+
+
+		ip.tos = 0; //tos stands for type of service (0 : Best Effort)
+		ip.tot_len = htons(sizeof(struct iphdr) + sizeof(struct udphdr));  //as we dont have any application data..size here is size of udp + ip.
+		ip.id = htons (0); //can we use this in a intelligent way ??? it is unused...
+		ip.frag_off=0; // alll flags are 0, and the fragment offset is 0 for the first packet.
+		ip.ttl = 0;
+		ip.ttl = ~ip.ttl; //set it to all 1's
+		ip.protocol = IPPROTO_UDP; //as transport layer protocol is udp..
+		
+		  // Source IPv4 address (32 bits)
+		if (inet_pton (AF_INET, srcIp.c_str(), &(ip.saddr)) != 1 || inet_pton (AF_INET, dstIp.c_str(), &(ip.daddr)) != 1) 
+		{
+			HelperClass::TerminateApplication("inet_pton() failed!!");
+		}
+		ip.check=0; //init
+		ip.check=computeHeaderCheckSum((uint16_t *) & ip, sizeof(struct iphdr)); //this is the last step..
+		
+		//lets create a udp packet now..
+		struct udphdr udp;
+
+	  	udp.source = htons(srcPort);
+		udp.dest = htons(dstPort);
+		udp.len = htons(sizeof(udphdr));
+	  	udp.check=0;
+		 		
+		u_char* temp=new u_char[sizeof(udphdr)]; 
+		memcpy(temp, &udp, sizeof(udphdr));
 	
-	if (if_name_len-1<sizeof(ifr.ifr_name)) 
-	{
-		memcpy(ifr.ifr_name,interfaceName.c_str(),if_name_len);
-		ifr.ifr_name[if_name_len]='\0'; // terminate the string with a null character...
-	} 
-	else 
-	{
-		HelperClass::TerminateApplication("Name of interface exceeds the limit!!!");
-	}
-	if (ioctl(sock,SIOCGIFADDR,&ifr)==-1) 
-	{
-		close(sock);
-		HelperClass::TerminateApplication("ioctl() failed!!!");	
-	}
-
-	struct sockaddr_in* ipaddr = (struct sockaddr_in*)&ifr.ifr_addr;
-	string srcIp = inet_ntoa(ipaddr->sin_addr);
-	if(HelperClass::srcIp=="")
-	{
-		HelperClass::srcIp=srcIp;
-	}
-	struct iphdr ip;
-	memset (&ip, 0, sizeof (struct iphdr));	
-	//fill the iphdr info...
-	ip.ihl = sizeof(struct iphdr)/sizeof (uint32_t); //# words in ip header.
-	ip.version = 4; //IPV4
-
-
-	ip.tos = 0; //tos stands for type of service (0 : Best Effort)
-	ip.tot_len = htons(sizeof(struct iphdr) + sizeof(struct udphdr));  //as we dont have any application data..size here is size of udp + ip.
-	ip.id = htons (0); //can we use this in a intelligent way ??? it is unused...
-	ip.frag_off=0; // alll flags are 0, and the fragment offset is 0 for the first packet.
-	ip.ttl = 0;
-	ip.ttl = ~ip.ttl; //set it to all 1's
-	ip.protocol = IPPROTO_UDP; //as transport layer protocol is udp..
-    
-	  // Source IPv4 address (32 bits)
-	if (inet_pton (AF_INET, srcIp.c_str(), &(ip.saddr)) != 1 || inet_pton (AF_INET, dstIp.c_str(), &(ip.daddr)) != 1) 
-	{
-		HelperClass::TerminateApplication("inet_pton() failed!!");
-	}
-	ip.check=0; //init
-    ip.check=computeHeaderCheckSum((uint16_t *) & ip, sizeof(struct iphdr)); //this is the last step..
-    
-    //lets create a udp packet now..
-	struct udphdr udp;
-
-  	udp.source = htons(srcPort);
-	udp.dest = htons(dstPort);
-	udp.len = htons(sizeof(udphdr));
-  	udp.check=0;
-	 		
-	u_char* temp=new u_char[sizeof(udphdr)]; 
-	memcpy(temp, &udp, sizeof(udphdr));
+		// filling the udp.check value...
+		udp.check=computeUDPHeaderCheckSum(ip,udp);
+		//lets build the packet..
+		u_char* packet = new u_char[sizeof(struct iphdr)+sizeof(struct udphdr)]; 
+		memcpy(packet, &ip, sizeof(iphdr));
+		memcpy(packet+sizeof(iphdr), &udp, sizeof(struct udphdr));
 	
-	// filling the udp.check value...
-	udp.check=computeUDPHeaderCheckSum(ip,udp);
-	//lets build the packet..
-	u_char* packet = new u_char[sizeof(struct iphdr)+sizeof(struct udphdr)]; 
-	memcpy(packet, &ip, sizeof(iphdr));
-	memcpy(packet+sizeof(iphdr), &udp, sizeof(struct udphdr));
-	
-	struct sockaddr_in sin;
-	memset (&sin, 0, sizeof (struct sockaddr_in));
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = ip.daddr; //set the destination address here..
+		struct sockaddr_in sin;
+		memset (&sin, 0, sizeof (struct sockaddr_in));
+		sin.sin_family = AF_INET;
+		sin.sin_addr.s_addr = ip.daddr; //set the destination address here..
 
-	int flag = 1;
-	// IP_HDRINCL setting this flag, as we are adding our own ip header..though it is set in most machines.
-	if (setsockopt (sock, IPPROTO_IP, IP_HDRINCL, (char *) &flag, sizeof(int)) < 0) 
-	{
-		HelperClass::TerminateApplication("send() failed!!");
-	}
+		int flag = 1;
+		// IP_HDRINCL setting this flag, as we are adding our own ip header..though it is set in most machines.
+		if (setsockopt (sock, IPPROTO_IP, IP_HDRINCL, (char *) &flag, sizeof(int)) < 0) 
+		{
+			HelperClass::TerminateApplication("send() failed!!");
+		}
 
-	// bind the socket.
-	if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof (ifr)) < 0) 
-	{
-		HelperClass::TerminateApplication("bind() failed!!");
-	}
+		// bind the socket.
+		if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof (ifr)) < 0) 
+		{
+			HelperClass::TerminateApplication("bind() failed!!");
+		}
 	
-	// Send packet.
-	if (sendto (sock, packet, sizeof(iphdr) + sizeof(udphdr), 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)
-	{
-		HelperClass::TerminateApplication("send() failed!!");
-	}		
+		// Send packet.
+		if (sendto (sock, packet, sizeof(iphdr) + sizeof(udphdr), 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)
+		{
+			HelperClass::TerminateApplication("send() failed!!");
+		}		
 	
-	//free resources///	
-	if(temp!=NULL)
-	{
-		delete[] temp;
-		temp = NULL;
+		//free resources///	
+		if(temp!=NULL)
+		{
+			delete[] temp;
+			temp = NULL;
+		}
+		if(packet!=NULL)
+		{
+			delete[] packet;		
+			packet = NULL;
+		}
+		close (sock);// closing the socket.
 	}
-	if(packet!=NULL)
+	else
 	{
-		delete[] packet;		
-		packet = NULL;
-	}
-	close (sock);// closing the socket.
+		unsigned char buf[65536];
+		struct DNS_HEADER *dns = NULL;
+		dns=(struct DNS_HEADER*)&buf;
+		struct QUESTION *qinfo = NULL;
+		//set up the header
+		dns->id = (unsigned short)htons(getpid());
+		dns->qr = 0; //This is a query
+		dns->opcode = 0; //This is a standard query
+		dns->aa = 0; //Not Authoritative
+		dns->tc = 0; //This message is not truncated
+		dns->rd = 0; //Recursion Desired
+		dns->ra = 0; 
+		dns->z = 0;
+		dns->ad = 0;
+		dns->cd = 0;
+		dns->rcode = 0;
+		dns->q_count = htons(1); //we have only 1 question
+		dns->ans_count = 0;
+		dns->auth_count = 0;
+		dns->add_count = 0;
+		int s;
+		struct sockaddr_in dest;
+	 	dest.sin_family = AF_INET;
+		dest.sin_port = htons(53);
+		dest.sin_addr.s_addr = inet_addr(dstIp.c_str());
+		
+		s = socket(AF_INET , SOCK_DGRAM , IPPROTO_UDP); //UDP packet for DNS queries
+		
+		string qname="3www6google3com"; // our query to the server....
+		memcpy(&buf[sizeof(struct DNS_HEADER)],qname.c_str(),strlen(qname.c_str())+1);
+		qinfo =(struct QUESTION*)&buf[sizeof(struct DNS_HEADER) + (strlen((const char*)qname.c_str()) + 1)];
+		qinfo->qtype = htons(5); 
+		qinfo->qclass = htons(1);
+		if( sendto(s,(char*)buf,sizeof(struct DNS_HEADER) + (strlen((const char*)qname.c_str())+1) + sizeof(struct QUESTION),0,(struct sockaddr*)&dest,sizeof(dest)) < 0)
+	    {
+	        HelperClass::TerminateApplication("sending failed\n");
+	    }
+	    close(s);
+	}	
+	
 }
 
 void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scanType)
