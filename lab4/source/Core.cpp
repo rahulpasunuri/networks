@@ -680,6 +680,7 @@ void Core::SendUDPPacket(unsigned short srcPort, string dstIp, unsigned short ds
 	    close(sock);
 		delete [] buf;
 	}  
+}	
 void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scanType)
 {
 	//this is the start time..
@@ -1229,7 +1230,7 @@ uint16_t Core::computeUDPHeaderCheckSum(struct iphdr ip,struct udphdr udp)
 	return checkSum;
 }
 
-void  getServiceInfo(unsigned short dstPort, string destIp)
+void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 {
 	int sockfd=socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 	
@@ -1245,45 +1246,45 @@ void  getServiceInfo(unsigned short dstPort, string destIp)
 	destinationAddress.sin_addr.s_addr=inet_addr(destIp.c_str());
 	
 	if(dstPort==22||dstPort==24)
+    {
+        if (connect(sockfd, (struct sockaddr *) &destinationAddress, sizeof(destinationAddress)) < 0)
         {
-            if (connect(sockfd, (struct sockaddr *) &destinationAddress, sizeof(destinationAddress)) < 0)
-            {
-                HelperClass::TerminateApplication("connect() failed");
-            }
-            cout<<"connection established\n";
-            char buffer[1024]; // Buffer for echo string
+            HelperClass::TerminateApplication("connect() failed");
+        }
+        cout<<"connection established\n";
+        char buffer[1024]; // Buffer for echo string
 
-            string data="";
-            ssize_t numBytesRcvd = recv(sockfd, buffer, 1024, 0);
-            if (numBytesRcvd < 0)
-            {
-                HelperClass::TerminateApplication("recv() failed!!");
-            }
+        string data="";
+        ssize_t numBytesRcvd = recv(sockfd, buffer, 1024, 0);
+        if (numBytesRcvd < 0)
+        {
+            HelperClass::TerminateApplication("recv() failed!!");
+        }
 
-            while (numBytesRcvd > 0)
-            {       // 0 indicates end of stream
-                //        buffer[numBytesRcvd]='\0';     
-                data.append(buffer,numBytesRcvd);
+        while (numBytesRcvd > 0)
+        {       // 0 indicates end of stream
+            //        buffer[numBytesRcvd]='\0';     
+            data.append(buffer,numBytesRcvd);
 
-                    // See if there is more data to receive
-                numBytesRcvd = recv(sockfd, buffer, 1024, 0);
+                // See if there is more data to receive
+            numBytesRcvd = recv(sockfd, buffer, 1024, 0);
 
-            }
+        }
 
-            if(dstPort==22)
-            {
-                int index = data.find_last_of("-");
-                cout<<"SSH Version"<<data.substr(0,index)<<endl;
-                close(sockfd);
-            }
-            else
-            {
-                cout<<data<<endl;    // yet to parse
+        if(dstPort==22)
+        {
+            int index = data.find_last_of("-");
+            cout<<"SSH Version"<<data.substr(0,index)<<endl;
+            close(sockfd);
+        }
+        else
+        {
+            cout<<data<<endl;    // yet to parse
 
-                close(sockfd);
-            }
+            close(sockfd);
+        }
 
-
+    } 
 	else if(dstPort==43)
 	{
 	
@@ -1292,7 +1293,7 @@ void  getServiceInfo(unsigned short dstPort, string destIp)
 	{
 	
 	}
-	else if(dstport==110)
+	else if(dstPort==110)
 	{
 	
 	}
