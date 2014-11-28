@@ -796,7 +796,6 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 
 void Core::addResult(struct results r)
 {	
-	cout<<"adding results for "<<r.ip<<":"<<r.port<<endl;
 	addResultsMutex.lock();
 	vector<combo>::iterator it=aggResults.begin();
 	bool isPresent = false;
@@ -848,9 +847,8 @@ void Core::addResult(struct results r)
 	}
 	addResultsMutex.unlock();
 	if(isComplete)
-	{
-		cout<<"Printing results for "<<r.ip<<":"<<r.port<<endl;
-		//printResult(it->res);	
+	{		
+		printResult(it->res);	
 	}
 }
 
