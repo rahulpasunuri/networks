@@ -23,18 +23,6 @@ void HelperClass::TerminateApplication(string text)
 	return;
 }
 
-bool combo::operator<(const combo& c) const
-{	
-	if(ip !=c.ip || port !=c.port)
-	{
-		return false;
-	}
-	else
-	{
-		return true;
-	}
-}
-
 const char* HelperClass::getPortTypeName(portState inp)
 {
 	if(inp == OPEN)

@@ -35,8 +35,7 @@ class Core
 		Mutex addResultsMutex;
 		vector<struct target> targets;
 		std::map<unsigned short, vector<struct packet> > portMap;
-		map< combo, vector<struct results> > aggResults;
-		//vector<unsigned short> lPorts;
+		vector<combo> aggResults;
 
 		//add a packet to the queue..
 		void addPacketToPort(unsigned short port, struct packet p);

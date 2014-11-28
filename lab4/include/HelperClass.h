@@ -141,7 +141,7 @@ class combo
 	public:
 		string ip;
 		unsigned short port;
-		bool operator<(const combo& c) const;
+		vector<struct results> res;
 };
 
 class Mutex
