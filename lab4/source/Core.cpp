@@ -634,49 +634,71 @@ void Core::SendUDPPacket(unsigned short srcPort, string dstIp, unsigned short ds
 		close (sock);// closing the socket.
 	}
 	else
-	{
-		unsigned char buf[65536];
-		struct DNS_HEADER *dns = NULL;
-		dns=(struct DNS_HEADER*)&buf;
-		struct QUESTION *qinfo = NULL;
+	{       
+		int sock = socket(AF_INET , SOCK_RAW , IPPROTO_UDP); //UDP packet for DNS queries
+		struct udphdr udp;
+		udp.source = htons(srcPort);
+		udp.dest = htons(dstPort);
+		unsigned char qname[21]={8, 'c', 'l', 'i', 'e', 'n', 't', 's', '4', 6, 'g', 'o', 'o', 'g', 'l', 'e', 3, 'c', 'o', 'm', 0};
+		//string qname="clients4.google.com"; // our query to the server....
+	//	unsigned char* qname1 = new unsigned char[qname.length()+1];
+	//	memcpy(qname1,(unsigned char*)qname.c_str(),qname.length());
+	//		qname1[qname.length()]='\0';
+	//	udp.len = htons(sizeof(udphdr)+sizeof(struct DNS_HEADER));
+		udp.len = htons(sizeof(udphdr)+sizeof(struct DNS_HEADER)+21+sizeof(struct QUESTION)); // to add query decomment the lone and comment above line
+
+		udp.check=0;
+		/* if (setsockopt (sock, IPPROTO_IP, IP_HDRINCL, (char *) &flag, sizeof(int)) < 0)
+                {
+                        HelperClass::TerminateApplication("send() failed!!");
+                }  */
+
+		struct DNS_HEADER dns;
+	
+		struct QUESTION qinfo;  //decomment this to add query
 		//set up the header
-		dns->id = (unsigned short)htons(getpid());
-		dns->qr = 0; //This is a query
-		dns->opcode = 0; //This is a standard query
-		dns->aa = 0; //Not Authoritative
-		dns->tc = 0; //This message is not truncated
-		dns->rd = 0; //Recursion Desired
-		dns->ra = 0; 
-		dns->z = 0;
-		dns->ad = 0;
-		dns->cd = 0;
-		dns->rcode = 0;
-		dns->q_count = htons(1); //we have only 1 question
-		dns->ans_count = 0;
-		dns->auth_count = 0;
-		dns->add_count = 0;
-		int s;
+		dns.id = htons((unsigned short)getpid());
+		dns.qr = 0; //This is a query
+		dns.opcode = 0; //This is a standard query
+		dns.aa = 0; //Not Authoritative
+		dns.tc = 0; //This message is not truncated
+		dns.rd = 1; //Recursion Desired
+		dns.ra = 0; 
+		dns.z = 0;
+		dns.ad=0;
+		dns.cd=0;
+		dns.rcode = 0;
+	//	dns.q_count = htons(0); //we have only 1 question
+		dns.q_count=htons(1); // un comment this 
+		dns.ans_count = 0;		
+		dns.auth_count=0;
+		dns.add_count=0;
 		struct sockaddr_in dest;
 	 	dest.sin_family = AF_INET;
 		dest.sin_port = htons(53);
 		dest.sin_addr.s_addr = inet_addr(dstIp.c_str());
-		
-		s = socket(AF_INET , SOCK_DGRAM , IPPROTO_UDP); //UDP packet for DNS queries
-		
-		string qname="3www6google3com"; // our query to the server....
-		memcpy(&buf[sizeof(struct DNS_HEADER)],qname.c_str(),strlen(qname.c_str())+1);
-		qinfo =(struct QUESTION*)&buf[sizeof(struct DNS_HEADER) + (strlen((const char*)qname.c_str()) + 1)];
-		qinfo->qtype = htons(5); 
-		qinfo->qclass = htons(1);
-		if( sendto(s,(char*)buf,sizeof(struct DNS_HEADER) + (strlen((const char*)qname.c_str())+1) + sizeof(struct QUESTION),0,(struct sockaddr*)&dest,sizeof(dest)) < 0)
-	    {
-	        HelperClass::TerminateApplication("sending failed\n");
-	    }
-	    close(s);
-	}	
-	
-}
+	//	u_char* buf = new u_char[sizeof(udphdr)+sizeof(struct DNS_HEADER)]; // uncomment below and comment this when queried
 
+		u_char* buf = new u_char[sizeof(udphdr)+sizeof(struct DNS_HEADER)+21+sizeof(struct QUESTION)];
+		qinfo.qtype = htons(1); 
+		qinfo.qclass = htons(1);    
+		memcpy(buf,&udp,sizeof(struct udphdr));
+		memcpy(buf+sizeof(struct udphdr),&dns,sizeof(struct DNS_HEADER));
+		memcpy(buf+sizeof(struct udphdr)+sizeof(struct DNS_HEADER), qname, 21); //uncomment for query
+		memcpy(buf+sizeof(struct udphdr)+sizeof(struct DNS_HEADER)+21,&qinfo,sizeof(struct QUESTION));
+		if( sendto(sock,buf,sizeof(struct udphdr)+sizeof(struct DNS_HEADER)+21+sizeof(struct QUESTION),0,(struct sockaddr*)&dest,sizeof(dest)) < 0)
+	   	 {
+	       		 HelperClass::TerminateApplication("sending failed\n");
+	   	 }   
+            /*    if( sendto(sock,buf,sizeof(struct udphdr)+sizeof(struct DNS_HEADER),0,(struct sockaddr*)&dest,sizeof(dest)) < 0)
+                 {
+                         HelperClass::TerminateApplication("sending failed\n");
+                 }   */
+
+	    close(sock);
+		delete [] buf;
+	}      
+}
 void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scanType)
 {
 	//this is the start time..
@@ -757,7 +779,7 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 		}
 		if(isUdp)
 		{
-			cout<<"port is open";						
+			r.state=OPEN;						
 		}
 		else if(isIcmp)
 		{
@@ -768,11 +790,11 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 			unsigned short type = (unsigned short)icmpPacket->type;
 			if(type == 3 && code == 3 )
 			{
-				cout<<"port is closed\n";
+				r.state=CLOSED;
 			}
 			else if(type == 3 && (code == 1||code== 2|| code==9|| code == 10|| code== 13))
 			{
-				cout<<"port is filtered\n";
+				r.state=FILTERED;
 			}
 		}
 		if(p.pointer!=NULL)
@@ -783,7 +805,7 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 	}
 	if(!isPacketRcvd)
 	{
-		cout<<"port is open|Filetered";
+		r.state=OPEN_OR_FILTERED;
 	}
 	addResult(r);	
 }

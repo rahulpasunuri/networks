@@ -68,9 +68,8 @@ enum StandardServices
 	IMAP=143
 };
 struct DNS_HEADER                     // dns header
-{
-    unsigned short id; // identification number
- 
+{  
+    unsigned short id;   // identification number
     unsigned char rd :1; // recursion desired
     unsigned char tc :1; // truncated message
     unsigned char aa :1; // authoritive answer
