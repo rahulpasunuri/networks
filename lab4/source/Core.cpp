@@ -459,6 +459,7 @@ void Core::PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 				if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
 				{
 					r.state = OPEN;
+					getServiceInfo(r.port, dstIp);
 				}
 				else if(rcvdTcp->rst==1)
 				{
@@ -639,22 +640,11 @@ void Core::SendUDPPacket(unsigned short srcPort, string dstIp, unsigned short ds
 		struct udphdr udp;
 		udp.source = htons(srcPort);
 		udp.dest = htons(dstPort);
-		unsigned char qname[21]={8, 'c', 'l', 'i', 'e', 'n', 't', 's', '4', 6, 'g', 'o', 'o', 'g', 'l', 'e', 3, 'c', 'o', 'm', 0};
-		//string qname="clients4.google.com"; // our query to the server....
-	//	unsigned char* qname1 = new unsigned char[qname.length()+1];
-	//	memcpy(qname1,(unsigned char*)qname.c_str(),qname.length());
-	//		qname1[qname.length()]='\0';
-	//	udp.len = htons(sizeof(udphdr)+sizeof(struct DNS_HEADER));
+		unsigned char qname[21]={8, 'c', 'l', 'i', 'e', 'n', 't', 's', '4', 6, 'g', 'o', 'o', 'g', 'l', 'e', 3, 'c', 'o', 'm', 0};		
 		udp.len = htons(sizeof(udphdr)+sizeof(struct DNS_HEADER)+21+sizeof(struct QUESTION)); // to add query decomment the lone and comment above line
 
-		udp.check=0;
-		/* if (setsockopt (sock, IPPROTO_IP, IP_HDRINCL, (char *) &flag, sizeof(int)) < 0)
-                {
-                        HelperClass::TerminateApplication("send() failed!!");
-                }  */
-
+		udp.check=0;		
 		struct DNS_HEADER dns;
-	
 		struct QUESTION qinfo;  //decomment this to add query
 		//set up the header
 		dns.id = htons((unsigned short)getpid());
@@ -668,7 +658,6 @@ void Core::SendUDPPacket(unsigned short srcPort, string dstIp, unsigned short ds
 		dns.ad=0;
 		dns.cd=0;
 		dns.rcode = 0;
-	//	dns.q_count = htons(0); //we have only 1 question
 		dns.q_count=htons(1); // un comment this 
 		dns.ans_count = 0;		
 		dns.auth_count=0;
@@ -677,8 +666,6 @@ void Core::SendUDPPacket(unsigned short srcPort, string dstIp, unsigned short ds
 	 	dest.sin_family = AF_INET;
 		dest.sin_port = htons(53);
 		dest.sin_addr.s_addr = inet_addr(dstIp.c_str());
-	//	u_char* buf = new u_char[sizeof(udphdr)+sizeof(struct DNS_HEADER)]; // uncomment below and comment this when queried
-
 		u_char* buf = new u_char[sizeof(udphdr)+sizeof(struct DNS_HEADER)+21+sizeof(struct QUESTION)];
 		qinfo.qtype = htons(1); 
 		qinfo.qclass = htons(1);    
@@ -689,16 +676,10 @@ void Core::SendUDPPacket(unsigned short srcPort, string dstIp, unsigned short ds
 		if( sendto(sock,buf,sizeof(struct udphdr)+sizeof(struct DNS_HEADER)+21+sizeof(struct QUESTION),0,(struct sockaddr*)&dest,sizeof(dest)) < 0)
 	   	 {
 	       		 HelperClass::TerminateApplication("sending failed\n");
-	   	 }   
-            /*    if( sendto(sock,buf,sizeof(struct udphdr)+sizeof(struct DNS_HEADER),0,(struct sockaddr*)&dest,sizeof(dest)) < 0)
-                 {
-                         HelperClass::TerminateApplication("sending failed\n");
-                 }   */
-
+	   	 }               
 	    close(sock);
 		delete [] buf;
-	}      
-}
+	}  
 void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scanType)
 {
 	//this is the start time..
@@ -779,7 +760,7 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 		}
 		if(isUdp)
 		{
-			r.state=OPEN;						
+			r.state = OPEN;						
 		}
 		else if(isIcmp)
 		{
@@ -790,11 +771,11 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 			unsigned short type = (unsigned short)icmpPacket->type;
 			if(type == 3 && code == 3 )
 			{
-				r.state=CLOSED;
+				r.state = CLOSED;
 			}
 			else if(type == 3 && (code == 1||code== 2|| code==9|| code == 10|| code== 13))
 			{
-				r.state=FILTERED;
+				r.state = FILTERED;
 			}
 		}
 		if(p.pointer!=NULL)
@@ -805,7 +786,7 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 	}
 	if(!isPacketRcvd)
 	{
-		r.state=OPEN_OR_FILTERED;
+		r.state = OPEN_OR_FILTERED;
 	}
 	addResult(r);	
 }
@@ -1247,4 +1228,81 @@ uint16_t Core::computeUDPHeaderCheckSum(struct iphdr ip,struct udphdr udp)
 	
 	return checkSum;
 }
+
+void  getServiceInfo(unsigned short dstPort, string destIp)
+{
+	int sockfd=socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
+	
+	if(sockfd<0)
+	{
+		HelperClass::TerminateApplication("socket for service info failed");
+	}
+	
+	struct sockaddr_in destinationAddress;
+	memset(&destinationAddress, 0, sizeof(destinationAddress));
+	destinationAddress.sin_family=AF_INET;
+	destinationAddress.sin_port= htons(dstPort);
+	destinationAddress.sin_addr.s_addr=inet_addr(destIp.c_str());
+	
+	if(dstPort==22||dstPort==24)
+        {
+            if (connect(sockfd, (struct sockaddr *) &destinationAddress, sizeof(destinationAddress)) < 0)
+            {
+                HelperClass::TerminateApplication("connect() failed");
+            }
+            cout<<"connection established\n";
+            char buffer[1024]; // Buffer for echo string
+
+            string data="";
+            ssize_t numBytesRcvd = recv(sockfd, buffer, 1024, 0);
+            if (numBytesRcvd < 0)
+            {
+                HelperClass::TerminateApplication("recv() failed!!");
+            }
+
+            while (numBytesRcvd > 0)
+            {       // 0 indicates end of stream
+                //        buffer[numBytesRcvd]='\0';     
+                data.append(buffer,numBytesRcvd);
+
+                    // See if there is more data to receive
+                numBytesRcvd = recv(sockfd, buffer, 1024, 0);
+
+            }
+
+            if(dstPort==22)
+            {
+                int index = data.find_last_of("-");
+                cout<<"SSH Version"<<data.substr(0,index)<<endl;
+                close(sockfd);
+            }
+            else
+            {
+                cout<<data<<endl;    // yet to parse
+
+                close(sockfd);
+            }
+
+
+	else if(dstPort==43)
+	{
+	
+	}
+	else if(dstPort==80)
+	{
+	
+	}
+	else if(dstport==110)
+	{
+	
+	}
+	else if(dstPort==143)
+	{
+	
+	
+	}
+	
+
+} 
+
 
