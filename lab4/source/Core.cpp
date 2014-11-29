@@ -761,6 +761,7 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 		}
 		if(isUdp)
 		{
+			cout<<"port is open\n adding to vector";
 			r.state = OPEN;						
 		}
 		else if(isIcmp)
@@ -789,6 +790,7 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 	{
 		r.state = OPEN_OR_FILTERED;
 	}
+	cout<<"ADDING RESULT TO THE VECTOR\n\n";
 	addResult(r);	
 }
 
@@ -809,7 +811,7 @@ void Core::addResult(struct results r)
 	}
 	
 	if(isPresent)
-	{
+	{	cout<<"combo is present\n";
 		it->second.push_back(r);	
 	}
 	else
@@ -820,7 +822,7 @@ void Core::addResult(struct results r)
 		vector<results> rVector;
 		rVector.push_back(r);		
 		aggResults[c] = rVector;
-		
+		cout<<"combo is created\n";
 		//it = aggResults.begin();
 	}
 	bool isComplete = false;
@@ -842,7 +844,7 @@ void Core::addResult(struct results r)
 	}
 	addResultsMutex.unlock();
 	if(isComplete)
-	{
+	{	cout<<"Scan is completed\n";
 		printResult(it->second);	
 	}
 }
