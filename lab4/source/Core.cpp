@@ -459,7 +459,7 @@ void Core::PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 				if(rcvdTcp->ack==1 || rcvdTcp->syn==1)
 				{
 					r.state = OPEN;
-					getServiceInfo(r.port, dstIp);
+					//getServiceInfo(r.port, dstIp);
 				}
 				else if(rcvdTcp->rst==1)
 				{
@@ -799,11 +799,11 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 void Core::addResult(struct results r)
 {	
 	addResultsMutex.lock();
-	map< combo, vector<struct results> >::iterator it=aggResults.begin();
+	vector<combo>::iterator it=aggResults.begin();
 	bool isPresent = false;
 	for(; it!=aggResults.end(); it++)
 	{
-		if(it->first.ip == r.ip && it->first.port == r.port)
+		if(it->ip == r.ip && it->port == r.port)
 		{
 			isPresent = true;
 			break;
@@ -811,27 +811,35 @@ void Core::addResult(struct results r)
 	}
 	
 	if(isPresent)
-	{	cout<<"combo is present\n";
-		it->second.push_back(r);	
+	{
+		it->res.push_back(r);
+
 	}
 	else
 	{
 		combo c;
 		c.ip = r.ip;
 		c.port = r.port;		
-		vector<results> rVector;
-		rVector.push_back(r);		
-		aggResults[c] = rVector;
-		cout<<"combo is created\n";
-		//it = aggResults.begin();
+
+		c.res.push_back(r);
+		aggResults.push_back(c); //add the new combo to the iterator..			
+		it=aggResults.begin();
+		for(; it!=aggResults.end(); it++)
+		{
+			if(it->ip == c.ip && it->port == r.port)
+			{
+				break;
+			}
+		}
+
 	}
 	bool isComplete = false;
 	for(unsigned int i=0; i < args.scanTypes.size();i++)
 	{
 		isComplete=false;
-		for(unsigned int j=0; j < it->second.size();j++)
+		for(unsigned int j=0; j < it->res.size();j++)
 		{
-			if(args.scanTypes[i]==it->second[j].scanType)
+			if(args.scanTypes[i]==it->res[j].scanType)
 			{
 				isComplete = true;
 				break;
@@ -844,8 +852,9 @@ void Core::addResult(struct results r)
 	}
 	addResultsMutex.unlock();
 	if(isComplete)
-	{	cout<<"Scan is completed\n";
-		printResult(it->second);	
+	{		
+		printResult(it->res);	
+
 	}
 }
 
@@ -904,9 +913,7 @@ struct packet Core::readPacketFromList(unsigned short port)
 void Core::printResult(vector<struct results> list)
 {
 	printMutex.lock();		
-	
-	cout<<"IP Address: "<<list[0].ip<<endl;
-	
+		
 	unsigned short port = list[0].port;
 	string serviceName = HelperClass::GetPortName(port);
 	//find the syn scan result out of the results list.
@@ -1006,9 +1013,14 @@ void Core::printResult(vector<struct results> list)
 			conclusion = FILTERED;
 		}
 	}			
-	cout<<setw(20)<<serviceName<<"\t\t";
-	cout<<setw(20)<<scanRes<<"\t\t";
-	cout<<setw(20)<<HelperClass::getPortTypeName(conclusion)<<endl;
+	
+	cout<<"\n-------------------------------------------------------------------------------------------------------\n"<<endl;
+	cout<<setw(15)<<"IP Address: "<<list[0].ip<<endl;
+	cout<<setw(15)<<"Port Number: "<<port<<endl;
+	cout<<setw(15)<<"Service Name: "<<serviceName<<endl;
+	cout<<setw(15)<<"Results: "<<scanRes<<endl;
+	cout<<setw(15)<<"Conclusion: "<<HelperClass::getPortTypeName(conclusion)<<endl;
+	cout<<"\n-------------------------------------------------------------------------------------------------------\n"<<endl;
 	printMutex.unlock();
 
 }
@@ -1105,12 +1117,7 @@ void Core::Start()
 	sleep(1); //wait for the pthread to start sniffing..
 	
 	cout<<"\n------------------------------------------------------------------------------------------------------------------------------\n";
-	cout<<setw(20)<<"IP Address";
-	cout<<setw(20)<<"Port";
-	cout<<setw(20)<<"\tService Name\t";
-	cout<<setw(20)<<"\t\tScan Type\t";
-	cout<<setw(20)<<"\tStatus"<<endl;
-	cout<<"------------------------------------------------------------------------------------------------------------------------------\n";
+	cout<<setw(20)<<"Printing Results\n";
 	
 	pthread_t* threads = new pthread_t[args.numThreads];
 	for(int i=0;i<args.numThreads;i++)
@@ -1247,13 +1254,12 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 	destinationAddress.sin_port= htons(dstPort);
 	destinationAddress.sin_addr.s_addr=inet_addr(destIp.c_str());
 	
-	if(dstPort==22||dstPort==24)
+	if(dstPort==22||dstPort==24||dstPort==25||dstPort==587)
     {
         if (connect(sockfd, (struct sockaddr *) &destinationAddress, sizeof(destinationAddress)) < 0)
         {
             HelperClass::TerminateApplication("connect() failed");
         }
-        cout<<"connection established\n";
         char buffer[1024]; // Buffer for echo string
 
         string data="";
