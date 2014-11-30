@@ -1266,7 +1266,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
     {
         char buffer[1024]; // Buffer for echo string
         string data="";
-        ssize_t numBytesRcvd = recv(sock, buffer, 1024, 0);
+        ssize_t numBytesRcvd = recv(sockfd, buffer, 1024, 0);
         if (numBytesRcvd < 0)
         {
             HelperClass::TerminateApplication("recv() failed!!");
@@ -1284,7 +1284,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
         	{   
             	data.append(buffer,numBytesRcvd);
             	// See if there is more data to receive
-           		numBytesRcvd = recv(sock, buffer, 1024, 0);
+           		numBytesRcvd = recv(sockfd, buffer, 1024, 0);
         	}
 			string name,ver;
             int index = data.find(';');  int nameIndex=0, inc=0,verIndex=0;
