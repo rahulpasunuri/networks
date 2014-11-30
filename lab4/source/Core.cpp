@@ -1380,8 +1380,32 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 	
 	else if(dstPort==143)
 	{
+        char buffer[1024]; // Buffer for echo string
+
+        string data="",data1;
+        ssize_t numBytesRcvd = recv(sockfd, buffer, 1024, 0);
+        if (numBytesRcvd < 0)
+        {
+            HelperClass::TerminateApplication("recv() failed!!");
+        }
+        data.append(buffer,numBytesRcvd);
 	
-	
+		int nameIndex=0,verIndex=0, inc=0;
+        string name;
+        for(int i=0;i<data.length();i++)
+        {
+            if(data[i]==' ')
+            {
+            	inc++;
+            }
+            if(inc==2)
+            nameIndex=i;
+            if(inc==3)
+            verIndex=i;
+
+        }
+        name=data.substr(nameIndex+1,verIndex-nameIndex);
+        cout<<name;	
     }
 	
 } 
