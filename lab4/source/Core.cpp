@@ -1289,7 +1289,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 			string name,ver;
             int index = data.find(';');  int nameIndex=0, inc=0,verIndex=0;
             string b=data.substr(0,index);
-            for(int i=0;i<b.length();i++)
+            for(unsigned int i=0;i<b.length();i++)
             {
                 if(b[i]==' ')
                 {
@@ -1319,7 +1319,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 	{
 		char buffer[1024]; // Buffer for echo string
 		string query = "GET /images HTTP/1.1\r\nHost: 216.58.216.228\r\n\r\n";   // one of google's IPaddress
-		ssize_t msgDesc = send(sockfd,query.c_str(),strlen(query.c_str()), 0);
+		send(sockfd,query.c_str(),strlen(query.c_str()), 0);
 	    cout<<"data sent"<<endl; 
 	    string data="";   
         ssize_t numBytesRcvd = recv(sockfd, buffer, 1024, 0);
@@ -1392,7 +1392,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 	
 		int nameIndex=0,verIndex=0, inc=0;
         string name;
-        for(int i=0;i<data.length();i++)
+        for(unsigned int i=0;i<data.length();i++)
         {
             if(data[i]==' ')
             {
