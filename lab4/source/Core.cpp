@@ -1311,7 +1311,24 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
     } 
 	else if(dstPort==43)
 	{
-		
+		string query = " hello.com\r\n\r\n";
+		if(sendto(sockfd,query.c_str(),strlen(query.c_str()), 0, NULL,0)<0)
+			cout<<"send failed"<<endl;
+
+		char buffer[1024]; // Buffer for echo string
+
+		string data="";
+		ssize_t numBytesRcvd = recv(sockfd, buffer, 1024, 0);
+		if (numBytesRcvd < 0)
+		{
+			HelperClass::TerminateApplication("recv() failed!!");
+		}
+		data.append(buffer,numBytesRcvd);
+		size_t found = data.find("Whois Server Version");
+		size_t found1 = data.find('\n',found+1);
+		string ver = data.substr(found,found1-found);
+		cout<<ver;
+
 	}
 	
 	// ---HTTP service Information....
