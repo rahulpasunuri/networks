@@ -1246,7 +1246,8 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 	
 	if(sockfd<0)
 	{
-		HelperClass::TerminateApplication("socket for service info failed");
+		cout<<"socket for service info failed\n";
+		return;
 	}
 	
 	struct sockaddr_in destinationAddress;
@@ -1258,7 +1259,9 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 	// connecting to the server.....
 	if (connect(sockfd, (struct sockaddr *) &destinationAddress, sizeof(destinationAddress)) < 0)
     {
-            HelperClass::TerminateApplication("connect() failed");
+            cout<<"connect() failed";
+            close(sockfd);
+            return;
     }
 	   // for SSH and Mail Server Service Information....
 	   
@@ -1269,14 +1272,15 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
         ssize_t numBytesRcvd = recv(sockfd, buffer, 1024, 0);
         if (numBytesRcvd < 0)
         {
-            HelperClass::TerminateApplication("recv() failed!!");
+            cout<<"recv() failed!!";
+            close(sockfd);
+            return;
         }
         
         if(dstPort==22)
-        {
-            int index = data.find_last_of("-");
-            cout<<data.substr(0,index)<<endl;
-            close(sockfd);
+        {	
+        	data.append(buffer,numBytesRcvd);
+            cout<<'\t'<<data<<endl;
         }
         else
         {   
@@ -1304,8 +1308,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
             name=b.substr(nameIndex+1,verIndex-nameIndex);
             ver=b.substr(verIndex+1);
             cout<<"SMTP\t"<<name<<endl;
-            cout<<"version\t"<<ver<<endl;
-            close(sockfd);
+            cout<<"version\t"<<ver<<endl;            
        }
 
     } 
@@ -1313,7 +1316,11 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 	{
 		string query = " hello.com\r\n\r\n";
 		if(sendto(sockfd,query.c_str(),strlen(query.c_str()), 0, NULL,0)<0)
+		{
 			cout<<"send failed"<<endl;
+			   close(sockfd);
+			   return;
+		}	   
 
 		char buffer[1024]; // Buffer for echo string
 
@@ -1321,12 +1328,16 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 		ssize_t numBytesRcvd = recv(sockfd, buffer, 1024, 0);
 		if (numBytesRcvd < 0)
 		{
-			HelperClass::TerminateApplication("recv() failed!!");
+			cout<<"recv() failed!!\n";
+			close(sockfd);
+			return;
 		}
 		data.append(buffer,numBytesRcvd);
+		
 		size_t found = data.find("Whois Server Version");
 		size_t found1 = data.find('\n',found+1);
 		string ver = data.substr(found,found1-found);
+		
 		cout<<ver;
 
 	}
@@ -1335,14 +1346,20 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 	else if(dstPort==80)
 	{
 		char buffer[1024]; // Buffer for echo string
-		string query = "GET /images HTTP/1.1\r\nHost: 216.58.216.228\r\n\r\n";   // one of google's IPaddress
+		/****CONSTRUCTING HTTP QUERY*******/
+		string query = "GET /images HTTP/1.1\r\nHost:";
+		query.append(destIp);
+		query.append("\r\n\r\n");
+		   
 		send(sockfd,query.c_str(),strlen(query.c_str()), 0);
-	    cout<<"data sent"<<endl; 
+	     
 	    string data="";   
+        
         ssize_t numBytesRcvd = recv(sockfd, buffer, 1024, 0);
         if (numBytesRcvd < 0)
         {
                 cout<<"recv() failed!!"<<endl;
+                close(sockfd);
                 return;
                 
         }
@@ -1358,11 +1375,13 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 		}
 		else
 		{
-			unsigned int index = data.find_first_of(' '); 
-			string b=data.substr(0,index);
-			cout<<b<<endl;
+			size_t found = data.find("Server:");
+            size_t found1 = data.find('\n',found+1);
+            string ver = data.substr(found,found1-found);
+            cout<<ver;
+
         }
-        close(sockfd);        
+               
 	}
 	
 	
@@ -1376,22 +1395,26 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
         if (numBytesRcvd < 0)
         {
             cout<<"recv() failed!!"<<endl;
-				return;
-        }
-        data.append(buffer,numBytesRcvd);
-        if(strcmp(data.c_str(),"")==0)
-        {
-            cout<<"no data recvd";
-
+            close(sockfd);
+			return;
         }
         else
         {
-            int index=0,index1=0;
-            index=data.find_first_of(' ');
-            index1=data.find_last_of(' ');
-            cout<<data.substr(index,index1-index);
-       }
-	   close(sockfd);
+		    data.append(buffer,numBytesRcvd);
+		    if(strcmp(data.c_str(),"")==0)
+		    {
+		        cout<<"no data recvd";
+				
+			
+		    }
+		    else
+		    {
+		        int index=0,index1=0;
+		        index=data.find_first_of(' ');
+		        index1=data.find_last_of(' ');
+		        cout<<data.substr(index,index1-index);		       		        
+		    }
+		  }	
 	}
 	
 	
@@ -1403,28 +1426,33 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
         ssize_t numBytesRcvd = recv(sockfd, buffer, 1024, 0);
         if (numBytesRcvd < 0)
         {
-            HelperClass::TerminateApplication("recv() failed!!");
+            cout<<"recv() failed!!";
         }
-        data.append(buffer,numBytesRcvd);
-	
-		int nameIndex=0,verIndex=0, inc=0;
-        string name;
-        for(unsigned int i=0;i<data.length();i++)
+        else
         {
-            if(data[i]==' ')
-            {
-            	inc++;
-            }
-            if(inc==2)
-            nameIndex=i;
-            if(inc==3)
-            verIndex=i;
-
-        }
-        name=data.substr(nameIndex+1,verIndex-nameIndex);
-        cout<<name;	
-    }
+		    data.append(buffer,numBytesRcvd);
 	
+			int nameIndex=0,verIndex=0, inc=0;
+		    string name;
+		    for(unsigned int i=0;i<data.length();i++)
+		    {
+		        if(data[i]==' ')
+		        {
+		        	inc++;
+		        }
+		        if(inc==2)
+		        nameIndex=i;
+		        if(inc==3)
+		        verIndex=i;
+
+		    }
+		    name=data.substr(nameIndex+1,verIndex-nameIndex);
+		    cout<<name;	
+		 }   
+    }
+    close(sockfd);
+    return;
+
 } 
 
 
