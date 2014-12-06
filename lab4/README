@@ -1,6 +1,77 @@
-References:
-1) IPv4, http://en.wikipedia.org/wiki/IPv4#Header
-2) Transmission Control Protocol, http://en.wikipedia.org/wiki/Transmission_Control_Protocol
-3) TCP Checksum Calculation and the TCP "Pseudo Header", http://www.tcpipguide.com/free/t_TCPChecksumCalculationandtheTCPPseudoHeader-2.htm
-4) Service Name and Transport Protocol Port Number Registry, http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml
+Project 4: Port Scanner
+-----------------------
 
+Name: RAHUL PASUNURI
+email: rahupasu@indiana.edu
+
+Name: MANISH KUMAR
+email:manivutt@indiana.edu
+
+------------------------
+Introduction:
+The project port Scanner is an application that scans the ports specified on a target machine whose IP address or set of IP addresses are given as input from the command line. This program is advantageous to the network administrators in detecting any vulnerabilities if present in their security implementation. Program when executed runs all the scans given as input and derives a conclusion about whether the port is open, closed or filtered based on the results of the scan processes.
+
+•
+
+Usage:
+1.  help: When portScanner is invoked with this option, it shows a short program description as well as displays all options available to the user.
+
+options:
+• --help. Print out the message. \n\
+• --verbose. Runs in a verbose Mode. --\n\
+• --ports <ports to scan>. Specify the ports and range of ports to scan(using -) \n\
+• --ip <IP address to scan>. Specify the ip address to scan \n\
+• --prefix <IP prefix to scan>. Specify the ip prefix to scan \n\
+• --file <file name containing IP addresses to scan>. specify the file name containing the ip addresses \n\
+• --speedup <parallel threads to use>. Specify number of  threads to use, to speed up the scan \n\
+• --scan <one or more scans>. Specify the scans (each separated by a space)\n";
+
+Functionalities:
+Port Scanner can perform the below scans over the range of IP prefixes or ip addresses given as input to the program. If the ports are not specified then the project will perform scan on all the 1024 ports of each given IP.
+• Constraints have been created over the type of input that must be provided using a particular option.
+• When no scan type is provided, all tha above mentioned scans are run by default.
+1. TCP SYN scan
+2. TCP ACK scan
+3. TCP FIN scan
+4. TCP NULL scan
+5. TCP XMAS scan
+6. UDP scan
+7. SERVICES: Displays the service versions of the appliations listening on the standard ports(only when they are open).
+
+Running the application:
+1.  A 'makefile' is  written in the project's main folder. Open a command prompt, 'cd' to the project's main folder, and then execute "make" or "make all"  command. This     command creates the object files and the executables in the "object/" and "bin/" directories respectively.  
+2.  Execute "make clear" to clear the object and bin directories.
+
+Usage Examples:
+
+1. sudo nice ./bin/portScanner --ip 8.8.8.8 --prefix 127.90.101.1/30 --speedup 2 --scan FIN ACK --file ipAddresses.txt --verbose --ports 6000,6111-6115 
+2. sudo valgrind --leak-check=full  nice ./bin/portScanner --ip 8.8.8.8 --speedup 2 --scan UDP --file ipAddresses.txt --verbose --ports 53 
+3. sudo nice valgrind --leak-check=full ./bin/portScanner --ip 129.79.247.87 --speedup 5 --scan NULL --ports 22
+4. sudo nice ./bin/portScanner --ip 129.79.247.87 --speedup 2 --scan SYN --ports 22,43,24,110,143
+
+Description of Project Folders and Files:
+
+object(Folder):    Contains the object files created for the .cpp files present in the source folder
+include(Folder):   Contains the necessary custom header files namely "Core.h", "portScanner.h", "HelperClass.h" 
+source(Folder):    Contains the source files.  
+bin(Folder):       Contains the executable "portScanner" which is created after running the makefile
+resources:         Contains a file for printing the default service names of 1024 ports.
+makefile:          Contains rules for compilation of the files need to generate the executable.
+source/portScanner.cpp:  Contains the entry code of the project. It is in this file where the command line options are parsed.
+source/Core.cpp:  Contains the function definitions and source code for performing all the scans, pcap implementation to capture packets on the interface. 
+source/HelperClass.cpp: Has definitions for some of the common functions that are used frequently in the code.For example, validation logic for IP address 
+include/HelperClass.h: Contains the structures that are used in the programming to store the IP addresses, ports , Dns header etc.
+run.sh(shell script file): A shell script file is provided with the code so that it would be easy to run and test the project source code.
+tshark.sh(shell script file): contains rule to capture the packets moving across the interface.
+Limitations of the Project:
+1. Port Scanner works only with Ipv4 addresses as input.
+
+References:
+1) Programming with pcap, http://www.tcpdump.org/pcap.htm
+2) IPv4, http://en.wikipedia.org/wiki/IPv4#Header
+3) Transmission Control Protocol, http://en.wikipedia.org/wiki/Transmission_Control_Protocol
+4) TCP Checksum Calculation and the TCP "Pseudo Header", http://www.tcpipguide.com/free/t_TCPChecksumCalculationandtheTCPPseudoHeader-2.htm
+5) Service Name and Transport Protocol Port Number Registry, http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml
+6) DNS header construction  http://www.binarytides.com/dns-query-code-in-c-with-winsock/
+7) HTTP request  format http://tools.ietf.org/html/rfc2616
+8) USER DATAGRAM PROTOCOL https://www.ietf.org/rfc/rfc768.txt
