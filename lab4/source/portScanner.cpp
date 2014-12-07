@@ -391,9 +391,9 @@ int main(int argc, char** argv)
   struct ifconf ifc = {0};
   struct ifreq *ifr = NULL;
   int           sock = 0;
-  int           nInterfaces = 0;
+  int           nInterfaces = 0; // no. of interfaces active
   int           i = 0;
-  bool up_and_running = false;
+  bool up_and_running = false;  // It tells if the interface is active
   ifc.ifc_len = sizeof(buf);
   ifc.ifc_buf = buf;
   sock= socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
