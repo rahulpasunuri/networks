@@ -4,15 +4,20 @@ Project 4: Port Scanner
 Name: RAHUL PASUNURI
 email: rahupasu@indiana.edu
 
-Name: MANISH KUMAR
+Name: MANISH KUMAR VUTTUNOORI
 email:manivutt@indiana.edu
 
 ------------------------
 Introduction:
 The project port Scanner is an application that scans the ports specified on a target machine whose IP address or set of IP addresses are given as input from the command line. This program is advantageous to the network administrators in detecting any vulnerabilities if present in their security implementation. Program when executed runs all the scans given as input and derives a conclusion about whether the port is open, closed or filtered based on the results of the scan processes.
 
-•
+• Since the program is developed using raw sockets, root privilages are required to run the program.
 
+• The program automatically detects the interface that is currently active and binds the sockets to it, which makes the program free from knowing the interface details of the system.
+
+• The classification of a port's state is made according to the specfication given in the manual. 
+The usage of the program and the various options that are present for a user for running the program are described below.
+ 
 Usage:
 1.  help: When portScanner is invoked with this option, it shows a short program description as well as displays all options available to the user.
 
@@ -27,7 +32,9 @@ options:
 • --scan <one or more scans>. Specify the scans (each separated by a space);
 
 Functionalities:
+
 Port Scanner can perform the below scans over the range of IP prefixes or ip addresses given as input to the program. If the ports are not specified then the project will perform scan on port range 1-1024 by default.
+
 • Constraints have been created over the type of input that must be provided using a particular option.
 • When no scan type is provided, all tha above mentioned scans are run by default.
 1. TCP SYN scan
@@ -39,6 +46,7 @@ Port Scanner can perform the below scans over the range of IP prefixes or ip add
 7. SERVICES: Displays the service versions of the appliations listening on the standard ports(only when they are open).
 
 Running the application:
+
 1.  A 'makefile' is  written in the project's main folder. Open a command prompt, 'cd' to the project's main folder, and then execute "make" or "make all"  command. This     command creates the object files and the executables in the "object/" and "bin/" directories respectively.  
 2.  Execute "make clear" to clear the object and bin directories.
 
@@ -57,14 +65,19 @@ source(Folder):    Contains the source files.
 bin(Folder):       Contains the executable "portScanner" which is created after running the makefile
 resources:         Contains a file for printing the default service names of 1024 ports.
 makefile:          Contains rules for compilation of the files need to generate the executable.
+
 source/portScanner.cpp:  Contains the entry code of the project. It is in this file where the command line options are parsed.
-source/Core.cpp:  Contains the function definitions and source code for performing all the scans, pcap implementation to capture packets on the interface. 
-source/HelperClass.cpp: Has definitions for some of the common functions that are used frequently in the code.For example, validation logic for IP address 
-include/HelperClass.h: Contains the structures that are used in the programming to store the IP addresses, ports , Dns header etc.
-run.sh(shell script file): A shell script file is provided with the code so that it would be easy to run and test the project source code.
-tshark.sh(shell script file): contains rule to capture the packets moving across the interface.
+source/Core.cpp:         Contains the function definitions and source code for performing all the scans, pcap implementation to capture packets on the interface. 
+source/HelperClass.cpp:  Has definitions for some of the common functions that are used frequently in the code.For example, validation logic for IP address 
+include/HelperClass.h:   Contains the structures that are used in the programming to store the IP addresses, ports , Dns header etc.
+run.sh:                  A shell script file is provided with the code so that it would be easy to run and test the project source code.
+tshark.sh:               contains rule to capture the packets moving across the interface.
 Limitations of the Project:
 1. Port Scanner works only with Ipv4 addresses as input.
+
+Note:
+1. If no ports are spcified from the command line, then the program runs the scan of 1st 1024 ports for each of the given ip addresses.
+2. Similarly, if no scan method is given, then all the scans defined are implemented by default.
 
 References:
 1) Programming with pcap, http://www.tcpdump.org/pcap.htm
@@ -75,3 +88,4 @@ References:
 6) DNS header construction,  http://www.binarytides.com/dns-query-code-in-c-with-winsock/
 7) HTTP request  format, http://tools.ietf.org/html/rfc2616
 8) USER DATAGRAM PROTOCOL, https://www.ietf.org/rfc/rfc768.txt
+9) For detecting interface information http://linux.about.com/library/cmd/blcmdl7_netdevice.htm 
