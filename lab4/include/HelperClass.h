@@ -58,6 +58,7 @@ enum scanTypes_t
 	UDP,
 	MISC
 };
+
 enum StandardServices
 {
 	SSH=22,
@@ -67,6 +68,7 @@ enum StandardServices
 	POP=110,
 	IMAP=143
 };
+
 struct DNS_HEADER                     // dns header
 {  
     unsigned short id;   // identification number

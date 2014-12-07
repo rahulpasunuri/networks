@@ -60,7 +60,7 @@ class Core
 		
 		void PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t);
 		
-		void getServiceInfo(unsigned short port,string dstIp);
+		string getServiceInfo(unsigned short port,string dstIp);
 	
 		//computes the header checksum
 		uint16_t computeHeaderCheckSum(uint16_t* words, unsigned int size);

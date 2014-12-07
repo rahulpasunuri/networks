@@ -1,6 +1,9 @@
 #include "../include/Core.h"
 #include <signal.h>
-
+#define MAX_PORT_NUMBER 10000
+#define PORT_RANGE 64000
+#define TIME_OUT 8000000
+#define SLEEP_TIME 0.1
 struct remote
 {
 	string ip;
@@ -10,7 +13,7 @@ struct remote
 
 bool Core::addPortToList(unsigned short port)
 {
-	if(port<10000) //dis allowing port below 10,000
+	if(port<MAX_PORT_NUMBER) //dis allowing port below 10,000
 	{
 		return false;
 	}
@@ -387,7 +390,7 @@ void Core::PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 		unsigned short srcPort = 0;
 		while(!addPortToList(srcPort)) //ensures that each thread listens on a new port...
 		{	
-			srcPort=rand()%64000;
+			srcPort=rand()%PORT_RANGE;
 		}
 		//send a ack packet.		
 		SendTCPPacket(srcPort, dstIp, dstPort,scanType);		
@@ -435,8 +438,8 @@ void Core::PerformTCPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 			{
 				break;
 			}
-			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
-			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
+			sleep(SLEEP_TIME); //sleep for 100 milli sec... so that other threads will get locks..
+			if(clock()-start > TIME_OUT) //wait for 8 seconds for each packet...
 			{			
 				removePortFromList(srcPort); // we dont have to listen on this port again...
 				isPacketRcvd=false;					
@@ -698,7 +701,7 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 		unsigned short srcPort = 0;
 		while(!addPortToList(srcPort)) //ensures that each thread listens on a new port...
 		{	
-			srcPort=rand()%64000;
+			srcPort=rand()%PORT_RANGE;
 		}
 		//send a  packet.		
 		SendUDPPacket(srcPort, dstIp, dstPort);		
@@ -746,8 +749,8 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 			{
 				break;
 			}
-			sleep(0.1); //sleep for 100 milli sec... so that other threads will get locks..
-			if(clock()-start > 8000000) //wait for 8 seconds for each packet...
+			sleep(SLEEP_TIME); //sleep for 100 milli sec... so that other threads will get locks..
+			if(clock()-start > TIME_OUT) //wait for 8 seconds for each packet...
 			{			
 				removePortFromList(srcPort); // we dont have to listen on this port again...
 				isPacketRcvd=false;					
@@ -918,9 +921,15 @@ void Core::printResult(vector<struct results> list)
 	string serviceName = HelperClass::GetPortName(port);
 	//find the syn scan result out of the results list.
 	portState conclusion=MISC_PORT_STATE;
+	bool shldCheckVersion = false;	
 	if(list.size() == 1)
 	{
 		conclusion = list[0].state; //no analysis required if only one scan type is done..
+		
+		if(conclusion == OPEN && list[0].scanType == TCP_SYN)
+		{
+			shldCheckVersion = true; //only if syn scan is done and it says open..
+		}
 	}
 	struct results* syn=NULL;
 	struct results* fin=NULL;
@@ -928,7 +937,7 @@ void Core::printResult(vector<struct results> list)
 	struct results* xmas=NULL;
 	struct results* ack=NULL;
 	struct results* udp=NULL;
-		
+
 	string scanRes="";
 	for(unsigned int i=0; i<list.size();i++)
 	{
@@ -970,6 +979,7 @@ void Core::printResult(vector<struct results> list)
 		if (syn!=NULL && syn->state == OPEN) //if syn says it is open ==> it is open
 		{
 			conclusion = OPEN;
+			shldCheckVersion = true; //only if syn scan is done and it says open..
 		}
 		else if (syn!=NULL && syn->state == CLOSED) //if syn says it is closed => it is closed.
 		{
@@ -986,6 +996,10 @@ void Core::printResult(vector<struct results> list)
 		else if (xmas!=NULL && xmas->state == CLOSED)
 		{
 			conclusion = CLOSED;
+		}
+		else if (udp!=NULL && udp->state == OPEN)
+		{
+			conclusion = OPEN;
 		}
 		else if (udp!=NULL && udp->state == CLOSED)
 		{
@@ -1013,11 +1027,14 @@ void Core::printResult(vector<struct results> list)
 			conclusion = FILTERED;
 		}
 	}			
-	
 	cout<<"\n-------------------------------------------------------------------------------------------------------\n"<<endl;
 	cout<<setw(15)<<"IP Address: "<<list[0].ip<<endl;
 	cout<<setw(15)<<"Port Number: "<<port<<endl;
 	cout<<setw(15)<<"Service Name: "<<serviceName<<endl;
+	if(shldCheckVersion == true)
+	{
+		cout<<setw(15)<<"Version: "<<getServiceInfo(port, list[0].ip)<<endl;
+	}
 	cout<<setw(15)<<"Results: "<<scanRes<<endl;
 	cout<<setw(15)<<"Conclusion: "<<HelperClass::getPortTypeName(conclusion)<<endl;
 	cout<<"\n-------------------------------------------------------------------------------------------------------\n"<<endl;
@@ -1089,7 +1106,7 @@ void Core::doWork()
 void Core::Start()
 {
 
-	string dstIp="129.79.247.87"; //ip address of dagwood.soic.indiana.edu
+	//string dstIp="129.79.247.87"; //ip address of dagwood.soic.indiana.edu
 	//string dstIp="8.8.8.8"; //ip address of dagwood.soic.indiana.edu
 	shldPacketSnifferExit=false;
 	//init the target list..
@@ -1239,15 +1256,15 @@ uint16_t Core::computeUDPHeaderCheckSum(struct iphdr ip,struct udphdr udp)
 	return checkSum;
 }
 
-void  Core::getServiceInfo(unsigned short dstPort, string destIp)
-{
-	
+string Core::getServiceInfo(unsigned short dstPort, string destIp)
+{	
+	string finalVersion;
 	int sockfd=socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 	
 	if(sockfd<0)
 	{
 		cout<<"socket for service info failed\n";
-		return;
+		return "";
 	}
 	
 	struct sockaddr_in destinationAddress;
@@ -1261,10 +1278,10 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
     {
             cout<<"connect() failed";
             close(sockfd);
-            return;
+            return "";
     }
-	   // for SSH and Mail Server Service Information....
-	   
+	
+	// for SSH and Mail Server Service Information....	   
 	if(dstPort==22||dstPort==24||dstPort==25||dstPort==587)
     {
         char buffer[1024]; // Buffer for echo string
@@ -1274,13 +1291,14 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
         {
             cout<<"recv() failed!!";
             close(sockfd);
-            return;
+            return "";
         }
         
         if(dstPort==22)
         {	
         	data.append(buffer,numBytesRcvd);
-            cout<<'\t'<<data<<endl;
+            finalVersion = '\t' + data;
+            //cout<<'\t'<<data<<endl;
         }
         else
         {   
@@ -1307,8 +1325,9 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
             }
             name=b.substr(nameIndex+1,verIndex-nameIndex);
             ver=b.substr(verIndex+1);
-            cout<<"SMTP\t"<<name<<endl;
-            cout<<"version\t"<<ver<<endl;            
+            finalVersion = "SMTP\t"+name+"version\t"+ver;
+            //cout<<"SMTP\t"<<name<<endl;
+            //cout<<"version\t"<<ver<<endl;            
        }
 
     } 
@@ -1318,8 +1337,8 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 		if(sendto(sockfd,query.c_str(),strlen(query.c_str()), 0, NULL,0)<0)
 		{
 			cout<<"send failed"<<endl;
-			   close(sockfd);
-			   return;
+		    close(sockfd);
+			return "";
 		}	   
 
 		char buffer[1024]; // Buffer for echo string
@@ -1330,7 +1349,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 		{
 			cout<<"recv() failed!!\n";
 			close(sockfd);
-			return;
+			return "";
 		}
 		data.append(buffer,numBytesRcvd);
 		
@@ -1338,8 +1357,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 		size_t found1 = data.find('\n',found+1);
 		string ver = data.substr(found,found1-found);
 		
-		cout<<ver;
-
+		finalVersion = ver;
 	}
 	
 	// ---HTTP service Information....
@@ -1360,7 +1378,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
         {
                 cout<<"recv() failed!!"<<endl;
                 close(sockfd);
-                return;
+                return "";
                 
         }
         while (numBytesRcvd > 0)
@@ -1370,21 +1388,18 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
         }
 		if(strcmp(data.c_str(),"")==0)
 		{
-			cout<<"no data recvd";
-			
+			finalVersion = "no data recvd";			
 		}
 		else
 		{
 			size_t found = data.find("Server:");
             size_t found1 = data.find('\n',found+1);
             string ver = data.substr(found,found1-found);
-            cout<<ver;
-
+            finalVersion = ver;
         }
                
 	}
-	
-	
+		
 	// POP3 service Information....
 	else if(dstPort==110)
 	{
@@ -1396,23 +1411,21 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
         {
             cout<<"recv() failed!!"<<endl;
             close(sockfd);
-			return;
+			return "";
         }
         else
         {
 		    data.append(buffer,numBytesRcvd);
 		    if(strcmp(data.c_str(),"")==0)
 		    {
-		        cout<<"no data recvd";
-				
-			
+		        finalVersion = "no data recvd";							
 		    }
 		    else
 		    {
 		        int index=0,index1=0;
 		        index=data.find_first_of(' ');
 		        index1=data.find_last_of(' ');
-		        cout<<data.substr(index,index1-index);		       		        
+		        finalVersion = data.substr(index,index1-index);		       		        
 		    }
 		  }	
 	}
@@ -1444,15 +1457,13 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 		        nameIndex=i;
 		        if(inc==3)
 		        verIndex=i;
-
 		    }
-		    name=data.substr(nameIndex+1,verIndex-nameIndex);
-		    cout<<name;	
+		    finalVersion=data.substr(nameIndex+1,verIndex-nameIndex);
+		    //cout<<name;	
 		 }   
     }
     close(sockfd);
-    return;
-
+    return finalVersion;
 } 
 
 
