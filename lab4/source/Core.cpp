@@ -1265,7 +1265,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
     }
 	   // for SSH and Mail Server Service Information....
 	   
-	if(dstPort==22||dstPort==24||dstPort==25||dstPort==587)
+	if(dstPort==SSH||dstPort==PRIVATE_MAIL||dstPort==SMTP||dstPort==SMTP1)
     {
         char buffer[1024]; // Buffer for echo string
         string data="";
@@ -1277,7 +1277,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
             return;
         }
         
-        if(dstPort==22)
+        if(dstPort==SSH)
         {	
         	data.append(buffer,numBytesRcvd);
             cout<<'\t'<<data<<endl;
@@ -1312,7 +1312,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
        }
 
     } 
-	else if(dstPort==43)
+	else if(dstPort==WHOIS)
 	{
 		string query = " hello.com\r\n\r\n";
 		if(sendto(sockfd,query.c_str(),strlen(query.c_str()), 0, NULL,0)<0)
@@ -1343,7 +1343,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 	}
 	
 	// ---HTTP service Information....
-	else if(dstPort==80)
+	else if(dstPort==HTTP)
 	{
 		char buffer[1024]; // Buffer for echo string
 		/****CONSTRUCTING HTTP QUERY*******/
@@ -1386,7 +1386,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 	
 	
 	// POP3 service Information....
-	else if(dstPort==110)
+	else if(dstPort==POP)
 	{
 		char buffer[1024]; // Buffer for echo string                 
         string data="";
@@ -1418,7 +1418,7 @@ void  Core::getServiceInfo(unsigned short dstPort, string destIp)
 	}
 	
 	
-	else if(dstPort==143)
+	else if(dstPort==IMAP)
 	{
         char buffer[1024]; // Buffer for echo string
 
