@@ -27,7 +27,7 @@ options:
 • --scan <one or more scans>. Specify the scans (each separated by a space);
 
 Functionalities:
-Port Scanner can perform the below scans over the range of IP prefixes or ip addresses given as input to the program. If the ports are not specified then the project will perform scan on all the 1024 ports of each given IP.
+Port Scanner can perform the below scans over the range of IP prefixes or ip addresses given as input to the program. If the ports are not specified then the project will perform scan on port range 1-1024 by default.
 • Constraints have been created over the type of input that must be provided using a particular option.
 • When no scan type is provided, all tha above mentioned scans are run by default.
 1. TCP SYN scan
