@@ -17,17 +17,17 @@ Usage:
 1.  help: When portScanner is invoked with this option, it shows a short program description as well as displays all options available to the user.
 
 options:
-• --help. Print out the message. \n\
-• --verbose. Runs in a verbose Mode. --\n\
-• --ports <ports to scan>. Specify the ports and range of ports to scan(using -) \n\
-• --ip <IP address to scan>. Specify the ip address to scan \n\
-• --prefix <IP prefix to scan>. Specify the ip prefix to scan \n\
-• --file <file name containing IP addresses to scan>. specify the file name containing the ip addresses \n\
-• --speedup <parallel threads to use>. Specify number of  threads to use, to speed up the scan \n\
-• --scan <one or more scans>. Specify the scans (each separated by a space)\n";
+• --help. Print out the message. 
+• --verbose. Runs in a verbose Mode. 
+• --ports <ports to scan>. Specify the ports and range of ports to scan(using -)
+• --ip <IP address to scan>. Specify the ip address to scan 
+• --prefix <IP prefix to scan>. Specify the ip prefix to scan 
+• --file <file name containing IP addresses to scan>. specify the file name containing the ip addresses 
+• --speedup <parallel threads to use>. Specify number of  threads to use, to speed up the scan 
+• --scan <one or more scans>. Specify the scans (each separated by a space);
 
 Functionalities:
-Port Scanner can perform the below scans over the range of IP prefixes or ip addresses given as input to the program. If the ports are not specified then the project will perform scan on all the 1024 ports of each given IP.
+Port Scanner can perform the below scans over the range of IP prefixes or ip addresses given as input to the program. If the ports are not specified then the project will perform scan on port range 1-1024 by default.
 • Constraints have been created over the type of input that must be provided using a particular option.
 • When no scan type is provided, all tha above mentioned scans are run by default.
 1. TCP SYN scan
@@ -72,6 +72,6 @@ References:
 3) Transmission Control Protocol, http://en.wikipedia.org/wiki/Transmission_Control_Protocol
 4) TCP Checksum Calculation and the TCP "Pseudo Header", http://www.tcpipguide.com/free/t_TCPChecksumCalculationandtheTCPPseudoHeader-2.htm
 5) Service Name and Transport Protocol Port Number Registry, http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml
-6) DNS header construction  http://www.binarytides.com/dns-query-code-in-c-with-winsock/
-7) HTTP request  format http://tools.ietf.org/html/rfc2616
-8) USER DATAGRAM PROTOCOL https://www.ietf.org/rfc/rfc768.txt
+6) DNS header construction,  http://www.binarytides.com/dns-query-code-in-c-with-winsock/
+7) HTTP request  format, http://tools.ietf.org/html/rfc2616
+8) USER DATAGRAM PROTOCOL, https://www.ietf.org/rfc/rfc768.txt
