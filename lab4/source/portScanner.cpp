@@ -387,23 +387,46 @@ args_t parseArguments(int argc, char** argv)
 //the main method...
 int main(int argc, char** argv)
 {
-	bool isBlondie=false;
+  char   buf[1024] = {0};
+  struct ifconf ifc = {0};
+  struct ifreq *ifr = NULL;
+  int           sock = 0;
+  int           nInterfaces = 0;
+  int           i = 0;
+  bool up_and_running = false;
+  ifc.ifc_len = sizeof(buf);
+  ifc.ifc_buf = buf;
+  sock= socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if(ioctl(sock, SIOCGIFCONF, &ifc) <0) 
+  {
+    perror("ioctl(SIOCGIFCONF)");
+    return 1;
+  }
+  string interfaceName="";
+  ifr = ifc.ifc_req;
+  nInterfaces = ifc.ifc_len / sizeof(struct ifreq);
+  for(i = 0; i<nInterfaces; i++)
+  {
+      struct ifreq *item = &ifr[i];
+      if( ioctl( sock, SIOCGIFFLAGS,item ) != -1 )
+      {
+        up_and_running = (item->ifr_flags & ( IFF_UP | IFF_RUNNING )) == ( IFF_UP | IFF_RUNNING );
+      }
+      else
+      {
+         cout<<"error\n"; exit(0);
+      }
 
-	string interfaceName="eth0";
-	//string interfaceName="wlan0";
+      if(up_and_running)
+      interfaceName=string(item->ifr_name);
 
-	args_t args=parseArguments(argc,argv);
-	printArguments(args);
-	if(!isBlondie) //TODO
-	{
-		interfaceName="wlan0";
-	}
-	else
-	{
-		interfaceName="eth0";
-	}
-	srand (time(NULL)); 
-	Core c(args, interfaceName);
-	c.Start();
-	return 0;
+       cout<<interfaceName;
+  }    
+
+  args_t args=parseArguments(argc,argv);
+  printArguments(args);	
+  srand (time(NULL)); 
+  Core c(args, interfaceName);
+  c.Start();
+  return 0;
 }
