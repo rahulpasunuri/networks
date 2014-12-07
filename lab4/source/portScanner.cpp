@@ -420,7 +420,6 @@ int main(int argc, char** argv)
       if(up_and_running)
       interfaceName=string(item->ifr_name);
 
-       cout<<interfaceName;
   }    
 
   args_t args=parseArguments(argc,argv);

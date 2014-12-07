@@ -62,11 +62,13 @@ enum scanTypes_t
 enum StandardServices
 {
 	SSH=22,
-	SMTP=24, //TODO try other ports 24, 25, and 587
+	PRIVATE_MAIL=24,
+	SMTP=25, //TODO try other ports 24, 25, and 587
 	WHOIS=43,
 	HTTP=80,
 	POP=110,
-	IMAP=143
+	IMAP=143,
+	SMTP1=587
 };
 
 struct DNS_HEADER                     // dns header

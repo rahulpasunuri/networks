@@ -1146,8 +1146,6 @@ void Core::Start()
 		pthread_join(threads[i],NULL);
 	}
 	
-	//TODO terminate the sniffer thread
-
 	packetSnifferMutex.lock();
 	shldPacketSnifferExit = true;
 	packetSnifferMutex.unlock();
@@ -1258,6 +1256,10 @@ uint16_t Core::computeUDPHeaderCheckSum(struct iphdr ip,struct udphdr udp)
 
 string Core::getServiceInfo(unsigned short dstPort, string destIp)
 {	
+	if(dstPort!=SSH && dstPort!=PRIVATE_MAIL && dstPort==SMTP && dstPort==SMTP1 && dstPort==WHOIS && dstPort==HTTP && dstPort==POP && dstPort==IMAP)
+	{
+		return "";
+	}
 	string finalVersion;
 	int sockfd=socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 	
@@ -1280,9 +1282,8 @@ string Core::getServiceInfo(unsigned short dstPort, string destIp)
             close(sockfd);
             return "";
     }
-	
-	// for SSH and Mail Server Service Information....	   
-	if(dstPort==22||dstPort==24||dstPort==25||dstPort==587)
+
+	if(dstPort==SSH||dstPort==PRIVATE_MAIL||dstPort==SMTP||dstPort==SMTP1)
     {
         char buffer[1024]; // Buffer for echo string
         string data="";
@@ -1294,7 +1295,7 @@ string Core::getServiceInfo(unsigned short dstPort, string destIp)
             return "";
         }
         
-        if(dstPort==22)
+        if(dstPort==SSH)
         {	
         	data.append(buffer,numBytesRcvd);
             finalVersion = '\t' + data;
@@ -1331,7 +1332,7 @@ string Core::getServiceInfo(unsigned short dstPort, string destIp)
        }
 
     } 
-	else if(dstPort==43)
+	else if(dstPort==WHOIS)
 	{
 		string query = " hello.com\r\n\r\n";
 		if(sendto(sockfd,query.c_str(),strlen(query.c_str()), 0, NULL,0)<0)
@@ -1361,7 +1362,7 @@ string Core::getServiceInfo(unsigned short dstPort, string destIp)
 	}
 	
 	// ---HTTP service Information....
-	else if(dstPort==80)
+	else if(dstPort==HTTP)
 	{
 		char buffer[1024]; // Buffer for echo string
 		/****CONSTRUCTING HTTP QUERY*******/
@@ -1401,7 +1402,7 @@ string Core::getServiceInfo(unsigned short dstPort, string destIp)
 	}
 		
 	// POP3 service Information....
-	else if(dstPort==110)
+	else if(dstPort==POP)
 	{
 		char buffer[1024]; // Buffer for echo string                 
         string data="";
@@ -1431,7 +1432,7 @@ string Core::getServiceInfo(unsigned short dstPort, string destIp)
 	}
 	
 	
-	else if(dstPort==143)
+	else if(dstPort==IMAP)
 	{
         char buffer[1024]; // Buffer for echo string
 
