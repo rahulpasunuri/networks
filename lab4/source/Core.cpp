@@ -764,7 +764,7 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 		}
 		if(isUdp)
 		{
-			cout<<"port is open\n adding to vector";
+			
 			r.state = OPEN;						
 		}
 		else if(isIcmp)
@@ -793,7 +793,7 @@ void Core::PerformUDPScan(string dstIp, unsigned short dstPort, scanTypes_t scan
 	{
 		r.state = OPEN_OR_FILTERED;
 	}
-	cout<<"ADDING RESULT TO THE VECTOR\n\n";
+	
 	addResult(r);	
 }
 
